@@ -6,10 +6,10 @@
 
     <p class="mb-6">Esta página demonstra como o frontend pode interagir com a API para buscar dados, usando os padrões definidos no framework.</p>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="grid grid-cols-12 gap-6">
       
       <!-- Listar Pacientes -->
-      <div class="p-4 border rounded-lg col-span-1 md:col-span-2">
+      <div class="p-4 border rounded-lg col-span-12 md:col-span-8">
         <h2 class="text-lg font-semibold mb-2">Listar Pacientes</h2>
         <p class="text-sm text-gray-600 mb-4">Clica no botão para buscar os primeiros 100 pacientes do banco de dados do AGHU.</p>
         <Button @click="fetchPacientes" :disabled="loadingPacientes" class="bg-blue-500 hover:bg-blue-600 text-white">
@@ -30,7 +30,7 @@
       </div>
 
       <!-- Obter Paciente por Código -->
-      <div class="p-4 border rounded-lg col-span-1 md:col-span-2">
+      <div class="p-4 border rounded-lg col-span-12 md:col-span-4">
         <h2 class="text-lg font-semibold mb-2">Obter Paciente por Código</h2>
         <p class="text-sm text-gray-600 mb-4">Digite um código de paciente e clique em buscar.</p>
         <div class="flex items-center space-x-2">

@@ -36,3 +36,37 @@
 
   --shadow-paper: 0 2px 2px 0 rgba(204, 197, 185, 0.5);
 }
+
+@layer components {
+  .container {
+    width: 100%;
+    margin-right: auto;
+    margin-left: auto;
+    padding-right: 15px;
+    padding-left: 15px;
+  }
+
+  @screen sm {
+    .container {
+      max-width: 540px;
+    }
+  }
+
+  @screen md {
+    .container {
+      max-width: 720px;
+    }
+  }
+
+  @screen lg {
+    .container {
+      max-width: 960px;
+    }
+  }
+
+  @screen xl {
+    .container {
+      max-width: 1140px;
+    }
+  }
+}

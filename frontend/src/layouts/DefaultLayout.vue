@@ -54,7 +54,9 @@
         </div>
       </header>
       <main class="flex-1 p-6 md:p-10">
-        <router-view />
+        <div class="container">
+          <router-view />
+        </div>
       </main>
     </div>
   </div>
