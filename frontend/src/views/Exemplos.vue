@@ -69,7 +69,7 @@
         </div>
         <div class="flex justify-end space-x-4 mt-4">
           <Button type="button" variant="default">Cancelar</Button>
-          <Button type="submit" variant="primary">Enviar</Button>
+          <Button type="submit" variant="primary" :loading="isSubmitting">Enviar</Button>
         </div>
       </Form>
     </Card>
@@ -84,12 +84,21 @@
         <Button @click="showErrorToast" variant="danger">Erro</Button>
         <Button @click="showInfoToast" variant="info">Informação</Button>
         <Button @click="showWarningToast" variant="warning">Aviso</Button>
+        <Button @click="showLoadingButton" :loading="isLoadingButton">
+          <template #icon>
+            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </template>
+          Botão com Ícone
+        </Button>
       </div>
     </Card>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
 import { Form, Field, ErrorMessage } from 'vee-validate';
 import { toTypedSchema } from '@vee-validate/zod';
 import * as z from 'zod';
@@ -99,6 +108,8 @@ import Button from '../components/Button.vue';
 import api from '../services/api';
 
 const toast = useToast();
+const isSubmitting = ref(false);
+const isLoadingButton = ref(false);
 
 const validationSchema = toTypedSchema(
   z.object({
@@ -109,8 +120,12 @@ const validationSchema = toTypedSchema(
 );
 
 function onSubmit(values: any) {
-  toast.success('Formulário enviado com sucesso!');
-  console.log(JSON.stringify(values, null, 2));
+  isSubmitting.value = true;
+  setTimeout(() => {
+    isSubmitting.value = false;
+    toast.success('Formulário enviado com sucesso!');
+    console.log(JSON.stringify(values, null, 2));
+  }, 2000);
 }
 
 function showSuccessToast() {
@@ -127,5 +142,12 @@ function showInfoToast() {
 
 function showWarningToast() {
   toast.warning('Esta é uma notificação de aviso.');
+}
+
+function showLoadingButton() {
+  isLoadingButton.value = true;
+  setTimeout(() => {
+    isLoadingButton.value = false;
+  }, 2000);
 }
 </script>

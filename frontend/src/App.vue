@@ -2,21 +2,17 @@
   <component :is="layout">
     <router-view />
   </component>
+  <LoadingIndicator />
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import DefaultLayout from './layouts/DefaultLayout.vue';
 import LoginLayout from './layouts/LoginLayout.vue';
-import { useAuthStore } from './stores/auth';
+import LoadingIndicator from './components/LoadingIndicator.vue';
 
 const route = useRoute();
-const authStore = useAuthStore();
-
-onMounted(() => {
-  authStore.initializeAuth();
-});
 
 const layout = computed(() => {
   switch (route.meta.layout) {

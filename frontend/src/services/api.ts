@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { useAuthStore } from '../stores/auth';
+import { useUiStore } from '../stores/ui';
 
 const api = axios.create({
   baseURL: '/', // Adjust if your API is on a different host
@@ -8,10 +9,14 @@ const api = axios.create({
   }
 });
 
-// Request interceptor to add the access token to every request
+// Request interceptor to add the access token and set loading state
 api.interceptors.request.use(config => {
   const authStore = useAuthStore();
+  const uiStore = useUiStore();
   const token = authStore.accessToken;
+  
+  uiStore.setLoading(true);
+
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -35,10 +40,17 @@ const processQueue = (error: any, token: string | null = null) => {
 
 // Response error interceptor to handle expired tokens
 api.interceptors.response.use(
-  response => response, // Simply return successful responses
+  response => {
+    const uiStore = useUiStore();
+    uiStore.setLoading(false);
+    return response;
+  }, // Simply return successful responses
   async error => {
     const originalRequest = error.config;
     const authStore = useAuthStore();
+    const uiStore = useUiStore();
+
+    uiStore.setLoading(false);
 
     // Check if the error is 401 and it's not a retry request
     if (error.response.status === 401 && !originalRequest._retry) {
