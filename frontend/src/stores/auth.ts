@@ -62,13 +62,16 @@ export const useAuthStore = defineStore('auth', () => {
     await fetchUser(); // Fetch user info immediately after login
   }
 
-  async function logout() {
+  async function logout(router?: any) {
     try {
       await api.post('/api/logout');
     } catch (error) {
       console.error("Logout failed, but clearing token anyway.", error);
     } finally {
       clearToken();
+      if (router) {
+        router.push({ name: 'Login' });
+      }
     }
   }
 

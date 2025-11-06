@@ -72,7 +72,8 @@ api.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError, null);
         console.error('Unable to refresh token. Logging out.', refreshError);
-        authStore.logout(); // If refresh fails, logout the user
+        const router = (await import('../router')).default;
+        authStore.logout(router); // If refresh fails, logout the user
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

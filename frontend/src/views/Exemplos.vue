@@ -82,6 +82,7 @@ import { toTypedSchema } from '@vee-validate/zod';
 import * as z from 'zod';
 import Card from '../components/Card.vue';
 import Button from '../components/Button.vue';
+import api from '../services/api';
 
 const validationSchema = toTypedSchema(
   z.object({
@@ -94,4 +95,6 @@ const validationSchema = toTypedSchema(
 function onSubmit(values: any) {
   alert(JSON.stringify(values, null, 2));
 }
+
+
 </script>

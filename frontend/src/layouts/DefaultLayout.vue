@@ -89,8 +89,7 @@ const router = useRouter();
 const authStore = useAuthStore();
 
 const handleLogout = async () => {
-  await authStore.logout();
-  router.push('/login');
+  await authStore.logout(router);
 };
 
 // Close sidebar on route change
