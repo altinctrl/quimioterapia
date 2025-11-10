@@ -14,6 +14,9 @@
         <CubeTransparentIcon class="h-8 w-8"/>
         <span class="text-2xl font-extrabold">My App</span>
       </div>
+      <div class="px-4 my-6">
+        <div class="border-t border-white border-opacity-20"></div>
+      </div>
 
       <nav>
         <router-link to="/" class="flex items-center space-x-2 py-2.5 px-4 rounded transition duration-200 hover:bg-paper-active-link hover:text-white">
@@ -21,30 +24,23 @@
           <span>Home</span>
         </router-link>
 
-        <router-link v-if="authStore.isAuthenticated" to="/dashboard" class="flex items-center space-x-2 py-2.5 px-4 rounded transition duration-200 hover:bg-paper-active-link hover:text-white">
-          <ChartBarIcon class="h-6 w-6"/>
-          <span>Dashboard</span>
-        </router-link>
 
-        <router-link v-if="authStore.isAuthenticated" to="/exemplos" class="flex items-center space-x-2 py-2.5 px-4 rounded transition duration-200 hover:bg-paper-active-link hover:text-white">
-          <BeakerIcon class="h-6 w-6"/>
-          <span>Exemplos</span>
-        </router-link>
+
+            <router-link to="/exemplos" class="flex items-center space-x-2 py-2.5 px-4 rounded transition duration-200 hover:bg-paper-active-link hover:text-white">
+              <BeakerIcon class="h-6 w-6" />
+              <span>Exemplos</span>
+            </router-link>
+            <router-link v-if="authStore.isAuthenticated" to="/pacientes" class="flex items-center space-x-2 py-2.5 px-4 rounded transition duration-200 hover:bg-paper-active-link hover:text-white">
+              <UsersIcon class="h-6 w-6" />
+              <span>Pacientes</span>
+            </router-link>
         
         <router-link v-if="authStore.isAdmin" to="/admin" class="flex items-center space-x-2 py-2.5 px-4 rounded transition duration-200 hover:bg-paper-active-link hover:text-white">
           <ShieldCheckIcon class="h-6 w-6"/>
           <span>Admin</span>
         </router-link>
 
-        <router-link v-if="!authStore.isAuthenticated" to="/login" class="flex items-center space-x-2 py-2.5 px-4 rounded transition duration-200 hover:bg-paper-active-link hover:text-white">
-          <ArrowRightOnRectangleIcon class="h-6 w-6"/>
-          <span>Login</span>
-        </router-link>
 
-        <a href="#" v-if="authStore.isAuthenticated" @click.prevent="handleLogout" class="flex items-center space-x-2 py-2.5 px-4 rounded transition duration-200 hover:bg-paper-active-link hover:text-white">
-          <ArrowLeftOnRectangleIcon class="h-6 w-6"/>
-          <span>Logout</span>
-        </a>
       </nav>
     </aside>
 
@@ -55,11 +51,19 @@
           <h1 class="text-2xl font-semibold text-paper-text">{{ $route.name }}</h1>
         </div>
         <div>
-          <ProfileDropdown />
+          <router-link v-if="!authStore.isAuthenticated" to="/login">
+            <Button variant="primary">
+              <template #icon>
+                <ArrowRightOnRectangleIcon class="h-5 w-5" />
+              </template>
+              Login
+            </Button>
+          </router-link>
+          <ProfileDropdown v-else />
         </div>
       </header>
       <main class="flex-1">
-        <div class="container py-6 md:py-10">
+        <div class="container py-4 md:py-6">
           <router-view />
         </div>
       </main>
@@ -71,16 +75,18 @@
 import { ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
-  Bars3Icon,
   HomeIcon,
-  ShieldCheckIcon,
-  ArrowRightOnRectangleIcon,
-  ArrowLeftOnRectangleIcon,
-  CubeTransparentIcon,
+  UserGroupIcon,
+  BeakerIcon,
+  UsersIcon,
   ChartBarIcon,
-  BeakerIcon
+  ShieldCheckIcon,
+  CubeTransparentIcon,
+  Bars3Icon,
+  ArrowRightOnRectangleIcon,
 } from '@heroicons/vue/24/outline';
 import ProfileDropdown from '../components/ProfileDropdown.vue';
+import Button from '../components/Button.vue';
 import { useAuthStore } from '../stores/auth';
 
 const sidebarOpen = ref(false);

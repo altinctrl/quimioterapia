@@ -13,7 +13,6 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => !!accessToken.value);
   const isAdmin = computed(() => {
-    // Define your admin group name here
     const ADMIN_GROUP = "GLO-SEC-HCPE-SETISD"; 
     return user.value?.groups?.includes(ADMIN_GROUP) || false;
   });

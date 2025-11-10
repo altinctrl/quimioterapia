@@ -3,8 +3,9 @@ import { useAuthStore } from '../stores/auth';
 import Home from '../views/Home.vue';
 import Login from '../views/Login.vue';
 import Admin from '../views/Admin.vue';
-import Dashboard from '../views/Dashboard.vue';
+
 import Exemplos from '../views/Exemplos.vue';
+import Pacientes from '../views/Pacientes.vue';
 
 const routes = [
   {
@@ -24,16 +25,16 @@ const routes = [
     component: Admin,
     meta: { requiresAuth: true },
   },
-  {
-    path: '/dashboard',
-    name: 'Dashboard',
-    component: Dashboard,
-    meta: { requiresAuth: true },
-  },
+
   {
     path: '/exemplos',
     name: 'Exemplos',
     component: Exemplos,
+  },
+  {
+    path: '/pacientes',
+    name: 'Pacientes',
+    component: Pacientes,
     meta: { requiresAuth: true },
   },
 ];

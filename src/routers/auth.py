@@ -57,13 +57,9 @@ async def login(
 
 
     access_token_expires = timedelta(minutes=15) if remember_me else timedelta(hours=JWT_EXP_HOURS)
-
     access_token = auth_handler.create_access_token(
-
-        data={"sub": user["username"], "groups": user["groups"]},
-
+        data=user,
         expires_delta=access_token_expires
-
     )
 
 
@@ -114,22 +110,20 @@ async def refresh_token(request: Request, response: Response, db: AsyncSession =
 
     token_obj = await auth_handler.verify_refresh_token(refresh_token, db)
 
-    
+    # Re-fetch full user data to ensure the new token has all AD attributes
+    try:
+        user_full_info = await run_in_threadpool(auth_handler.authenticate_user, token_obj.user_id, None) # Pass None for password as we are re-authenticating
+    except HTTPException as e:
+        # Handle cases where the user might not exist in AD anymore
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Failed to re-authenticate user: {e.detail}")
 
     # Invalidate the old refresh token (optional: implement rotation for better security)
-
     await auth_handler.invalidate_refresh_token(refresh_token, db)
 
-
-
     # Create a new access token (short-lived)
-
     new_access_token = auth_handler.create_access_token(
-
-        data={"sub": token_obj.user_id, "groups": token_obj.groups or []},
-
+        data=user_full_info,
         expires_delta=timedelta(minutes=15)
-
     )
 
 
@@ -137,8 +131,8 @@ async def refresh_token(request: Request, response: Response, db: AsyncSession =
     # Create a new refresh token and set it as a new HttpOnly cookie
 
     new_refresh_token = await auth_handler.create_refresh_token(
-        user_id=token_obj.user_id, 
-        groups=token_obj.groups or [], 
+        user_id=user_full_info["username"], 
+        groups=user_full_info.get("groups", []), 
         db=db
     )
 

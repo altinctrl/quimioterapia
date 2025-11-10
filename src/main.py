@@ -17,10 +17,11 @@ async def lifespan(app: FastAPI):
 
     # Initialize AGHU DB Manager and store in app.state
     aghu_dsn = os.getenv("POSTGRES_DSN")
-    if not aghu_dsn:
-        raise ValueError("POSTGRES_DSN not found in environment variables.")
-    app.state.aghu_db = DatabaseManager(aghu_dsn)
-    print("AGHU PostgreSQL connection pool initialized.")
+    if aghu_dsn:
+        app.state.aghu_db = DatabaseManager(aghu_dsn)
+        print("AGHU PostgreSQL connection pool initialized.")
+    else:
+        print("WARNING: POSTGRES_DSN not found. Skipping AGHU DB initialization.")
 
     # Initialize App DB Manager (SQLite) and store in app.state
     app_dsn = os.getenv("SQLITE_DSN")

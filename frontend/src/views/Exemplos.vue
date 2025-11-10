@@ -74,16 +74,19 @@
       </Form>
     </Card>
 
-    <!-- Toast Notifications Example -->
+    <!-- Other Components Example -->
     <Card>
       <template #header>
-        <h2 class="text-xl font-semibold">Exemplo de Notificações (Toast)</h2>
+        <h2 class="text-xl font-semibold">Outros Componentes</h2>
       </template>
       <div class="flex flex-wrap gap-4">
-        <Button @click="showSuccessToast">Sucesso</Button>
-        <Button @click="showErrorToast" variant="danger">Erro</Button>
-        <Button @click="showInfoToast" variant="info">Informação</Button>
-        <Button @click="showWarningToast" variant="warning">Aviso</Button>
+        <!-- Toast Buttons -->
+        <Button @click="showSuccessToast">Toast Sucesso</Button>
+        <Button @click="showErrorToast" variant="danger">Toast Erro</Button>
+        <Button @click="showInfoToast" variant="info">Toast Info</Button>
+        <Button @click="showWarningToast" variant="warning">Toast Aviso</Button>
+        
+        <!-- Loading Button -->
         <Button @click="showLoadingButton" :loading="isLoadingButton">
           <template #icon>
             <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -92,8 +95,26 @@
           </template>
           Botão com Ícone
         </Button>
+
+        <!-- Modal Button -->
+        <Button @click="showModal = true" variant="secondary">Abrir Modal</Button>
       </div>
     </Card>
+
+    <!-- Modal Component -->
+    <Modal :show="showModal" @close="showModal = false">
+      <template #header>
+        Título do Modal
+      </template>
+      
+      <p>Este é o conteúdo do modal. Você pode colocar qualquer coisa aqui, como texto, imagens, ou até mesmo um formulário.</p>
+      
+      <template #footer>
+        <Button @click="showModal = false" variant="default">Cancelar</Button>
+        <Button @click="handleModalConfirm" variant="primary">Confirmar</Button>
+      </template>
+    </Modal>
+
   </div>
 </template>
 
@@ -105,11 +126,13 @@ import * as z from 'zod';
 import { useToast } from 'vue-toastification';
 import Card from '../components/Card.vue';
 import Button from '../components/Button.vue';
+import Modal from '../components/Modal.vue';
 import api from '../services/api';
 
 const toast = useToast();
 const isSubmitting = ref(false);
 const isLoadingButton = ref(false);
+const showModal = ref(false);
 
 const validationSchema = toTypedSchema(
   z.object({
@@ -149,5 +172,10 @@ function showLoadingButton() {
   setTimeout(() => {
     isLoadingButton.value = false;
   }, 2000);
+}
+
+function handleModalConfirm() {
+  toast.info('Ação do modal confirmada!');
+  showModal.value = false;
 }
 </script>
