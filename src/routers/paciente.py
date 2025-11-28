@@ -10,7 +10,7 @@ from ..auth.auth import auth_handler
 
 # --- PONTO ÚNICO DE CONFIGURAÇÃO PARA ESTE ROTEADOR ---
 # Para usar o banco de dados em produção, altere esta linha para "postgres"
-STRATEGY = "csv"
+STRATEGY = "POSTGRES"
 # ----------------------------------------------------
 
 router = APIRouter(
