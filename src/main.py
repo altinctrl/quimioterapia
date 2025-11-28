@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from starlette.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 import os
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
@@ -8,72 +8,81 @@ from dotenv import load_dotenv
 # Carrega as variáveis de ambiente do arquivo .env
 load_dotenv()
 
-from .resources.database import DatabaseManager, Base
+from .resources.database import DatabaseManager
+import src.models.paciente
+import src.models.protocolo
+import src.models.poltrona
+import src.models.agendamento
+import src.models.prescricao
+from .routers import paciente, auth, admin, agendamento, protocolo, poltrona, prescricao
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
     print("Starting up...")
 
-    # Initialize AGHU DB Manager and store in app.state
-    aghu_dsn = os.getenv("POSTGRES_DSN")
-    if aghu_dsn:
-        app.state.aghu_db = DatabaseManager(aghu_dsn)
-        print("AGHU PostgreSQL connection pool initialized.")
-    else:
-        print("WARNING: POSTGRES_DSN not found. Skipping AGHU DB initialization.")
+    # Leitura da URL do Banco (prioriza Postgres, fallback para SQLite se necessário)
+    db_dsn = os.getenv("POSTGRES_DSN")
 
-    # Initialize App DB Manager (SQLite) and store in app.state
-    app_dsn = os.getenv("SQLITE_DSN")
-    if not app_dsn:
-        raise ValueError("SQLITE_DSN not found in environment variables.")
-    app.state.app_db = DatabaseManager(app_dsn)
-    print("App SQLite connection pool initialized.")
+    if not db_dsn:
+        db_dsn = os.getenv("APP_DB_URL")
 
-    # Create tables for App DB (if they don't exist) - for development only, Alembic handles this in production
-    async with app.state.app_db.engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    print("App SQLite tables checked/created.")
+    if not db_dsn:
+        raise ValueError("Nenhuma string de conexão (POSTGRES_DSN ou APP_DB_URL) encontrada no .env")
+
+    db_manager = DatabaseManager(db_dsn)
+
+    app.state.app_db = db_manager
+    app.state.aghu_db = db_manager
+
+    print(f"Database connection pool initialized using: {db_dsn.split('@')[-1]}")  # Log seguro (esconde senha)
 
     yield
 
     # Shutdown
     print("Shutting down...")
-    if hasattr(app.state, 'aghu_db') and app.state.aghu_db:
-        await app.state.aghu_db.close_connection()
-        print("AGHU PostgreSQL connection pool closed.")
-    if hasattr(app.state, 'app_db') and app.state.app_db:
-        await app.state.app_db.close_connection()
-        print("App SQLite connection pool closed.")
+    await db_manager.close_connection()
+    print("Database connection closed.")
+
 
 app = FastAPI(
-    title="Esqueleto de Aplicação Web Full-Stack",
-    description="Aplicação Backend monolítica (API REST) em Python/FastAPI, com foco em acesso e agregação de dados heterogêneos.",
+    title="Sistema de Agendamento Quimioterapia",
     version="1.0.0",
     lifespan=lifespan,
 )
 
-# Serve o frontend Vue 3 empacotado
-app.mount("/assets", StaticFiles(directory="src/static/dist/assets"), name="assets")
-
-@app.get("/")
-async def serve_frontend():
-    """
-    Serve o arquivo index.html do frontend Vue.
-    """
-    return FileResponse(os.path.join("src", "static", "dist", "index.html"))
-
-# Placeholder para incluir os roteadores da API
-from .routers import paciente, auth, admin
-app.include_router(paciente.router)
 app.include_router(auth.router)
+app.include_router(paciente.router)
 app.include_router(admin.router)
+app.include_router(agendamento.router)
+app.include_router(protocolo.router)
+app.include_router(poltrona.router)
+app.include_router(prescricao.router)
 
-# Exemplo:
-# from .routers import aih, bpa, material
-# app.include_router(aih.router)
-# app.include_router(bpa.router)
-# app.include_router(material.router)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+STATIC_DIR = os.path.join(BASE_DIR, "static", "dist")
+ASSETS_DIR = os.path.join(STATIC_DIR, "assets")
+
+if os.path.exists(ASSETS_DIR):
+    app.mount("/assets", StaticFiles(directory=ASSETS_DIR), name="assets")
+
+
+@app.get("/{full_path:path}")
+async def serve_spa(full_path: str):
+    file_path = os.path.join(STATIC_DIR, full_path)
+    if os.path.isfile(file_path):
+        return FileResponse(file_path)
+
+    index_path = os.path.join(STATIC_DIR, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+
+    return JSONResponse(
+        status_code=404,
+        content={"message": "Frontend build not found. Run 'npm run build' in frontend/ directory."}
+    )
+
 
 if __name__ == "__main__":
     import uvicorn

@@ -26,6 +26,15 @@ if config.config_file_name is not None:
 # add your model's MetaData object here
 # for 'autogenerate' support
 from src.resources.database import Base
+
+# --- IMPORTANTE: Importar os modelos para que sejam registrados no metadata ---
+from src.models.paciente import Paciente
+from src.models.protocolo import Protocolo
+from src.models.poltrona import Poltrona
+from src.models.agendamento import Agendamento
+from src.models.prescricao import PrescricaoMedica
+# -----------------------------------------------------------------------------
+
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
@@ -33,14 +42,15 @@ target_metadata = Base.metadata
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 
-# Get the SQLite DSN from environment variables
-sqlite_dsn = os.getenv("SQLITE_DSN")
-if not sqlite_dsn:
-    raise ValueError("SQLITE_DSN not found in environment variables.")
+db_url = os.getenv("POSTGRES_DSN")
+if not db_url:
+    db_url = os.getenv("SQLITE_DSN")
+
+if not db_url:
+    raise ValueError("POSTGRES_DSN (ou SQLITE_DSN) not found in environment variables.")
 
 # Set the sqlalchemy.url in the config to the SQLite DSN
-config.set_main_option("sqlalchemy.url", sqlite_dsn)
-
+config.set_main_option("sqlalchemy.url", db_url)
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
