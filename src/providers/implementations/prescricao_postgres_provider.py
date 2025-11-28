@@ -13,13 +13,16 @@ class PrescricaoPostgresProvider(PrescricaoProviderInterface):
     async def criar_prescricao(self, prescricao_schema: PrescricaoCreate) -> Dict[str, Any]:
         dados = prescricao_schema.model_dump()
 
+        if 'protocolo' in dados:
+            dados['protocolo_nome'] = dados.pop('protocolo')
+
         nova_prescricao = PrescricaoMedica(**dados)
 
         self.session.add(nova_prescricao)
         await self.session.commit()
         await self.session.refresh(nova_prescricao)
 
-        return {c.name: getattr(nova_prescricao, c.name) for c in nova_prescricao.__table__.columns}
+        return self._serialize_prescricao(nova_prescricao)
 
     async def listar_por_paciente(self, paciente_id: int) -> List[Dict[str, Any]]:
         stmt = select(PrescricaoMedica).where(PrescricaoMedica.paciente_id == paciente_id).order_by(
@@ -27,9 +30,13 @@ class PrescricaoPostgresProvider(PrescricaoProviderInterface):
         result = await self.session.execute(stmt)
         prescricoes = result.scalars().all()
 
-        lista_retorno = []
-        for p in prescricoes:
-            p_dict = {c.name: getattr(p, c.name) for c in p.__table__.columns}
-            lista_retorno.append(p_dict)
+        return [self._serialize_prescricao(p) for p in prescricoes]
 
-        return lista_retorno
+    def _serialize_prescricao(self, p: PrescricaoMedica) -> Dict[str, Any]:
+        """Helper para converter o objeto SQLAlchemy em dicionário, tratando campos especiais"""
+        p_dict = {c.name: getattr(p, c.name) for c in p.__table__.columns}
+
+        if 'protocolo_nome' in p_dict:
+            p_dict['protocolo'] = p_dict.pop('protocolo_nome')
+
+        return p_dict

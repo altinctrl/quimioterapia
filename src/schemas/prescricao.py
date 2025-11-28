@@ -1,10 +1,20 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
+from pydantic.alias_generators import to_camel
 from datetime import date
 from typing import List, Optional
 from .enums import ViaAdministracao
 
 
-class Medicamento(BaseModel):
+class CamelModel(BaseModel):
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+        from_attributes=True
+    )
+
+
+class Medicamento(CamelModel):
+    id: Optional[str] = None
     nome: str
     dose: str
     unidade: str
@@ -15,19 +25,19 @@ class Medicamento(BaseModel):
     observacoes: Optional[str] = None
 
 
-class PrescricaoBase(BaseModel):
+class PrescricaoBase(CamelModel):
     paciente_id: int
     medico_nome: str
     medico_id: Optional[str] = None
 
-    data_prescricao: date
+    data_prescricao: date = Field(default_factory=date.today)
 
     peso: Optional[float] = None
     altura: Optional[float] = None
     superficie_corporea: Optional[float] = None
     diagnostico: Optional[str] = None
 
-    protocolo_nome: str
+    protocolo: str
     numero_ciclo: int
     dia_ciclo: Optional[str] = None
     frequencia: Optional[str] = None
@@ -39,22 +49,14 @@ class PrescricaoBase(BaseModel):
 
     tempo_total_infusao: int
 
+    assinado: bool = False
+    data_assinatura: Optional[date] = None
+    hora_assinatura: Optional[str] = None
+
 
 class PrescricaoCreate(PrescricaoBase):
     pass
 
 
-class PrescricaoAssinar(BaseModel):
-    assinado: bool = True
-    data_assinatura: date
-    hora_assinatura: str
-
-
 class PrescricaoResponse(PrescricaoBase):
     id: int
-    assinado: bool
-    data_assinatura: Optional[date] = None
-    hora_assinatura: Optional[str] = None
-
-    class Config:
-        from_attributes = True

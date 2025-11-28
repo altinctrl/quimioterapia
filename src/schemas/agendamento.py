@@ -1,10 +1,17 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
+from pydantic.alias_generators import to_camel
 from datetime import date
 from typing import Optional
 from .enums import Turno, StatusPaciente, StatusFarmacia
 
+class CamelModel(BaseModel):
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+        from_attributes=True
+    )
 
-class AgendamentoBase(BaseModel):
+class AgendamentoBase(CamelModel):
     paciente_id: int
     data: date
     turno: Turno
@@ -15,10 +22,11 @@ class AgendamentoBase(BaseModel):
 
 
 class AgendamentoCreate(AgendamentoBase):
-    pass
+    status: Optional[StatusPaciente] = StatusPaciente.agendado
+    status_farmacia: Optional[StatusFarmacia] = StatusFarmacia.pendente
 
 
-class AgendamentoUpdateStatus(BaseModel):
+class AgendamentoUpdateStatus(CamelModel):
     status: StatusPaciente
     observacoes: Optional[str] = None
 
@@ -30,6 +38,3 @@ class AgendamentoResponse(AgendamentoBase):
     hora_inicio_real: Optional[str] = None
     hora_fim_real: Optional[str] = None
     intercorrencias: Optional[str] = None
-
-    class Config:
-        from_attributes = True
