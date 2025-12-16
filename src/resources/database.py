@@ -1,13 +1,20 @@
-# src/resources/database.py
-
 from typing import AsyncGenerator
+
 from fastapi import Request
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, AsyncEngine
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 
-# Base para os modelos do banco de dados da aplicação (SQLite)
 Base = declarative_base()
+
+try:
+    from src.models.paciente import Paciente, ContatoEmergencia
+    from src.models.protocolo import Protocolo, ItemProtocolo
+    from src.models.agendamento import Agendamento
+    from src.models.prescricao import Prescricao, ItemPrescricao
+    from src.models.configuracao import Configuracao
+except ImportError:
+    pass
 
 class DatabaseManager:
     """

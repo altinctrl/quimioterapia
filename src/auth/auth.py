@@ -1,58 +1,66 @@
 import os
-import jwt
-import ldap
 import re
 import secrets
-from datetime import datetime, timedelta
 from abc import ABC, abstractmethod
+from datetime import datetime, timedelta
+
+import jwt
+import ldap
+from dotenv import load_dotenv
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from dotenv import load_dotenv
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..resources.database import get_app_db_session
 from ..models.refresh_token import RefreshToken
 
 load_dotenv()
 
-# --- Configurações --- 
 JWT_SECRET = os.getenv("JWT_SECRET")
 JWT_EXP_HOURS = int(os.getenv("JWT_EXP_HOURS", 24))
 REFRESH_TOKEN_EXP_DAYS = int(os.getenv("REFRESH_TOKEN_EXP_DAYS", 30))
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/login")
 
-# --- Interface e Implementações de Provedor de Autenticação ---
 
 class AuthProviderInterface(ABC):
     """Interface para provedores de autenticação."""
+
     @abstractmethod
     def authenticate_user(self, username, password) -> dict:
         pass
 
+
 class MockAuthProvider(AuthProviderInterface):
     """Provedor de autenticação mock para desenvolvimento offline."""
+
     def authenticate_user(self, username, password) -> dict:
-        print("--- Using Mock Authentication ---")
-        if username == "admin" and password == "admin":
+        print(f"--- Using Mock Authentication for {username} ---")
+
+        # Usuários definidos no Frontend (Login.vue / auth.ts)
+        users_db = {
+            "admin": {"pass": "admin", "display": "Administrador Sistema", "groups": ["GLO-SEC-HCPE-SETISD", "Admins"],
+                      "email": "admin@hc.gov.br"},
+            "enfermeiro": {"pass": "enfermeiro123", "display": "Maria Enfermeira",
+                           "groups": ["Enfermagem", "Assistencia"], "email": "enf.maria@hc.gov.br"},
+            "medico": {"pass": "medico123", "display": "Dr. João Médico", "groups": ["Medicos", "Assistencia"],
+                       "email": "dr.joao@hc.gov.br"},
+            "farmacia": {"pass": "farmacia123", "display": "Ana Farmacêutica", "groups": ["Farmacia", "Apoio"],
+                         "email": "ana.farmacia@hc.gov.br"}}
+
+        user_data = users_db.get(username)
+
+        if user_data and user_data["pass"] == password:
             print(f"Authentication successful for mock user: {username}")
-            # O nome do grupo que o frontend usa para identificar administradores
-            admin_group = "GLO-SEC-HCPE-SETISD"
-            return {
-                "username": "admin",
-                "displayName": ["Mock Admin"],
-                "groups": [admin_group, "Users"],
-                "email": "admin@mock.com"
-            }
+            return {"username": username, "displayName": [user_data["display"]], "groups": user_data["groups"],
+                    "email": user_data["email"]}
         else:
             print(f"Authentication failed for mock user: {username}")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, 
-                detail="Invalid mock credentials"
-            )
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Credenciais inválidas (Mock)")
+
 
 class ActiveDirectoryAuthProvider(AuthProviderInterface):
     """Provedor de autenticação real usando LDAP/Active Directory."""
+
     def __init__(self):
         self.ad_url = os.getenv("AD_URL")
         self.ad_basedn = os.getenv("AD_BASEDN")
@@ -89,32 +97,34 @@ class ActiveDirectoryAuthProvider(AuthProviderInterface):
                 user_entry = result_data[0][1]
                 for key, value in user_entry.items():
                     if key == 'memberOf':
-                        groups = [re.match(r'CN=([^,]+)', group_dn.decode('utf-8')).group(1) for group_dn in value if re.match(r'CN=([^,]+)', group_dn.decode('utf-8'))]
+                        groups = [re.match(r'CN=([^,]+)', group_dn.decode('utf-8')).group(1) for group_dn in value if
+                                  re.match(r'CN=([^,]+)', group_dn.decode('utf-8'))]
                         user_info['groups'] = groups
                     else:
-                        user_info[key] = [i.decode('utf-8', 'ignore') for i in value] if isinstance(value, list) else value.decode('utf-8', 'ignore')
+                        user_info[key] = [i.decode('utf-8', 'ignore') for i in value] if isinstance(value,
+                                                                                                    list) else value.decode(
+                            'utf-8', 'ignore')
 
             if search_ldap_conn != l:
                 search_ldap_conn.unbind_s()
-            
+
             print(f"--- AD Authentication successful for user: {username}. ---")
             return user_info
 
         except ldap.INVALID_CREDENTIALS:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
         except ldap.SERVER_DOWN:
-            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="AD server is down or unreachable")
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                                detail="AD server is down or unreachable")
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"AD error: {e}")
         finally:
             if l:
                 l.unbind_s()
 
-# --- AuthHandler Principal ---
 
 class AuthHandler:
     def __init__(self):
-        # Lógica de troca: decide qual provedor usar na inicialização
         if os.getenv("AD_URL"):
             print("INFO: Using Active Directory authentication.")
             self.provider: AuthProviderInterface = ActiveDirectoryAuthProvider()
@@ -138,7 +148,8 @@ class AuthHandler:
     async def create_refresh_token(self, user_id: str, groups: list, db: AsyncSession) -> str:
         refresh_token_string = secrets.token_urlsafe(64)
         expires_at = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXP_DAYS)
-        new_refresh_token = RefreshToken(user_id=user_id, token=refresh_token_string, groups=groups, expires_at=expires_at)
+        new_refresh_token = RefreshToken(user_id=user_id, token=refresh_token_string, groups=groups,
+                                         expires_at=expires_at)
         db.add(new_refresh_token)
         await db.commit()
         return refresh_token_string
@@ -159,7 +170,8 @@ class AuthHandler:
     def decode_token(self, token: str = Depends(oauth2_scheme)):
         try:
             if not JWT_SECRET:
-                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="JWT_SECRET not configured")
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                    detail="JWT_SECRET not configured")
             payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
             return payload
         except jwt.ExpiredSignatureError:
@@ -167,5 +179,5 @@ class AuthHandler:
         except jwt.InvalidTokenError:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
-# Instância única que será usada em toda a aplicação
+
 auth_handler = AuthHandler()

@@ -1,60 +1,42 @@
-import { createRouter, createWebHistory, NavigationGuardNext } from 'vue-router';
-import { useAuthStore } from '../stores/auth';
-import Home from '../views/Home.vue';
-import Login from '../views/Login.vue';
-import Admin from '../views/Admin.vue';
-
-import Exemplos from '../views/Exemplos.vue';
-import Pacientes from '../views/Pacientes.vue';
-
-const routes = [
-  {
-    path: '/',
-    name: 'Home',
-    component: Home,
-  },
-  {
-    path: '/login',
-    name: 'Login',
-    component: Login,
-    meta: { layout: 'LoginLayout' },
-  },
-  {
-    path: '/admin',
-    name: 'Admin',
-    component: Admin,
-    meta: { requiresAuth: true },
-  },
-
-  {
-    path: '/exemplos',
-    name: 'Exemplos',
-    component: Exemplos,
-  },
-  {
-    path: '/pacientes',
-    name: 'Pacientes',
-    component: Pacientes,
-    meta: { requiresAuth: true },
-  },
-];
+import {createRouter, createWebHistory} from 'vue-router'
+import {useAuthStore} from '@/stores/auth'
+import Login from '@/components/Login.vue'
+import Layout from '@/components/Layout.vue'
+import Dashboard from '@/components/Dashboard.vue'
+import Pacientes from '@/components/Pacientes.vue'
+import Agenda from '@/components/Agenda.vue'
+import Agendamento from '@/components/Agendamento.vue'
+import Farmacia from '@/components/Farmacia.vue'
+import Relatorios from '@/components/Relatorios.vue'
+import Protocolos from '@/components/Protocolos.vue'
+import Ajustes from '@/components/Ajustes.vue'
+import PrescricaoMedica from '@/components/PrescricaoMedica.vue'
 
 const router = createRouter({
-  history: createWebHistory(),
-  routes,
-  linkActiveClass: 'bg-paper-active-link',
-  linkExactActiveClass: 'bg-paper-active-link',
-});
+  history: createWebHistory(), routes: [{
+    path: '/login', name: 'Login', component: Login
+  }, {
+    path: '/', component: Layout, meta: {requiresAuth: true}, children: [{path: '', redirect: '/dashboard'}, {
+      path: 'dashboard', name: 'Dashboard', component: Dashboard
+    }, {path: 'pacientes', name: 'Pacientes', component: Pacientes}, {
+      path: 'agenda', name: 'Agenda', component: Agenda
+    }, {path: 'agendamento', name: 'Agendamento', component: Agendamento}, {
+      path: 'farmacia', name: 'Farmacia', component: Farmacia
+    }, {path: 'relatorios', name: 'Relatorios', component: Relatorios}, {
+      path: 'protocolos', name: 'Protocolos', component: Protocolos
+    }, {path: 'ajustes', name: 'Ajustes', component: Ajustes}, {
+      path: 'prescricao', name: 'Prescricao', component: PrescricaoMedica
+    }]
+  }]
+})
 
-router.beforeEach((to, _from, next: NavigationGuardNext) => {
-  // Pinia store must be used inside a function to ensure it's initialized
-  const authStore = useAuthStore();
-
+router.beforeEach((to, from, next) => {
+  const authStore = useAuthStore()
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    next({ name: 'Login' });
+    next('/login')
   } else {
-    next();
+    next()
   }
-});
+})
 
-export default router;
+export default router

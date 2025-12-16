@@ -1,30 +1,43 @@
 {
-  "name": "frontend",
-  "private": true,
+  "name": "sistema-agendamento-quimioterapia-vue",
   "version": "0.0.0",
-  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@heroicons/vue": "^2.0.18",
+    "@unovis/ts": "^1.6.2",
+    "@unovis/vue": "^1.6.2",
     "@vee-validate/zod": "^4.15.1",
+    "@vueuse/core": "^14.1.0",
     "axios": "^1.13.2",
-    "pinia": "^3.0.4",
+    "chart.js": "^4.4.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "date-fns": "^3.3.0",
+    "embla-carousel-vue": "^8.6.0",
+    "lucide-vue-next": "^0.344.0",
+    "pinia": "^2.1.0",
+    "radix-vue": "^1.9.17",
+    "recharts": "npm:vue-chartjs@^5.3.0",
+    "reka-ui": "^2.6.1",
+    "tailwind-merge": "^2.6.0",
+    "tailwindcss-animate": "^1.0.7",
+    "vaul-vue": "^0.4.1",
     "vee-validate": "^4.15.1",
-    "vue": "^3.3.4",
-    "vue-router": "^4.2.4",
-    "vue-toastification": "^2.0.0-rc.5",
+    "vue": "^3.4.0",
+    "vue-router": "^4.2.0",
+    "vue-sonner": "^2.0.9",
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.0.0-alpha.17",
-    "@vitejs/plugin-vue": "^5.0.4",
-    "tailwindcss": "^4.0.0-alpha.17",
-    "typescript": "^5.4.5",
-    "vite": "^5.2.11",
-    "vue-tsc": "^2.0.21"
+    "@vitejs/plugin-vue": "^5.0.0",
+    "autoprefixer": "^10.4.22",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.18",
+    "typescript": "^5.3.0",
+    "vite": "^5.1.0",
+    "vue-tsc": "^1.8.0"
   }
 }

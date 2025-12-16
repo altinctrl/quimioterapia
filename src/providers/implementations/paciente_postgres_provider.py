@@ -1,41 +1,62 @@
-import os
-from typing import List, Dict, Any
-from sqlalchemy import text
+from typing import List, Optional
+
+from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import HTTPException, status
 
-from ..interfaces.paciente_provider_interface import PacienteProviderInterface
+from src.models.aghu import AghuPaciente
+from src.models.paciente import Paciente
+from src.providers.interfaces.paciente_provider_interface import PacienteProviderInterface
 
-def get_sql_query(file_path: str) -> str:
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    # Ajuste no caminho para voltar dois níveis (implementations -> providers -> src) e depois entrar em providers/sql
-    sql_file_path = os.path.join(base_dir, '..', 'sql', file_path)
-    try:
-        with open(sql_file_path, 'r') as f:
-            return f.read()
-    except FileNotFoundError:
-        raise RuntimeError(f"Arquivo SQL não encontrado em: {sql_file_path}")
 
 class PacientePostgresProvider(PacienteProviderInterface):
+    """
+    Lê dados do AGHU (Mock ou Real).
+    Mapeia AghuPaciente -> Paciente (App Model)
+    """
+
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def listar_pacientes(self) -> List[Dict[str, Any]]:
-        query_string = get_sql_query("paciente/listar_pacientes.sql")
-        query = text(query_string)
-        
-        result = await self.session.execute(query)
-        pacientes = result.mappings().all()
-        return [dict(paciente) for paciente in pacientes]
+    def _map_aghu_to_app(self, aghu_p: AghuPaciente) -> Paciente:
+        return Paciente(id=str(aghu_p.codigo),
+            nome=aghu_p.nome, cpf=aghu_p.cpf, registro=str(aghu_p.codigo), data_nascimento=aghu_p.dt_nascimento,
+            telefone=None,
+            email=None)
 
-    async def obter_paciente_por_codigo(self, codigo: int) -> Dict[str, Any]:
-        query_string = get_sql_query("paciente/obter_paciente.sql")
-        query = text(query_string)
-        
-        result = await self.session.execute(query, {"codigo": codigo})
-        paciente = result.mappings().first()
-        
-        if not paciente:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Paciente não encontrado")
-            
-        return dict(paciente)
+    async def listar_pacientes(self, termo: Optional[str] = None) -> List[Paciente]:
+        query = select(AghuPaciente).limit(50)
+
+        if termo:
+            t = f"%{termo}%"
+            try:
+                cod = int(termo)
+                query = query.where(
+                    or_(AghuPaciente.nome.ilike(t), AghuPaciente.codigo == cod, AghuPaciente.cpf.ilike(t)))
+            except ValueError:
+                query = query.where(or_(AghuPaciente.nome.ilike(t), AghuPaciente.cpf.ilike(t)))
+
+        result = await self.session.execute(query)
+        aghu_pacientes = result.scalars().all()
+        return [self._map_aghu_to_app(p) for p in aghu_pacientes]
+
+    async def obter_paciente_por_codigo(self, codigo: str) -> Optional[Paciente]:
+        try:
+            cod_int = int(codigo)
+            query = select(AghuPaciente).where(AghuPaciente.codigo == cod_int)
+            result = await self.session.execute(query)
+            aghu_p = result.scalar_one_or_none()
+            return self._map_aghu_to_app(aghu_p) if aghu_p else None
+        except ValueError:
+            return None
+
+    async def obter_paciente_por_cpf(self, cpf: str) -> Optional[Paciente]:
+        query = select(AghuPaciente).where(AghuPaciente.cpf == cpf)
+        result = await self.session.execute(query)
+        aghu_p = result.scalar_one_or_none()
+        return self._map_aghu_to_app(aghu_p) if aghu_p else None
+
+    async def criar_paciente(self, paciente: Paciente) -> Paciente:
+        raise NotImplementedError("Não é possível criar paciente diretamente no AGHU por esta API")
+
+    async def atualizar_paciente(self, paciente: Paciente) -> Paciente:
+        raise NotImplementedError("Edição no AGHU não permitida")
