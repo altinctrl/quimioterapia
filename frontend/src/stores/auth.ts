@@ -1,108 +1,94 @@
-import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
-import api from '../services/api';
+import {defineStore} from 'pinia'
+import {computed, ref} from 'vue'
+import api from '@/services/api'
+import type {User, UserRole} from '@/types'
 
-interface User {
-  username: string;
-  groups: string[];
+function mapGroupsToRole(groups: string[]): UserRole {
+  if (groups.includes('Farmacia')) return 'farmacia'
+  if (groups.includes('Medicos')) return 'medico'
+  if (groups.includes('GLO-SEC-HCPE-SETISD') || groups.includes('Admins')) return 'admin'
+  return 'enfermeiro'
 }
 
 export const useAuthStore = defineStore('auth', () => {
-  const accessToken = ref(localStorage.getItem('accessToken') || null);
-  const user = ref<User | null>(null);
+  const user = ref<User & { token?: string } | null>(null)
 
-  const isAuthenticated = computed(() => !!accessToken.value);
-  const isAdmin = computed(() => {
-    const ADMIN_GROUP = "GLO-SEC-HCPE-SETISD"; 
-    return user.value?.groups?.includes(ADMIN_GROUP) || false;
-  });
-
-  function setToken(token: string) {
-    accessToken.value = token;
-    localStorage.setItem('accessToken', token);
-  }
-
-  function clearToken() {
-    accessToken.value = null;
-    localStorage.removeItem('accessToken');
-    user.value = null;
-  }
-
-  function setUser(userData: User | null) {
-    user.value = userData;
-  }
-
-  async function fetchUser() {
-    if (!accessToken.value) {
-      setUser(null);
-      return;
-    }
+  const savedUser = localStorage.getItem('user')
+  if (savedUser) {
     try {
-      const { data } = await api.get('/api/users/me');
-      setUser(data);
-    } catch (error) {
-      console.error("Failed to fetch user info:", error);
-      clearToken(); // Clear token if user info fetch fails
+      user.value = JSON.parse(savedUser)
+    } catch (e) {
+      localStorage.removeItem('user')
     }
   }
 
-  async function login(username: string, password: string, rememberMe: boolean) {
-    const params = new URLSearchParams();
-    params.append('username', username);
-    params.append('password', password);
-    if (rememberMe) {
-      params.append('remember_me', 'true');
-    }
+  const isAuthenticated = computed(() => !!user.value)
 
-    const { data } = await api.post('/api/login', params, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-    });
-    setToken(data.access_token);
-    await fetchUser(); // Fetch user info immediately after login
-  }
-
-  async function logout(router?: any) {
+  async function login(username: string, password: string): Promise<{ success: boolean; error?: string }> {
     try {
-      await api.post('/api/logout');
-    } catch (error) {
-      console.error("Logout failed, but clearing token anyway.", error);
-    } finally {
-      clearToken();
-      if (router) {
-        router.push({ name: 'Login' });
+      const formData = new URLSearchParams()
+      formData.append('username', username)
+      formData.append('password', password)
+
+      const responseToken = await api.post('/api/login', formData, {
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+      })
+
+      const token = responseToken.data.access_token
+
+      const responseUser = await api.get('/api/users/me', {
+        headers: {Authorization: `Bearer ${token}`}
+      })
+
+      const userDataBackend = responseUser.data
+
+      const userRole = mapGroupsToRole(userDataBackend.groups || [])
+
+      const userObj = {
+        id: userDataBackend.username,
+        nome: userDataBackend.displayName ? userDataBackend.displayName[0] : userDataBackend.username,
+        username: userDataBackend.username,
+        email: userDataBackend.email,
+        grupo: userDataBackend.groups ? userDataBackend.groups.join(', ') : '',
+        role: userRole,
+        token: token
       }
+
+      user.value = userObj
+      localStorage.setItem('user', JSON.stringify(userObj))
+
+      return {success: true}
+
+    } catch (err: any) {
+      console.error('Erro no login:', err)
+      if (err.response && err.response.status === 401) {
+        return {success: false, error: 'Usuário ou senha incorretos'}
+      }
+      return {success: false, error: 'Erro de conexão com o servidor'}
     }
   }
 
-  async function initializeAuth() {
-    if (accessToken.value) {
-      // If a token exists in localStorage, validate it by fetching user info
-      await fetchUser();
-    } else {
-      // If no token, try to get a new one using the refresh token cookie
-      try {
-        const { data } = await api.post('/api/token/refresh');
-        if (data.access_token) {
-          setToken(data.access_token);
-          await fetchUser(); // Fetch user info with the new token
-        }
-      } catch (error) {
-        // It's okay if this fails - it just means the user doesn't have a valid refresh token
-        console.log("No valid refresh token found.");
-      }
-    }
+  function logout() {
+    user.value = null
+    localStorage.removeItem('user')
+    // api.post('/api/logout')
   }
 
-  return { 
-    accessToken, 
-    user, 
-    isAuthenticated, 
-    isAdmin, 
-    login, 
-    logout,
-    setToken,
-    clearToken,
-    fetchUser,
-    initializeAuth
-  };
-});
+  function hasAccess(page: string): boolean {
+    if (!user.value) return false
+
+    const rolePermissions: Record<UserRole, string[]> = {
+      'enfermeiro': ['dashboard', 'pacientes', 'agenda', 'agendamento', 'ajustes', 'relatorios', 'protocolos'],
+      'medico': ['pacientes', 'prescricao', 'protocolos'],
+      'farmacia': ['farmacia', 'pacientes', 'relatorios'],
+      'admin': ['dashboard', 'pacientes', 'agenda', 'agendamento', 'farmacia', 'relatorios', 'protocolos', 'ajustes', 'prescricao']
+    }
+
+    const permissions = rolePermissions[user.value.role]
+    return permissions ? permissions.includes(page) : false
+  }
+
+  return {
+    user, isAuthenticated, login, logout, hasAccess
+  }
+})
