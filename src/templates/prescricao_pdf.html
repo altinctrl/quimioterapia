@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Receituário Médico</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        body {
+            font-family: sans-serif;
+            color: #333;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .logo {
+            font-size: 18px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .sub-header {
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        .doc-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            background-color: #fafafa;
+        }
+        .info-item {
+            margin-bottom: 4px;
+        }
+        .section-title {
+            font-size: 13px;
+            font-weight: bold;
+            background-color: #f0f0f0;
+            padding: 6px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            border-left: 5px solid #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #e9e9e9;
+            font-weight: bold;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+        .obs-box {
+            font-size: 12px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            min-height: 40px;
+            background-color: #fff;
+        }
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 10px;
+            color: #666;
+        }
+        .signature-box {
+            margin-top: 60px;
+            text-align: center;
+        }
+        .signature-line {
+            border-top: 1px solid #000;
+            width: 60%;
+            margin: 0 auto 10px auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">Hospital das Clínicas</div>
+        <div class="sub-header">Serviço de Quimioterapia</div>
+        <div class="doc-title">RECEITUÁRIO MÉDICO</div>
+    </div>
+
+    <div class="info-grid">
+        <div class="info-item"><strong>Paciente:</strong> {{ paciente.nome }}</div>
+        <div class="info-item"><strong>Registro:</strong> {{ paciente.registro }}</div>
+        <div class="info-item"><strong>Data Nasc:</strong> {{ paciente.data_nascimento }}</div>
+        <div class="info-item"><strong>Diagnóstico:</strong> {{ prescricao.diagnostico }}</div>
+        <div class="info-item"><strong>Protocolo:</strong> {{ prescricao.protocolo_nome_snapshot }}</div>
+        <div class="info-item"><strong>Ciclo:</strong> {{ prescricao.ciclo_atual }} / {{ prescricao.ciclos_total }}</div>
+        <div class="info-item"><strong>Peso:</strong> {{ prescricao.peso }} kg</div>
+        <div class="info-item"><strong>Altura:</strong> {{ prescricao.altura }} cm</div>
+        <div class="info-item"><strong>SC:</strong> {{ prescricao.superficie_corporea }} m²</div>
+        <div class="info-item"><strong>Data:</strong> {{ prescricao.data_prescricao.strftime('%d/%m/%Y') }}</div>
+    </div>
+
+    {% if pre_items %}
+    <div class="section-title">PRÉ-QUIMIOTERAPIA</div>
+    <table>
+        <thead>
+            <tr>
+                <th width="30%">Medicamento</th>
+                <th width="15%">Dose</th>
+                <th width="10%">Via</th>
+                <th>Diluição / Observações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in pre_items %}
+            <tr>
+                <td>{{ item.nome }}</td>
+                <td>{{ item.dose }} {{ item.unidade }}</td>
+                <td>{{ item.via }}</td>
+                <td>
+                    {% if item.veiculo %}{{ item.veiculo }} {{ item.volume_veiculo }}{% endif %}
+                    {% if item.observacoes %} - {{ item.observacoes }}{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    {% if qt_items %}
+    <div class="section-title">QUIMIOTERAPIA</div>
+    <table>
+        <thead>
+            <tr>
+                <th width="30%">Medicamento</th>
+                <th width="15%">Dose</th>
+                <th width="10%">Via</th>
+                <th width="15%">Tempo</th>
+                <th>Diluição</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in qt_items %}
+            <tr>
+                <td>{{ item.nome }}</td>
+                <td>{{ item.dose }} {{ item.unidade }}</td>
+                <td>{{ item.via }}</td>
+                <td>{% if item.tempo_infusao %}{{ item.tempo_infusao }} min{% else %}-{% endif %}</td>
+                <td>{{ item.veiculo }} {{ item.volume_veiculo }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    {% if pos_items %}
+    <div class="section-title">PÓS-QUIMIOTERAPIA</div>
+    <table>
+        <thead>
+            <tr>
+                <th width="30%">Medicamento</th>
+                <th width="15%">Dose</th>
+                <th width="10%">Via</th>
+                <th>Observações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in pos_items %}
+            <tr>
+                <td>{{ item.nome }}</td>
+                <td>{{ item.dose }} {{ item.unidade }}</td>
+                <td>{{ item.via }}</td>
+                <td>{{ item.observacoes }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    <div class="section-title">OBSERVAÇÕES MÉDICAS</div>
+    <div class="obs-box">
+        {{ prescricao.observacoes or "Sem observações adicionais." }}
+    </div>
+
+    <div class="signature-box">
+        <div class="signature-line"></div>
+        <p><strong>{{ prescricao.medico_nome }}</strong></p>
+        <p style="font-size: 10px; color: #666;">Documento gerado eletronicamente em {{ agora }}</p>
+    </div>
+
+    <div class="footer">
+        Página 1 de 1 - Sistema de Quimioterapia HC
+    </div>
+</body>
+</html>
