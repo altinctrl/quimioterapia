@@ -116,7 +116,7 @@ export const useAppStore = defineStore('app', () => {
     }
 
     if (ultima.protocolo) {
-      return { nome: ultima.protocolo } as any
+      return {nome: ultima.protocolo} as any
     }
 
     return null
@@ -228,10 +228,15 @@ export const useAppStore = defineStore('app', () => {
     }
   }
 
-  async function atualizarStatusAgendamento(id: string, status: StatusPaciente, observacoes?: string) {
+  async function atualizarStatusAgendamento(
+  id: string,
+  status: StatusPaciente,
+  detalhes?: any
+) {
     try {
       const payload: any = {status}
-      if (observacoes) payload.observacoes = observacoes
+      if (detalhes) payload.detalhes = detalhes
+      else payload.detalhes = null
 
       const res = await api.put(`/api/agendamentos/${id}`, payload)
 

@@ -7,7 +7,9 @@ import AgendaHeader from '@/components/agenda/AgendaHeader.vue'
 import AgendaMetrics from '@/components/agenda/AgendaMetrics.vue'
 import AgendaTable from '@/components/agenda/AgendaTable.vue'
 import AgendaRemarcarModal from '@/components/agenda/AgendaRemarcarModal.vue'
+import StatusChangeModal from '@/components/agenda/AgendaStatusChangeModal.vue'
 import TagsModal from '@/components/modals/TagsModal.vue'
+import {StatusPaciente} from "@/types";
 
 const router = useRouter()
 const appStore = useAppStore()
@@ -19,6 +21,9 @@ const tagsModalData = ref<{ id: string; tags: string[] } | null>(null)
 
 const remarcarModalOpen = ref(false)
 const agendamentoParaRemarcar = ref<any>(null)
+
+const statusModalOpen = ref(false)
+const statusPendingData = ref<{ id: string; novoStatus: string; pacienteNome: string } | null>(null)
 
 const agendamentosDoDia = computed(() => {
   return appStore.getAgendamentosDoDia(dataSelecionada.value)
@@ -69,6 +74,30 @@ const salvarTags = (id: string, tags: string[]) => {
   tagsModalOpen.value = false
 }
 
+const handleAlterarStatus = (agendamento: any, novoStatus: string) => {
+  if (['suspenso', 'intercorrencia'].includes(novoStatus)) {
+    statusPendingData.value = {
+      id: agendamento.id,
+      novoStatus,
+      pacienteNome: agendamento.paciente?.nome || 'Paciente'
+    }
+    statusModalOpen.value = true
+  } else {
+    appStore.atualizarStatusAgendamento(agendamento.id, novoStatus as StatusPaciente)
+  }
+}
+
+const confirmarAlteracaoStatus = (detalhes: any) => {
+  if (statusPendingData.value && statusPendingData.value.id) {
+    appStore.atualizarStatusAgendamento(
+      statusPendingData.value.id,
+      statusPendingData.value.novoStatus as StatusPaciente,
+      detalhes
+    )
+    statusPendingData.value = null
+  }
+}
+
 const handleAbrirRemarcar = (agendamento: any) => {
   agendamentoParaRemarcar.value = agendamento
   remarcarModalOpen.value = true
@@ -99,6 +128,14 @@ const handleRemarcado = () => {
         @remarcado="handleRemarcado"
     />
 
+    <StatusChangeModal
+        v-if="statusPendingData"
+        v-model:open="statusModalOpen"
+        :status-destino="statusPendingData.novoStatus"
+        :paciente-nome="statusPendingData.pacienteNome"
+        @confirm="confirmarAlteracaoStatus"
+    />
+
     <AgendaHeader
         v-model="dataSelecionada"
         @navigate-prev="handleDiaAnterior"
@@ -117,6 +154,7 @@ const handleRemarcado = () => {
             :agendamentos="agendamentosDoDia"
             @abrir-tags="handleAbrirTags"
             @abrir-remarcar="handleAbrirRemarcar"
+            @alterar-status="handleAlterarStatus"
         />
       </CardContent>
     </Card>
