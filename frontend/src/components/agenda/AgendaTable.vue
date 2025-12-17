@@ -13,15 +13,16 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import {CalendarClock, ChevronDown, Clock, MoreVertical, Tag} from 'lucide-vue-next'
-import type {StatusPaciente} from '@/types'
+import type {Agendamento} from '@/types'
 
-const props = defineProps<{
-  agendamentos: any[]
+defineProps<{
+  agendamentos: Agendamento[]
 }>()
 
 const emit = defineEmits<{
   (e: 'abrir-tags', agendamento: any): void
-  (e: 'abrir-remarcar', agendamento: any): void
+  (e: 'abrir-remarcar', agendamento: Agendamento): void
+  (e: 'alterar-status', agendamento: Agendamento, novoStatus: string): void
 }>()
 
 const router = useRouter()
@@ -34,9 +35,12 @@ const irParaProntuario = (pacienteId: string) => {
   router.push({path: '/pacientes', query: {pacienteId}})
 }
 
-const handleAlterarStatusPaciente = (agendamentoId: string, event: Event) => {
-  const novoStatus = (event.target as HTMLSelectElement).value as StatusPaciente
-  appStore.atualizarStatusAgendamento(agendamentoId, novoStatus)
+const handleAlterarStatusPaciente = (agendamento: Agendamento, event: Event) => {
+  const select = event.target as HTMLSelectElement
+  const novoStatus = select.value
+  const statusAntigo = agendamento.status
+  emit('alterar-status', agendamento, novoStatus)
+  select.value = statusAntigo
 }
 
 const opcoesStatusPaciente = computed(() => {
@@ -130,7 +134,7 @@ const formatarStatus = (status: string) => {
                          px-3 py-1 pr-8 text-sm ring-offset-background placeholder:text-muted-foreground
                          focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2
                          disabled:cursor-not-allowed disabled:opacity-50 appearance-none truncate"
-                  @change="(e) => handleAlterarStatusPaciente(ag.id, e)"
+                  @change="(e) => handleAlterarStatusPaciente(ag, e)"
               >
                 <option
                     v-for="opcao in opcoesStatusPaciente"
