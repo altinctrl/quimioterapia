@@ -27,5 +27,6 @@ class Agendamento(Base):
 
     observacoes = Column(Text, nullable=True)
     tags = Column(JSON, nullable=True)
+    detalhes = Column(JSON, nullable=True)
 
     paciente = relationship("Paciente", back_populates="agendamentos")
