@@ -3,7 +3,8 @@ import {useAuthStore} from '@/stores/auth'
 import Login from '@/components/Login.vue'
 import Layout from '@/components/Layout.vue'
 import Dashboard from '@/components/Dashboard.vue'
-import Pacientes from '@/components/Pacientes.vue'
+// import Pacientes from '@/components/Pacientes.vue'
+import PacientesView from '@/views/PacientesView.vue'
 import Agenda from '@/components/Agenda.vue'
 import Agendamento from '@/components/Agendamento.vue'
 import Farmacia from '@/components/Farmacia.vue'
@@ -18,8 +19,9 @@ const router = createRouter({
   }, {
     path: '/', component: Layout, meta: {requiresAuth: true}, children: [{path: '', redirect: '/dashboard'}, {
       path: 'dashboard', name: 'Dashboard', component: Dashboard
-    }, {path: 'pacientes', name: 'Pacientes', component: Pacientes}, {
-      path: 'agenda', name: 'Agenda', component: Agenda
+    }, //{path: 'pacientes', name: 'Pacientes', component: Pacientes},
+      { path: 'pacientes', name: 'Pacientes', component: PacientesView },
+      { path: 'agenda', name: 'Agenda', component: Agenda
     }, {path: 'agendamento', name: 'Agendamento', component: Agendamento}, {
       path: 'farmacia', name: 'Farmacia', component: Farmacia
     }, {path: 'relatorios', name: 'Relatorios', component: Relatorios}, {
