@@ -34,10 +34,14 @@ class AgendamentoSQLAlchemyProvider(AgendamentoProviderInterface):
     async def criar_agendamento(self, agendamento: Agendamento) -> Agendamento:
         self.session.add(agendamento)
         await self.session.commit()
-        await self.session.refresh(agendamento)
-        return agendamento
+
+        query = select(Agendamento).where(Agendamento.id == agendamento.id).options(selectinload(Agendamento.paciente))
+        result = await self.session.execute(query)
+        return result.scalar_one()
 
     async def atualizar_agendamento(self, agendamento: Agendamento) -> Agendamento:
         await self.session.commit()
-        await self.session.refresh(agendamento)
-        return agendamento
+
+        query = select(Agendamento).where(Agendamento.id == agendamento.id).options(selectinload(Agendamento.paciente))
+        result = await self.session.execute(query)
+        return result.scalar_one()
