@@ -159,19 +159,19 @@ const activeCount = computed(() => {
             <DropdownMenuSeparator/>
             <DropdownMenuCheckboxItem
                 :checked="filtros.turno === 'todos'"
-                @click="updateField('turno', 'todos')"
+                @select.prevent="updateField('turno', 'todos')"
             >
               Todos
             </DropdownMenuCheckboxItem>
             <DropdownMenuCheckboxItem
                 :checked="filtros.turno === 'manha'"
-                @click="updateField('turno', 'manha')"
+                @select.prevent="updateField('turno', 'manha')"
             >
               Manhã
             </DropdownMenuCheckboxItem>
             <DropdownMenuCheckboxItem
                 :checked="filtros.turno === 'tarde'"
-                @click="updateField('turno', 'tarde')"
+                @select.prevent="updateField('turno', 'tarde')"
             >
               Tarde
             </DropdownMenuCheckboxItem>
