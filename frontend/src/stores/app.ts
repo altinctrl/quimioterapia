@@ -63,9 +63,15 @@ export const useAppStore = defineStore('app', () => {
   const prescricoes = ref<PrescricaoMedica[]>([])
   const statusConfig = ref<ConfigStatus[]>(defaultStatusConfig)
 
-  const parametros = ref<ParametrosAgendamento>({
-    horarioAbertura: '07:00', horarioFechamento: '19:00', diasFuncionamento: [1, 2, 3, 4, 5], gruposInfusao: {
-      rapido: {vagas: 4, duracao: '< 2h'}, medio: {vagas: 8, duracao: '2h - 4h'}, longo: {vagas: 4, duracao: '> 4h'}
+  const parametros = ref<ParametrosAgendamento>(
+    {
+    horarioAbertura: '',
+    horarioFechamento: '',
+    diasFuncionamento: [],
+    gruposInfusao: {
+      rapido: {vagas: 0, duracao: ''},
+      medio: {vagas: 0, duracao: ''},
+      longo: {vagas: 0, duracao: ''}
     }
   })
 
@@ -189,7 +195,20 @@ export const useAppStore = defineStore('app', () => {
       const res = await api.get('/api/configuracoes')
       parametros.value = res.data
     } catch (e) {
+    console.error("Erro na API de configurações:", e)
+    throw e
+    }
+  }
+
+  async function salvarConfiguracoes(dados: ParametrosAgendamento) {
+    try {
+      const res = await api.put('/api/configuracoes', dados)
+      parametros.value = res.data
+      toast.success("Configurações salvas com sucesso")
+    } catch (e) {
       console.error(e)
+      toast.error("Erro ao salvar configurações")
+      throw e
     }
   }
 
@@ -369,6 +388,8 @@ export const useAppStore = defineStore('app', () => {
     getProtocoloPeloHistorico,
 
     fetchInitialData,
+    fetchConfiguracoes,
+    salvarConfiguracoes,
     fetchPacientes,
     buscarPacientesDropdown,
     fetchAgendamentos,
