@@ -5,7 +5,8 @@ import {useAppStore} from '@/stores/app'
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '@/components/ui/table'
 import {Badge} from '@/components/ui/badge'
 import {Button} from '@/components/ui/button'
-import {ChevronDown, Clock, Tag} from 'lucide-vue-next'
+import {AlertTriangle, ChevronDown, Clock, Tag} from 'lucide-vue-next'
+import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/components/ui/tooltip'
 import type {Agendamento} from '@/types'
 import {calcularDuracaoMinutos, formatarDuracao, getBadgeGrupo, getCorGrupo, getGrupoInfusao} from '@/utils/agendaUtils'
 
@@ -61,6 +62,10 @@ const getAgendamentoInfo = (ag: Agendamento) => {
     grupoLabel: grupo === 'curto' ? 'Rápida' : grupo === 'medio' ? 'Média' : 'Longa'
   }
 }
+
+const getObservacoesClinicas = (ag: Agendamento) => {
+  return ag.paciente?.observacoesClinicas || getPaciente(ag.pacienteId)?.observacoesClinicas
+}
 </script>
 
 <template>
@@ -106,12 +111,32 @@ const getAgendamentoInfo = (ag: Agendamento) => {
           </TableCell>
 
           <TableCell>
-            <button
-                class="text-left font-medium hover:text-blue-600 underline truncate max-w-[180px]"
-                @click="irParaProntuario(ag.pacienteId)"
-            >
-              {{ ag.paciente?.nome || getPaciente(ag.pacienteId)?.nome || 'Paciente não encontrado' }}
-            </button>
+            <div class="flex items-center gap-1.5 max-w-[200px]">
+              <button
+                  class="text-left font-medium hover:text-blue-600 underline truncate"
+                  @click="irParaProntuario(ag.pacienteId)"
+              >
+                {{ ag.paciente?.nome || getPaciente(ag.pacienteId)?.nome || 'Paciente não carregado' }}
+              </button>
+              <TooltipProvider v-if="getObservacoesClinicas(ag)">
+                <Tooltip :delay-duration="200">
+                  <TooltipTrigger as-child>
+                    <div class="cursor-help flex-shrink-0">
+                      <AlertTriangle class="h-4 w-4 text-amber-500 hover:text-amber-600 transition-colors" />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent
+                    side="right"
+                    class="max-w-[300px] p-3 bg-amber-50 border border-amber-200 text-black"
+                  >
+                    <p class="font-semibold text-xs mb-1 uppercase tracking-wide">Observações Clínicas</p>
+                    <p class="text-sm leading-relaxed">
+                      {{ getObservacoesClinicas(ag) }}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <div class="text-xs text-gray-500">
               {{ ag.paciente?.registro || getPaciente(ag.pacienteId)?.registro }}
             </div>
