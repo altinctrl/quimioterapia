@@ -321,6 +321,19 @@ export const useAppStore = defineStore('app', () => {
     }
   }
 
+  async function atualizarTagsAgendamento(id: string, tags: string[]) {
+    try {
+      const res = await api.put(`/api/agendamentos/${id}`, {tags})
+      const idx = agendamentos.value.findIndex(a => a.id === id)
+      if (idx !== -1) agendamentos.value[idx] = res.data
+      toast.success("Tags atualizadas")
+    } catch (e) {
+      console.error(e)
+      toast.error("Erro ao salvar tags")
+      throw e
+    }
+  }
+
   async function adicionarProtocolo(protocolo: any) {
     try {
       const res = await api.post('/api/protocolos', protocolo)
@@ -401,6 +414,7 @@ export const useAppStore = defineStore('app', () => {
     atualizarStatusFarmacia,
     atualizarHorarioPrevisao,
     remarcarAgendamento,
+    atualizarTagsAgendamento,
     adicionarProtocolo,
     atualizarProtocolo,
     desativarProtocolo,
