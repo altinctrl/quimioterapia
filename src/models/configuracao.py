@@ -11,3 +11,4 @@ class Configuracao(Base):
     horario_fechamento = Column(String, default="19:00")
     dias_funcionamento = Column(JSON, default=[1, 2, 3, 4, 5])
     grupos_infusao = Column(JSON)
+    tags = Column(JSON, default=[])

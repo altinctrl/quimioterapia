@@ -1,3 +1,4 @@
+import json
 from typing import AsyncGenerator
 
 from fastapi import Request
@@ -21,7 +22,7 @@ class DatabaseManager:
     Manages asynchronous database connections and sessions for a specific DSN.
     """
     def __init__(self, dsn: str):
-        self.engine: AsyncEngine = create_async_engine(dsn, echo=False) # Set echo=False to reduce log verbosity
+        self.engine: AsyncEngine = create_async_engine(dsn, json_serializer=lambda obj: json.dumps(obj, ensure_ascii=False), echo=False) # Set echo=False to reduce log verbosity
         self.async_session_maker = sessionmaker(
             self.engine, class_=AsyncSession, expire_on_commit=False
         )

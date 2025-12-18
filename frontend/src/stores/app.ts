@@ -72,7 +72,8 @@ export const useAppStore = defineStore('app', () => {
       rapido: {vagas: 0, duracao: ''},
       medio: {vagas: 0, duracao: ''},
       longo: {vagas: 0, duracao: ''}
-    }
+    },
+    tags: []
   })
 
 
