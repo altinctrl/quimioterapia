@@ -274,7 +274,11 @@ export const useAppStore = defineStore('app', () => {
     // Rever lógica de remarcação. Foi implementada no Backend?
 
     try {
-      await atualizarStatusAgendamento(idOriginal, 'remarcado', `Remarcado. Motivo: ${motivo}`)
+      const detalhesPayload = {
+        tipo: 'remarcacao', motivo: motivo, data_nova: novaData
+      }
+
+      await atualizarStatusAgendamento(idOriginal, 'remarcado', detalhesPayload)
 
       const original = agendamentos.value.find(a => a.id === idOriginal)
       if (!original) return
