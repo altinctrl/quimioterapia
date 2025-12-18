@@ -63,9 +63,6 @@ const irParaProntuario = (pacienteId: string) => {
   router.push({path: '/pacientes', query: {pacienteId}})
 }
 
-const getPaciente = (id: string) => appStore.getPacienteById(id)
-const getProtocolo = (id?: string) => id ? appStore.protocolos.find(p => p.id === id) : null
-
 const formatarStatus = (status: string) => {
   if (!status) return ''
   return status.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
@@ -174,13 +171,13 @@ const getProtocoloInferido = (pid: string) => appStore.getProtocoloPeloHistorico
                     class="text-left font-medium hover:text-blue-600 underline truncate max-w-[180px]"
                     @click="irParaProntuario(agendamento.pacienteId)"
                 >
-                  {{ getPaciente(agendamento.pacienteId)?.nome }}
+                  {{agendamento.paciente?.nome || 'Paciente não carregado'}}
                 </button>
-                <div class="text-xs text-gray-500">{{ getPaciente(agendamento.pacienteId)?.registro }}</div>
+                <div class="text-xs text-gray-500">{{agendamento.paciente?.registro}}</div>
               </TableCell>
 
               <TableCell>
-                <span :title="getProtocolo(getPaciente(agendamento.pacienteId)?.protocoloId)?.nome"
+                <span :title="getProtocoloInferido(agendamento.pacienteId)?.nome || '-'"
                       class="text-sm font-medium text-gray-700 block">
                   {{ getProtocoloInferido(agendamento.pacienteId)?.nome || '-' }}
                 </span>
