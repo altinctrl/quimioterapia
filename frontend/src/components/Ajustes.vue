@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {reactive, ref} from 'vue'
+import {onMounted, reactive, ref, watch} from 'vue'
 import {useRouter} from 'vue-router'
 import {useAppStore} from '@/stores/app'
 import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card'
@@ -14,8 +14,8 @@ import {toast} from 'vue-sonner'
 const router = useRouter()
 const appStore = useAppStore()
 
-const horarioAbertura = ref(appStore.parametros.horarioAbertura)
-const horarioFechamento = ref(appStore.parametros.horarioFechamento)
+const horarioAbertura = ref('')
+const horarioFechamento = ref('')
 
 const diasSemana = [
   {value: 0, label: 'Domingo'},
@@ -27,20 +27,20 @@ const diasSemana = [
   {value: 6, label: 'Sábado'}
 ]
 
-const diasSelecionados = ref<number[]>([...appStore.parametros.diasFuncionamento])
+const diasSelecionados = ref<number[]>([])
 
 const toggleDia = (dia: number) => {
   if (diasSelecionados.value.includes(dia)) {
     diasSelecionados.value = diasSelecionados.value.filter(d => d !== dia)
   } else {
-    diasSelecionados.value = [...diasSelecionados.value, dia].sort()
+    diasSelecionados.value = [...diasSelecionados.value, dia].sort((a, b) => a - b)
   }
 }
 
 const grupos = reactive({
-  rapido: {...appStore.parametros.gruposInfusao.rapido},
-  medio: {...appStore.parametros.gruposInfusao.medio},
-  longo: {...appStore.parametros.gruposInfusao.longo}
+  rapido: {vagas: 0, duracao: ''},
+  medio: {vagas: 0, duracao: ''},
+  longo: {vagas: 0, duracao: ''}
 })
 
 const tags = ref(['1ª vez', 'Mudança de protocolo', 'Reação prévia', 'Quimio adiada', 'Redução de dose'])
@@ -57,18 +57,57 @@ const handleRemoverTag = (tag: string) => {
   tags.value = tags.value.filter(t => t !== tag)
 }
 
-const handleSalvar = () => {
-  appStore.parametros.horarioAbertura = horarioAbertura.value
-  appStore.parametros.horarioFechamento = horarioFechamento.value
-  appStore.parametros.diasFuncionamento = [...diasSelecionados.value]
-  appStore.parametros.gruposInfusao = grupos
-
-  toast.success('Configurações salvas com sucesso!')
+const handleSalvar = async () => {
+  const payload = {
+    horarioAbertura: horarioAbertura.value,
+    horarioFechamento: horarioFechamento.value,
+    diasFuncionamento: [...diasSelecionados.value].sort((a, b) => a - b),
+    gruposInfusao: {
+      rapido: { ...grupos.rapido, vagas: Number(grupos.rapido.vagas) },
+      medio: { ...grupos.medio, vagas: Number(grupos.medio.vagas) },
+      longo: { ...grupos.longo, vagas: Number(grupos.longo.vagas) }
+    }
+  }
+  try {
+    await appStore.salvarConfiguracoes(payload)
+  } catch (error) {
+  }
 }
+const carregando = ref(true)
+
+onMounted(async () => {
+  try {
+    carregando.value = true
+    await appStore.fetchConfiguracoes()
+  } catch (error) {
+    console.error("Erro ao carregar configurações:", error)
+    toast.error("Não foi possível carregar as configurações do servidor.")
+  } finally {
+    carregando.value = false
+  }
+})
+
+watch(
+  () => appStore.parametros,
+  (newVal) => {
+    if (newVal.horarioAbertura) {
+      horarioAbertura.value = newVal.horarioAbertura
+      horarioFechamento.value = newVal.horarioFechamento
+      diasSelecionados.value = [...newVal.diasFuncionamento]
+      Object.assign(grupos.rapido, newVal.gruposInfusao.rapido)
+      Object.assign(grupos.medio, newVal.gruposInfusao.medio)
+      Object.assign(grupos.longo, newVal.gruposInfusao.longo)
+    }
+  },
+  { deep: true, immediate: true }
+)
 </script>
 
 <template>
-  <div class="max-w-7xl mx-auto space-y-8 pb-10">
+  <div v-if="carregando" class="flex items-center justify-center h-64">
+    <p class="text-muted-foreground animate-pulse">Carregando configurações...</p>
+  </div>
+  <div v-else class="max-w-7xl mx-auto space-y-8 pb-10">
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-3xl font-bold tracking-tight text-gray-900">Configurações</h1>
