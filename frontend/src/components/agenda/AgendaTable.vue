@@ -5,15 +5,9 @@ import {useAppStore} from '@/stores/app'
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '@/components/ui/table'
 import {Badge} from '@/components/ui/badge'
 import {Button} from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu'
-import {CalendarClock, ChevronDown, Clock, MoreVertical, Tag} from 'lucide-vue-next'
+import {ChevronDown, Clock, Tag} from 'lucide-vue-next'
 import type {Agendamento} from '@/types'
+import {calcularDuracaoMinutos, formatarDuracao, getBadgeGrupo, getCorGrupo, getGrupoInfusao} from '@/utils/agendaUtils'
 
 defineProps<{
   agendamentos: Agendamento[]
@@ -39,15 +33,17 @@ const handleAlterarStatusPaciente = (agendamento: Agendamento, event: Event) => 
   const select = event.target as HTMLSelectElement
   const novoStatus = select.value
   const statusAntigo = agendamento.status
-  emit('alterar-status', agendamento, novoStatus)
+  if (novoStatus === 'remarcado') {
+    emit('abrir-remarcar', agendamento)
+    select.value = statusAntigo
+  } else {
+    emit('alterar-status', agendamento, novoStatus)
+  }
   select.value = statusAntigo
 }
 
 const opcoesStatusPaciente = computed(() => {
-  return appStore.statusConfig.filter(s =>
-      s.tipo === 'paciente' &&
-      s.id !== 'remarcado'
-  )
+  return appStore.statusConfig.filter(s => s.tipo === 'paciente')
 })
 
 const getStatusDotColor = (statusId: string) => {
@@ -55,145 +51,164 @@ const getStatusDotColor = (statusId: string) => {
   return config.cor.split(' ')[0]
 }
 
-const formatarStatus = (status: string) => {
-  if (!status) return ''
-  return status.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+const getAgendamentoInfo = (ag: Agendamento) => {
+  const duracaoMin = calcularDuracaoMinutos(ag.horarioInicio, ag.horarioFim)
+  const grupo = getGrupoInfusao(duracaoMin)
+  return {
+    duracaoTexto: formatarDuracao(duracaoMin),
+    corBorda: getCorGrupo(grupo),
+    corBadge: getBadgeGrupo(grupo),
+    grupoLabel: grupo === 'curto' ? 'Rápida' : grupo === 'medio' ? 'Média' : 'Longa'
+  }
 }
 </script>
 
 <template>
-  <Table>
-    <TableHeader>
-      <TableRow>
-        <TableHead class="w-[100px]">Horário</TableHead>
-        <TableHead class="min-w-[150px]">Paciente</TableHead>
-        <TableHead class="min-w-[100px]">Protocolo</TableHead>
-        <TableHead class="min-w-[85px]">Ciclo / Dia</TableHead>
-        <TableHead class="min-w-[240px]">Status Paciente</TableHead>
-        <TableHead class="min-w-[140px]">Status Farmácia</TableHead>
-        <TableHead class="min-w-[120px]">Previsão</TableHead>
-        <TableHead class="min-w-[100px]">Tags</TableHead>
-        <TableHead class="w-[50px]"></TableHead>
-      </TableRow>
-    </TableHeader>
-    <TableBody>
-      <div v-if="agendamentos.length === 0" class="contents">
+  <div class="rounded-md border">
+    <Table>
+      <TableHeader>
         <TableRow>
+          <TableHead class="pl-5 w-[100px]">Horário</TableHead>
+          <TableHead class="min-w-[150px]">Paciente</TableHead>
+          <TableHead class="min-w-[100px]">Protocolo</TableHead>
+          <TableHead class="min-w-[240px]">Status Paciente</TableHead>
+          <TableHead class="min-w-[140px]">Status Farmácia</TableHead>
+          <TableHead class="min-w-[100px]">Tags</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        <TableRow v-if="agendamentos.length === 0">
           <TableCell class="text-center py-12 text-gray-500" colspan="9">
-            Nenhum agendamento para este dia
+            Nenhum agendamento corresponde aos filtros.
           </TableCell>
         </TableRow>
-      </div>
 
-      <TableRow
-          v-for="ag in agendamentos"
-          v-else
-          :key="ag.id"
-          :class="{ 'bg-gray-50 opacity-60 grayscale': ag.status === 'remarcado' }"
-      >
-        <TableCell>
-          <div class="font-mono text-sm">{{ ag.horarioInicio }}</div>
-          <div class="text-xs text-muted-foreground capitalize">{{ ag.turno }}</div>
-        </TableCell>
+        <TableRow
+            v-for="ag in agendamentos"
+            v-else
+            :key="ag.id"
+            :class="{ 'bg-gray-50 opacity-60 grayscale': ag.status === 'remarcado' }"
+        >
+          <TableCell class="p-0 relative align-top">
+            <div
+                :class="['h-full w-[4px] absolute left-0 top-0 bottom-0 rounded-l-sm', getAgendamentoInfo(ag).corBorda]"></div>
+            <div class="py-3 px-4 pl-5">
+              <div class="text-md">
+                {{ ag.horarioInicio }}
+              </div>
+              <div class="flex items-center gap-1.5 mt-1">
+                <Clock class="h-3 w-3 text-gray-400"/>
+                <span class="text-xs font-medium text-gray-500">
+                  {{ getAgendamentoInfo(ag).duracaoTexto }}
+                </span>
+              </div>
+            </div>
+          </TableCell>
 
-        <TableCell>
-          <button
-              class="text-left font-medium hover:text-blue-600 underline truncate max-w-[180px]"
-              @click="irParaProntuario(ag.pacienteId)"
-          >
-            {{ ag.paciente?.nome || getPaciente(ag.pacienteId)?.nome || 'Paciente não encontrado' }}
-          </button>
-          <div class="text-xs text-gray-500">
-            {{ ag.paciente?.registro || getPaciente(ag.pacienteId)?.registro }}
-          </div>
-        </TableCell>
+          <TableCell>
+            <button
+                class="text-left font-medium hover:text-blue-600 underline truncate max-w-[180px]"
+                @click="irParaProntuario(ag.pacienteId)"
+            >
+              {{ ag.paciente?.nome || getPaciente(ag.pacienteId)?.nome || 'Paciente não encontrado' }}
+            </button>
+            <div class="text-xs text-gray-500">
+              {{ ag.paciente?.registro || getPaciente(ag.pacienteId)?.registro }}
+            </div>
+          </TableCell>
 
-        <TableCell>
-          <span class="text-sm font-medium text-gray-700 block">
-            {{ getProtocoloInferido(ag.pacienteId)?.nome || '-' }}
-          </span>
-        </TableCell>
+          <TableCell class="align-top py-3">
+            <div class="flex flex-col truncate">
+              <span :title="getProtocoloInferido(ag.pacienteId)?.nome" class="font-medium text-gray-700 block">
+                {{ getProtocoloInferido(ag.pacienteId)?.nome || '-' }}
+              </span>
 
-        <TableCell>
-          <div v-if="ag.diaCiclo" class="text-sm">
-            <span class="font-medium block">Ciclo {{ ag.cicloAtual }}</span>
-            <span class="text-gray-500">{{ ag.diaCiclo }}</span>
-          </div>
-          <span v-else>-</span>
-        </TableCell>
+              <div class="flex items-center gap-2 mt-1 text-xs text-gray-800">
+                <span v-if="ag.cicloAtual" class="bg-blue-50 text-blue-700 px-1.5 rounded border border-blue-100">
+                  Ciclo {{ ag.cicloAtual }}
+                </span>
+                <span v-if="ag.diaCiclo" class="text-gray-800 px-1.5 rounded border">
+                  {{ ag.diaCiclo }}
+                </span>
+              </div>
+            </div>
+          </TableCell>
 
-        <TableCell>
-          <div class="flex items-center gap-2">
-            <div :class="['h-2.5 w-2.5 rounded-full flex-shrink-0', getStatusDotColor(ag.status)]"/>
+          <TableCell>
+            <div class="flex items-center gap-2">
+              <div :class="['h-2.5 w-2.5 rounded-full flex-shrink-0', getStatusDotColor(ag.status)]"/>
 
-            <div class="relative w-full">
-              <select
-                  :disabled="ag.status === 'remarcado'"
-                  :value="ag.status"
-                  class="flex h-9 w-full items-center justify-between rounded-md border border-input bg-background
+              <div class="relative w-full">
+                <select
+                    :disabled="ag.status === 'remarcado'"
+                    :value="ag.status"
+                    class="flex h-9 w-full items-center justify-between rounded-md border border-input bg-background
                          px-3 py-1 pr-8 text-sm ring-offset-background placeholder:text-muted-foreground
                          focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2
                          disabled:cursor-not-allowed disabled:opacity-50 appearance-none truncate"
-                  @change="(e) => handleAlterarStatusPaciente(ag, e)"
-              >
-                <option
-                    v-for="opcao in opcoesStatusPaciente"
-                    :key="opcao.id"
-                    :value="opcao.id"
+                    @change="(e) => handleAlterarStatusPaciente(ag, e)"
                 >
-                  {{ opcao.label }}
-                </option>
-              </select>
-              <ChevronDown class="absolute right-2 top-2.5 h-4 w-4 opacity-50 pointer-events-none"/>
+                  <option
+                      v-for="opcao in opcoesStatusPaciente"
+                      :key="opcao.id"
+                      :value="opcao.id"
+                  >
+                    {{ opcao.label }}
+                  </option>
+                </select>
+                <ChevronDown class="absolute right-2 top-2.5 h-4 w-4 opacity-50 pointer-events-none"/>
+              </div>
             </div>
-          </div>
-        </TableCell>
+          </TableCell>
 
-        <TableCell>
-          <span class="text-sm text-gray-600">{{ formatarStatus(ag.statusFarmacia) }}</span>
-        </TableCell>
+          <TableCell class="align-top py-3">
+            <div class="flex flex-col gap-2">
+              <Badge
+                  :class="{
+                  'bg-green-100 text-green-800 border-green-200': ag.statusFarmacia === 'pronta',
+                  'bg-yellow-100 text-yellow-800 border-yellow-200': ag.statusFarmacia === 'pendente',
+                  'bg-blue-100 text-blue-800 border-blue-200': ag.statusFarmacia === 'em-preparacao',
+                  'bg-purple-100 text-purple-800 border-purple-200': ag.statusFarmacia === 'enviada'
+                }"
+                  class="w-fit font-semibold px-2 border"
+                  variant="secondary"
+              >
+                {{ ag.statusFarmacia ? ag.statusFarmacia.toUpperCase().replace('-', ' ') : 'PENDENTE' }}
+              </Badge>
 
-        <TableCell>
-          <div v-if="ag.horarioPrevisaoEntrega"
-               class="flex items-center gap-1 text-blue-700 font-medium bg-blue-50 px-2 py-1 rounded w-fit">
-            <Clock class="h-3 w-3"/>
-            {{ ag.horarioPrevisaoEntrega }}
-          </div>
-          <span v-else class="text-gray-400 text-xs">-</span>
-        </TableCell>
+              <div class="pl-1 flex items-center gap-1.5 text-xs">
+                <Clock class="h-3.5 w-3.5 text-gray-400"/>
+                <span v-if="ag.horarioPrevisaoEntrega" class="text-blue-600 font-medium">
+                  {{ ag.horarioPrevisaoEntrega }}
+                </span>
+                <span v-else class="text-gray-400 italic">
+                  --:--
+                </span>
+              </div>
+            </div>
+          </TableCell>
 
-        <TableCell>
-          <div class="flex flex-wrap gap-1 items-center">
-            <Badge v-for="(tag, i) in (ag.tags || []).slice(0, 2)" :key="i" class="text-[10px] px-1 h-5"
-                   variant="outline">
-              {{ tag }}
-            </Badge>
-            <Button class="h-6 w-6" size="icon" variant="ghost" @click="$emit('abrir-tags', ag)">
-              <Tag class="h-3 w-3"/>
-            </Button>
-          </div>
-        </TableCell>
-        <TableCell>
-          <span v-if="ag.status === 'remarcado'" class="text-xs font-medium italic text-gray-400">
-            Remarcado
-          </span>
-
-          <DropdownMenu v-else>
-            <DropdownMenuTrigger as-child>
-              <Button class="h-8 w-8" size="icon" variant="ghost">
-                <MoreVertical class="h-4 w-4"/>
+          <TableCell>
+            <div
+                :class="{'opacity-50 pointer-events-none grayscale': ag.status === 'remarcado'}"
+                class="flex flex-wrap gap-1 items-center"
+            >
+              <Badge v-for="(tag, i) in (ag.tags || []).slice(0, 2)" :key="i" class="text-[10px] px-1 h-5"
+                     variant="outline">
+                {{ tag }}
+              </Badge>
+              <Button
+                  :disabled="ag.status === 'remarcado'"
+                  class="h-6 w-6"
+                  size="icon"
+                  variant="ghost"
+                  @click="$emit('abrir-tags', ag)">
+                <Tag class="h-3 w-3"/>
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Ações</DropdownMenuLabel>
-              <DropdownMenuItem @click="$emit('abrir-remarcar', ag)">
-                <CalendarClock class="mr-2 h-4 w-4"/>
-                Remarcar
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </TableCell>
-      </TableRow>
-    </TableBody>
-  </Table>
+            </div>
+          </TableCell>
+        </TableRow>
+      </TableBody>
+    </Table>
+  </div>
 </template>
