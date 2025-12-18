@@ -66,6 +66,7 @@ class AgendamentoPaciente(BaseModel):
     id: str
     nome: str
     registro: str
+    observacoes_clinicas: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True, alias_generator=to_camel, populate_by_name=True)
 

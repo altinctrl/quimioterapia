@@ -126,6 +126,7 @@ export interface Agendamento {
   paciente?: {
       nome: string;
       registro: string;
+      observacoesClinicas?: string
   };
   data: string;
   turno: Turno;
