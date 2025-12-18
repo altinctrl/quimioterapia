@@ -24,11 +24,13 @@ watch(() => props.open, (val) => {
   if (val) tagsSelecionadas.value = [...props.tagsAtuais]
 })
 
-const toggleTag = (tag: string) => {
-  if (tagsSelecionadas.value.includes(tag)) {
-    tagsSelecionadas.value = tagsSelecionadas.value.filter(t => t !== tag)
+const toggleTag = (tag: string, checked: boolean) => {
+  if (checked) {
+    if (!tagsSelecionadas.value.includes(tag)) {
+      tagsSelecionadas.value.push(tag)
+    }
   } else {
-    tagsSelecionadas.value.push(tag)
+    tagsSelecionadas.value = tagsSelecionadas.value.filter(t => t !== tag)
   }
 }
 
@@ -52,7 +54,11 @@ const handleSalvar = () => {
       <div class="space-y-4">
         <div class="space-y-3 max-h-[300px] overflow-y-auto">
           <div v-for="tag in TAGS_DISPONIVEIS" :key="tag" class="flex items-center gap-3 p-2 hover:bg-gray-50 rounded">
-            <Checkbox :id="`tag-${tag}`" :checked="tagsSelecionadas.includes(tag)" @update:checked="toggleTag(tag)"/>
+            <Checkbox
+                :id="`tag-${tag}`"
+                :checked="tagsSelecionadas.includes(tag)"
+                @update:checked="(val) => toggleTag(tag, val ?? false)"
+            />
             <Label :for="`tag-${tag}`" class="flex-1 cursor-pointer">{{ tag }}</Label>
           </div>
         </div>

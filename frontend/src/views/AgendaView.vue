@@ -132,11 +132,8 @@ const handleAbrirTags = (agendamento: any) => {
   tagsModalOpen.value = true
 }
 
-const salvarTags = (id: string, tags: string[]) => {
-  const agendamento = appStore.agendamentos.find(a => a.id === id)
-  if (agendamento) {
-    agendamento.tags = tags
-  }
+const salvarTags = async (id: string, tags: string[]) => {
+  await appStore.atualizarTagsAgendamento(id, tags)
   tagsModalOpen.value = false
 }
 
