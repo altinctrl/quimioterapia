@@ -1,10 +1,11 @@
 <script lang="ts" setup>
-import {ref, watch} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle} from '@/components/ui/dialog'
 import {Button} from '@/components/ui/button'
 import {Checkbox} from '@/components/ui/checkbox'
 import {Label} from '@/components/ui/label'
 import {Tag} from 'lucide-vue-next'
+import {useAppStore} from '@/stores/app'
 
 const props = defineProps<{
   open: boolean
@@ -13,12 +14,10 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits(['update:open', 'salvar'])
+const appStore = useAppStore()
 
 const tagsSelecionadas = ref<string[]>([])
-const TAGS_DISPONIVEIS = [
-  'Primeira Sessão', 'Última Sessão', 'Pré-medicação', 'Hidratação',
-  'Antiemético', 'Paciente Idoso', 'Atenção Especial', 'Jejum Necessário'
-]
+const tagsDisponiveis = computed(() => appStore.parametros.tags || [])
 
 watch(() => props.open, (val) => {
   if (val) tagsSelecionadas.value = [...props.tagsAtuais]
@@ -42,7 +41,7 @@ const handleSalvar = () => {
 
 <template>
   <Dialog :open="open" @update:open="emit('update:open', $event)">
-    <DialogContent class="max-w-md">
+    <DialogContent class="max-w-xl">
       <DialogHeader>
         <DialogTitle class="flex items-center gap-2">
           <Tag class="h-5 w-5"/>
@@ -52,18 +51,29 @@ const handleSalvar = () => {
       </DialogHeader>
 
       <div class="space-y-4">
-        <div class="space-y-3 max-h-[300px] overflow-y-auto">
-          <div v-for="tag in TAGS_DISPONIVEIS" :key="tag" class="flex items-center gap-3 p-2 hover:bg-gray-50 rounded">
+        <div class="grid grid-cols-2 gap-2 max-h-[600px] overflow-y-auto pr-2">
+          <div
+            v-for="tag in tagsDisponiveis"
+            :key="tag"
+            class="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer group"
+            @click="toggleTag(tag, !tagsSelecionadas.includes(tag))"
+          >
             <Checkbox
-                :id="`tag-${tag}`"
-                :checked="tagsSelecionadas.includes(tag)"
-                @update:checked="(val) => toggleTag(tag, val ?? false)"
-            />
-            <Label :for="`tag-${tag}`" class="flex-1 cursor-pointer">{{ tag }}</Label>
+              :id="`tag-${tag}`"
+              :checked="tagsSelecionadas.includes(tag)"
+              @update:checked="(val) => toggleTag(tag, val as boolean)"
+              @click.stop />
+            <Label
+              :for="`tag-${tag}`"
+              class="flex-1 cursor-pointer font-medium text-sm"
+              @click.stop
+            >
+              {{ tag }}
+            </Label>
           </div>
         </div>
 
-        <div class="flex gap-3 pt-4">
+        <div class="flex gap-2 pt-4 pr-2">
           <Button class="flex-1" variant="outline" @click="emit('update:open', false)">Cancelar</Button>
           <Button class="flex-1" @click="handleSalvar">Salvar</Button>
         </div>

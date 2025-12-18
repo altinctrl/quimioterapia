@@ -73,7 +73,7 @@ const getAgendamentoInfo = (ag: Agendamento) => {
           <TableHead class="min-w-[100px]">Protocolo</TableHead>
           <TableHead class="min-w-[240px]">Status Paciente</TableHead>
           <TableHead class="min-w-[140px]">Status Farmácia</TableHead>
-          <TableHead class="min-w-[100px]">Tags</TableHead>
+          <TableHead class="w-fit">Tags</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -188,22 +188,38 @@ const getAgendamentoInfo = (ag: Agendamento) => {
             </div>
           </TableCell>
 
-          <TableCell>
+          <TableCell class="pr-4">
             <div
                 :class="{'opacity-50 pointer-events-none grayscale': ag.status === 'remarcado'}"
-                class="flex flex-wrap gap-1 items-center"
+                class="flex items-center gap-1"
             >
-              <Badge v-for="(tag, i) in (ag.tags || []).slice(0, 2)" :key="i" class="text-[10px] px-1 h-5"
-                     variant="outline">
-                {{ tag }}
-              </Badge>
               <Button
                   :disabled="ag.status === 'remarcado'"
-                  class="h-6 w-6"
+                  class="h-7 w-7 shrink-0 text-muted-foreground"
                   size="icon"
                   variant="ghost"
-                  @click="$emit('abrir-tags', ag)">
+                  @click="$emit('abrir-tags', ag)"
+              >
                 <Tag class="h-3 w-3"/>
+              </Button>
+              <div class="flex flex-col gap-0.5 w-max">
+                <Button
+                    v-for="(tag, i) in (ag.tags || []).slice(0, 2)"
+                    :key="i"
+                    class="text-[11px] px-2 h-6 whitespace-nowrap w-fit hover:shadow-sm"
+                    variant="outline"
+                    @click="$emit('abrir-tags', ag)"
+                >
+                  {{ tag }}
+                </Button>
+              </div>
+              <Button
+                  v-if="(ag.tags || []).length > 2"
+                  class="text-[12px] text-muted-foreground font-bold p-1 px-2"
+                  variant="ghost"
+                  @click="$emit('abrir-tags', ag)"
+              >
+                +{{ ag.tags.length - 2 }}
               </Button>
             </div>
           </TableCell>
