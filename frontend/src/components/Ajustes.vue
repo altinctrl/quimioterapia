@@ -43,7 +43,7 @@ const grupos = reactive({
   longo: {vagas: 0, duracao: ''}
 })
 
-const tags = ref(['1ª vez', 'Mudança de protocolo', 'Reação prévia', 'Quimio adiada', 'Redução de dose'])
+const tags = ref<string[]>([])
 const novaTag = ref('')
 
 const handleAdicionarTag = () => {
@@ -66,7 +66,8 @@ const handleSalvar = async () => {
       rapido: { ...grupos.rapido, vagas: Number(grupos.rapido.vagas) },
       medio: { ...grupos.medio, vagas: Number(grupos.medio.vagas) },
       longo: { ...grupos.longo, vagas: Number(grupos.longo.vagas) }
-    }
+    },
+    tags: [...tags.value]
   }
   try {
     await appStore.salvarConfiguracoes(payload)
@@ -94,6 +95,7 @@ watch(
       horarioAbertura.value = newVal.horarioAbertura
       horarioFechamento.value = newVal.horarioFechamento
       diasSelecionados.value = [...newVal.diasFuncionamento]
+      tags.value = [...(newVal.tags || [])]
       Object.assign(grupos.rapido, newVal.gruposInfusao.rapido)
       Object.assign(grupos.medio, newVal.gruposInfusao.medio)
       Object.assign(grupos.longo, newVal.gruposInfusao.longo)

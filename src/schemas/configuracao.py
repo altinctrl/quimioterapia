@@ -16,6 +16,7 @@ class ConfiguracaoBase(BaseModel):
     horario_fechamento: str
     dias_funcionamento: List[int]
     grupos_infusao: Dict[str, GrupoInfusaoConfig]
+    tags: List[str] = []
 
     model_config = ConfigDict(from_attributes=True, alias_generator=to_camel, populate_by_name=True)
 

@@ -154,6 +154,7 @@ export interface ParametrosAgendamento {
   gruposInfusao: {
     rapido: ConfigGrupoInfusao; medio: ConfigGrupoInfusao; longo: ConfigGrupoInfusao;
   };
+  tags: string[];
 }
 
 export interface ConfigStatus {
