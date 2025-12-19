@@ -96,14 +96,37 @@ const agendamentosProcessados = computed(() => {
   })
 })
 
+const mostrarMetricas = ref(true)
+
 const metricas = computed(() => {
   const list = agendamentosDoDia.value
+
+  let curto = 0
+  let medio = 0
+  let longo = 0
+  list.forEach(a => {
+    const minutos = calcularDuracaoMinutos(a.horarioInicio, a.horarioFim)
+    const grupo = getGrupoInfusao(minutos)
+    if (grupo === 'curto') curto++
+    else if (grupo === 'medio') medio++
+    else if (grupo === 'longo') longo++
+  })
+
   return {
     total: list.length,
     manha: list.filter(a => a.turno === 'manha').length,
     tarde: list.filter(a => a.turno === 'tarde').length,
     emAndamento: list.filter(a => ['em-infusao', 'aguardando-medicamento'].includes(a.status)).length,
-    concluidos: list.filter(a => a.status === 'concluido').length
+    concluidos: list.filter(a => a.status === 'concluido').length,
+    encaixes: list.filter(a => a.encaixe).length,
+    suspensos: list.filter(a => a.status === 'suspenso').length,
+    curto,
+    medio,
+    longo,
+    intercorrencias: list.filter(a => a.status === 'intercorrencia').length,
+    farmaciaPendentes: list.filter(a => a.statusFarmacia === 'pendente').length,
+    farmaciaPreparando: list.filter(a => a.statusFarmacia === 'em-preparacao').length,
+    farmaciaProntas: list.filter(a => a.statusFarmacia === 'pronta').length
   }
 })
 
@@ -201,12 +224,14 @@ const handleRemarcado = () => {
 
     <AgendaHeader
         v-model="dataSelecionada"
+        :mostrar-metricas="mostrarMetricas"
+        @toggle-metrics="mostrarMetricas = !mostrarMetricas"
         @navigate-prev="handleDiaAnterior"
         @navigate-next="handleProximoDia"
         @new-appointment="router.push('/agendamento')"
     />
 
-    <AgendaMetrics :metricas="metricas"/>
+    <AgendaMetrics v-if="mostrarMetricas" :metricas="metricas"/>
 
     <Card class="overflow-hidden">
       <div class="px-4 pt-4">
