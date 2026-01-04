@@ -8,7 +8,7 @@ import AgendaView from '@/views/AgendaView.vue'
 import Agendamento from '@/components/Agendamento.vue'
 import Farmacia from '@/components/Farmacia.vue'
 import Relatorios from '@/components/Relatorios.vue'
-import Protocolos from '@/components/Protocolos.vue'
+import ProtocolosView from '@/views/ProtocolosView.vue'
 import Ajustes from '@/components/Ajustes.vue'
 import PrescricaoView from '@/views/PrescricaoView.vue'
 
@@ -23,7 +23,7 @@ const router = createRouter({
         {path: 'agendamento', name: 'Agendamento', component: Agendamento},
         {path: 'farmacia', name: 'Farmacia', component: Farmacia},
         {path: 'relatorios', name: 'Relatorios', component: Relatorios},
-        {path: 'protocolos', name: 'Protocolos', component: Protocolos},
+        {path: 'protocolos', name: 'Protocolos', component: ProtocolosView},
         {path: 'ajustes', name: 'Ajustes', component: Ajustes},
         {path: 'prescricao', name: 'Prescricao', component: PrescricaoView}
       ]
