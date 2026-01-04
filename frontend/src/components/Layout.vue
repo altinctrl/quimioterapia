@@ -4,7 +4,7 @@ import {useRouter} from 'vue-router'
 import {useAuthStore} from '@/stores/auth'
 import {useAppStore} from '@/stores/app'
 import {useMediaQuery} from '@vueuse/core'
-import {Calendar, FileText, LayoutDashboard, LogOut, Menu, Pill, Settings, Users, X} from 'lucide-vue-next'
+import {Calendar, FileText, LogOut, Menu, Pill, Settings, Users, X} from 'lucide-vue-next'
 import {Button} from '@/components/ui/button'
 
 const router = useRouter()
@@ -33,7 +33,6 @@ const dataAtual = new Date().toLocaleDateString('pt-BR', {
 })
 
 const allMenuItems = [
-  {id: 'dashboard', path: '/dashboard', label: 'Painel de Controle', icon: LayoutDashboard},
   {id: 'pacientes', path: '/pacientes', label: 'Pacientes', icon: Users},
   {id: 'agenda', path: '/agenda', label: 'Agenda', icon: Calendar},
   {id: 'farmacia', path: '/farmacia', label: 'Farmácia', icon: Pill},

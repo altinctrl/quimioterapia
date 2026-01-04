@@ -31,7 +31,7 @@ const handleSubmit = async () => {
       } else if (role === 'medico') {
         router.push('/pacientes')
       } else {
-        router.push('/dashboard')
+        router.push('/agenda')
       }
     }
   } catch (err) {
