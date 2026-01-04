@@ -10,7 +10,7 @@ import Farmacia from '@/components/Farmacia.vue'
 import Relatorios from '@/components/Relatorios.vue'
 import Protocolos from '@/components/Protocolos.vue'
 import Ajustes from '@/components/Ajustes.vue'
-import PrescricaoMedica from '@/components/PrescricaoMedica.vue'
+import PrescricaoView from '@/views/PrescricaoView.vue'
 
 const router = createRouter({
   history: createWebHistory(), routes: [
@@ -25,7 +25,7 @@ const router = createRouter({
         {path: 'relatorios', name: 'Relatorios', component: Relatorios},
         {path: 'protocolos', name: 'Protocolos', component: Protocolos},
         {path: 'ajustes', name: 'Ajustes', component: Ajustes},
-        {path: 'prescricao', name: 'Prescricao', component: PrescricaoMedica}
+        {path: 'prescricao', name: 'Prescricao', component: PrescricaoView}
       ]
     }]
 })
