@@ -1,6 +1,6 @@
 import {createRouter, createWebHistory} from 'vue-router'
 import {useAuthStore} from '@/stores/auth'
-import Login from '@/components/Login.vue'
+import LoginView from '@/views/LoginView.vue'
 import Layout from '@/components/Layout.vue'
 import PacientesView from '@/views/PacientesView.vue'
 import AgendaView from '@/views/AgendaView.vue'
@@ -13,7 +13,7 @@ import PrescricaoView from '@/views/PrescricaoView.vue'
 
 const router = createRouter({
   history: createWebHistory(), routes: [
-    {path: '/login', name: 'Login', component: Login},
+    {path: '/login', name: 'Login', component: LoginView},
     {path: '/', component: Layout, meta: {requiresAuth: true},
       children: [{path: '', redirect: '/agenda'},
         {path: 'pacientes', name: 'Pacientes', component: PacientesView },
