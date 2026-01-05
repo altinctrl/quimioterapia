@@ -236,7 +236,7 @@ const prescricoesFiltradas = computed(() =>
 
         <div class="flex items-center gap-3">
           <Button
-              v-if="authStore.user?.role === 'medico'"
+              v-if="authStore.user?.role === 'medico' || authStore.user?.role === 'admin'"
               class="flex items-center gap-2"
               @click="router.push({ name: 'Prescricao', query: { pacienteId: pacienteSelecionado.id } })"
           >
