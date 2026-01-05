@@ -42,9 +42,6 @@ const allMenuItems = [
 
 const menuItems = computed(() => {
   return allMenuItems.filter(item => {
-    if (item.id === 'pacientes') {
-      return authStore.user?.role === 'enfermeiro' || authStore.user?.role === 'medico'
-    }
     return authStore.hasAccess(item.id)
   })
 })
