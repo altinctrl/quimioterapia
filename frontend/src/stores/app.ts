@@ -1,10 +1,10 @@
-import { defineStore, storeToRefs } from 'pinia'
-import { toast } from 'vue-sonner'
-import { usePacienteStore } from './paciente'
-import { useAgendamentoStore } from './agendamento'
-import { useConfiguracaoStore } from './configuracao'
-import { useProtocoloStore } from './protocolo'
-import { usePrescricaoStore } from './prescricao'
+import {defineStore, storeToRefs} from 'pinia'
+import {toast} from 'vue-sonner'
+import {usePacienteStore} from './paciente'
+import {useAgendamentoStore} from './agendamento'
+import {useConfiguracaoStore} from './configuracao'
+import {useProtocoloStore} from './protocolo'
+import {usePrescricaoStore} from './prescricao'
 
 export const useAppStore = defineStore('app', () => {
   const pacienteStore = usePacienteStore()
@@ -13,11 +13,11 @@ export const useAppStore = defineStore('app', () => {
   const protocoloStore = useProtocoloStore()
   const prescricaoStore = usePrescricaoStore()
 
-  const { pacientes, totalPacientes, resultadosBusca } = storeToRefs(pacienteStore)
-  const { agendamentos } = storeToRefs(agendamentoStore)
-  const { statusConfig, parametros } = storeToRefs(configuracaoStore)
-  const { protocolos } = storeToRefs(protocoloStore)
-  const { prescricoes } = storeToRefs(prescricaoStore)
+  const {pacientes, totalPacientes, resultadosBusca} = storeToRefs(pacienteStore)
+  const {agendamentos} = storeToRefs(agendamentoStore)
+  const {statusConfig, parametros} = storeToRefs(configuracaoStore)
+  const {protocolos} = storeToRefs(protocoloStore)
+  const {prescricoes} = storeToRefs(prescricaoStore)
 
   const {
     getStatusConfig,
