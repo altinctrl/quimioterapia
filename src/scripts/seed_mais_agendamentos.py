@@ -34,7 +34,7 @@ async def add_agendamentos(data_fixa: date = None, quantidade: int = None):
         protocolos = result_prot.scalars().all()
 
         if not pacientes or not protocolos:
-            print("Nenhum paciente ou protocolo encontrado. Rode o seed_v3.py primeiro.")
+            print("Nenhum paciente ou protocolo encontrado. Rode o seed.py primeiro.")
             return
 
         print(f"Encontrados {len(pacientes)} pacientes. Gerando agendamentos...")
