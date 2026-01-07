@@ -63,7 +63,8 @@ const handleSelecionarPaciente = (p: Paciente) => {
   buscaPaciente.value = p.nome
   mostrarResultados.value = false
   if (ultimoAgendamento.value) {
-    const lastDayNum = parseInt(ultimoAgendamento.value.diaCiclo?.replace(/\D/g, '') || '0')
+    const diaAnterior = ultimoAgendamento.value.detalhes?.infusao?.dia_ciclo || 'D0'
+    const lastDayNum = parseInt(diaAnterior.replace(/\D/g, '') || '0')
     diaCiclo.value = `D${lastDayNum + 7}`
   }
   dataSelecionada.value = ''
@@ -143,20 +144,26 @@ const realizarAgendamento = async () => {
 
   const [hIni] = horarioInicio.value.split(':').map(Number)
   const turnoInferido: Turno = hIni < 13 ? 'manha' : 'tarde'
+  const cicloAnterior = ultimoAgendamento.value?.detalhes?.infusao?.ciclo_atual || 1
 
   try {
     await appStore.adicionarAgendamento({
       pacienteId: pacienteSelecionado.value!.id,
+      tipo: 'infusao',
       data: dataSelecionada.value,
       turno: turnoInferido,
       horarioInicio: horarioInicio.value,
       horarioFim: '00:00',
       status: 'agendado',
-      statusFarmacia: 'pendente',
       encaixe: listaAvisos.value.length > 0,
       observacoes: observacoes.value,
-      diaCiclo: diaCiclo.value,
-      cicloAtual: ultimoAgendamento.value ? (ultimoAgendamento.value.cicloAtual || 1) : 1
+      detalhes: {
+        infusao: {
+          status_farmacia: 'pendente',
+          ciclo_atual: ultimoAgendamento.value ? cicloAnterior : 1,
+          dia_ciclo: diaCiclo.value
+        }
+      }
     })
 
     toast.success('Agendamento realizado com sucesso!')

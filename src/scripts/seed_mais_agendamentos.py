@@ -48,20 +48,26 @@ async def add_agendamentos(data_fixa: date = None, quantidade: int = None):
             inicio, fim = gerar_horario_random()
             tags = random.sample(TAGS_EXTRA, k=random.randint(0, 2))
 
+            ciclo = random.randint(1, 12)
             ag = Agendamento(
                 id=str(uuid.uuid4()),
                 paciente_id=paciente.id,
+                tipo="infusao",
                 data=data_ag,
                 turno="manha" if int(inicio[:2]) < 12 else "tarde",
                 horario_inicio=inicio,
                 horario_fim=fim,
                 status="agendado",
-                status_farmacia="pendente",
-                ciclo_atual=random.randint(1, 12),
-                dia_ciclo="D1",
                 encaixe=random.choice([True, False]),
                 tags=tags,
-                observacoes="Agendamento extra gerado via script."
+                observacoes="Agendamento extra gerado via script.",
+                detalhes={
+                    "infusao": {
+                        "status_farmacia": "pendente",
+                        "ciclo_atual": ciclo,
+                        "dia_ciclo": "D1"
+                    }
+                }
             )
 
             presc = Prescricao(

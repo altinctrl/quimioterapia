@@ -120,27 +120,53 @@ export interface PrescricaoMedica {
   diagnostico?: string;
 }
 
+export type TipoAgendamento = 'infusao' | 'procedimento' | 'consulta';
+
+export interface DetalhesInfusao {
+  status_farmacia: StatusFarmacia;
+  tempo_estimado_preparo?: number;
+  horario_previsao_entrega?: string;
+  ciclo_atual?: number;
+  dia_ciclo?: string;
+}
+
+export interface DetalhesAgendamento {
+  infusao?: DetalhesInfusao;
+  procedimento?: any;
+  consulta?: any;
+  remarcacao?: any;
+}
+
 export interface Agendamento {
   id: string;
   pacienteId: string;
   paciente?: {
-      nome: string;
-      registro: string;
-      observacoesClinicas?: string
+    nome: string;
+    registro: string;
+    observacoesClinicas?: string
   };
+  tipo: TipoAgendamento;
   data: string;
   turno: Turno;
   horarioInicio: string;
   horarioFim: string;
   status: StatusPaciente;
-  statusFarmacia: StatusFarmacia;
   encaixe: boolean;
   observacoes?: string;
   tags?: string[];
-  tempoEstimadoPreparo?: number;
-  horarioPrevisaoEntrega?: string;
-  cicloAtual?: number;
-  diaCiclo?: string;
+  detalhes?: DetalhesAgendamento;
+}
+
+export function isInfusao(ag: Partial<Agendamento>): ag is Agendamento & { detalhes: { infusao: DetalhesInfusao } } {
+  return !!ag.detalhes?.infusao;
+}
+
+export function isProcedimento(ag: Partial<Agendamento>): ag is Agendamento & { detalhes: { procedimento: any } } {
+  return !!ag.detalhes?.procedimento;
+}
+
+export function isConsulta(ag: Partial<Agendamento>): ag is Agendamento & { detalhes: { consulta: any } } {
+  return !!ag.detalhes?.consulta;
 }
 
 export interface ConfigGrupoInfusao {
