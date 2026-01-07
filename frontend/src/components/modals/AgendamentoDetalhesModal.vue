@@ -3,7 +3,7 @@ import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, Di
 import {Button} from '@/components/ui/button'
 import {Badge} from '@/components/ui/badge'
 import {AlertCircle, Calendar, Clock, FileText, Tag} from 'lucide-vue-next'
-import type {Agendamento} from '@/types'
+import {type Agendamento, isInfusao} from '@/types'
 
 defineProps<{
   open: boolean
@@ -39,8 +39,8 @@ const formatarData = (data: string) => {
           <Badge v-if="agendamento.encaixe" class="text-sm px-3 py-1" variant="destructive">
             Encaixe
           </Badge>
-          <Badge v-if="agendamento.statusFarmacia" class="text-sm px-3 py-1 capitalize" variant="secondary">
-            Farmácia: {{ agendamento.statusFarmacia.replace('-', ' ') }}
+          <Badge v-if="isInfusao(agendamento)" class="text-sm px-3 py-1 capitalize" variant="secondary">
+            Farmácia: {{ agendamento.detalhes.infusao.status_farmacia.replace('-', ' ') }}
           </Badge>
         </div>
 
@@ -69,19 +69,23 @@ const formatarData = (data: string) => {
               <FileText class="h-5 w-5 text-gray-500 mt-0.5"/>
               <div>
                 <p class="text-sm text-gray-500 font-medium">Ciclo / Dia</p>
-                <p v-if="agendamento.cicloAtual || agendamento.diaCiclo" class="text-gray-900">
-                  {{ agendamento.cicloAtual ? `Ciclo ${agendamento.cicloAtual}` : '' }}
-                  {{ agendamento.diaCiclo ? ` - ${agendamento.diaCiclo}` : '' }}
+                <p v-if="isInfusao(agendamento) && (agendamento.detalhes.infusao.ciclo_atual || agendamento.detalhes.infusao.dia_ciclo)"
+                   class="text-gray-900">
+                  {{
+                    agendamento.detalhes.infusao.ciclo_atual ? `Ciclo ${agendamento.detalhes.infusao.ciclo_atual}` : ''
+                  }}
+                  {{ agendamento.detalhes.infusao.dia_ciclo ? ` - ${agendamento.detalhes.infusao.dia_ciclo}` : '' }}
                 </p>
                 <p v-else class="text-gray-400 italic">Não informado</p>
               </div>
             </div>
 
-            <div v-if="agendamento.horarioPrevisaoEntrega" class="flex items-start gap-3">
+            <div v-if="isInfusao(agendamento) && agendamento.detalhes.infusao.horario_previsao_entrega"
+                 class="flex items-start gap-3">
               <Clock class="h-5 w-5 text-blue-600 mt-0.5"/>
               <div>
                 <p class="text-sm text-blue-600 font-medium">Previsão Farmácia</p>
-                <p class="text-blue-900 font-bold">{{ agendamento.horarioPrevisaoEntrega }}</p>
+                <p class="text-blue-900 font-bold">{{ agendamento.detalhes.infusao.horario_previsao_entrega }}</p>
               </div>
             </div>
           </div>

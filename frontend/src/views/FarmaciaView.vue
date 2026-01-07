@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import {computed, ref, watch} from 'vue'
 import {useAppStore} from '@/stores/app'
-import type {StatusFarmacia} from '@/types'
+import {isInfusao, type StatusFarmacia} from '@/types'
 import FarmaciaHeader from '@/components/farmacia/FarmaciaHeader.vue'
 import FarmaciaMetrics from '@/components/farmacia/FarmaciaMetrics.vue'
 import FarmaciaTable from '@/components/farmacia/FarmaciaTable.vue'
@@ -28,11 +28,12 @@ const agendamentosDoDia = computed(() => {
 })
 
 const metricas = computed(() => {
-  const total = agendamentosDoDia.value.length
-  const pendente = agendamentosDoDia.value.filter(a => a.statusFarmacia === 'pendente').length
-  const emPreparacao = agendamentosDoDia.value.filter(a => a.statusFarmacia === 'em-preparacao').length
-  const pronta = agendamentosDoDia.value.filter(a => a.statusFarmacia === 'pronta').length
-  const enviada = agendamentosDoDia.value.filter(a => a.statusFarmacia === 'enviada').length
+  const infusoes = agendamentosDoDia.value.filter(isInfusao)
+  const total = infusoes.length
+  const pendente = infusoes.filter(a => a.detalhes.infusao.status_farmacia === 'pendente').length
+  const emPreparacao = infusoes.filter(a => a.detalhes.infusao.status_farmacia === 'em-preparacao').length
+  const pronta = infusoes.filter(a => a.detalhes.infusao.status_farmacia === 'pronta').length
+  const enviada = infusoes.filter(a => a.detalhes.infusao.status_farmacia === 'enviada').length
   return {total, pendente, emPreparacao, pronta, enviada}
 })
 

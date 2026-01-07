@@ -43,7 +43,6 @@ export const useAgendamentoStore = defineStore('agendamento', () => {
     try {
       const payload: any = {status}
       if (detalhes) payload.detalhes = detalhes
-      else payload.detalhes = null
 
       const res = await api.put(`/api/agendamentos/${id}`, payload)
 
@@ -58,7 +57,8 @@ export const useAgendamentoStore = defineStore('agendamento', () => {
 
   async function atualizarStatusFarmacia(id: string, status: StatusFarmacia) {
     try {
-      const res = await api.put(`/api/agendamentos/${id}`, {statusFarmacia: status})
+      const payload = {detalhes: {infusao: {status_farmacia: status}}}
+      const res = await api.put(`/api/agendamentos/${id}`, payload)
       const idx = agendamentos.value.findIndex(a => a.id === id)
       if (idx !== -1) agendamentos.value[idx] = res.data
       toast.success("Status farmácia atualizado")
@@ -69,7 +69,8 @@ export const useAgendamentoStore = defineStore('agendamento', () => {
 
   async function atualizarHorarioPrevisao(id: string, horario: string) {
     try {
-      const res = await api.put(`/api/agendamentos/${id}`, {horarioPrevisaoEntrega: horario})
+      const payload = {detalhes: {infusao: {horario_previsao_entrega: horario}}}
+      const res = await api.put(`/api/agendamentos/${id}`, payload)
       const idx = agendamentos.value.findIndex(a => a.id === id)
       if (idx !== -1) agendamentos.value[idx] = res.data
     } catch (e) {
@@ -80,7 +81,10 @@ export const useAgendamentoStore = defineStore('agendamento', () => {
   async function remarcarAgendamento(idOriginal: string, novaData: string, novoHorario: string, motivo: string) {
     try {
       const detalhesPayload = {
-        tipo: 'remarcacao', motivo: motivo, data_nova: novaData
+        remarcacao: {
+          motivo_remarcacao: motivo,
+          nova_data: novaData
+        }
       }
 
       await atualizarStatusAgendamento(idOriginal, 'remarcado', detalhesPayload)
@@ -88,19 +92,28 @@ export const useAgendamentoStore = defineStore('agendamento', () => {
       const original = agendamentos.value.find(a => a.id === idOriginal)
       if (!original) return
 
-      await adicionarAgendamento({
+      const detalhesInfusaoOriginal = original.detalhes?.infusao
+
+      const novoAgendamento = {
         pacienteId: original.pacienteId,
+        tipo: original.tipo || 'infusao',
         data: novaData,
         turno: parseInt(novoHorario.split(':')[0]) < 13 ? 'manha' : 'tarde',
         horarioInicio: novoHorario,
         horarioFim: original.horarioFim,
         status: 'agendado',
-        statusFarmacia: 'pendente',
         encaixe: true,
         observacoes: `Remarcado de ${original.data}. Motivo: ${motivo}`,
-        cicloAtual: original.cicloAtual,
-        diaCiclo: original.diaCiclo
-      })
+        detalhes: {
+          infusao: {
+            status_farmacia: 'pendente',
+            ciclo_atual: detalhesInfusaoOriginal?.ciclo_atual,
+            dia_ciclo: detalhesInfusaoOriginal?.dia_ciclo
+          }
+        }
+      }
+
+      await adicionarAgendamento(novoAgendamento)
       toast.success("Agendamento remarcado")
     } catch (e) {
       toast.error("Erro ao remarcar")

@@ -119,7 +119,11 @@ const dadosRelatorio = computed(() => {
     let totalAusencia = 0
 
     agendamentosBase.forEach(a => {
-      if (a.statusFarmacia === 'enviada') totalEnviadas++
+      if (a.tipo !== 'infusao') return
+
+      const statusFarmacia = a.detalhes?.infusao?.status_farmacia
+      if (statusFarmacia === 'enviada') totalEnviadas++
+
       if (a.status === 'suspenso' && (a.observacoes?.toLowerCase().includes('ausência') || a.observacoes?.toLowerCase().includes('falta'))) {
         totalAusencia++
       }

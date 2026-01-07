@@ -7,7 +7,7 @@ import {Badge} from '@/components/ui/badge'
 import {Button} from '@/components/ui/button'
 import {AlertTriangle, ChevronDown, Clock, Tag} from 'lucide-vue-next'
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/components/ui/tooltip'
-import type {Agendamento} from '@/types'
+import {type Agendamento, isInfusao} from '@/types'
 import {calcularDuracaoMinutos, formatarDuracao, getBadgeGrupo, getCorGrupo, getGrupoInfusao} from '@/utils/agendaUtils'
 
 defineProps<{
@@ -122,12 +122,12 @@ const getObservacoesClinicas = (ag: Agendamento) => {
                 <Tooltip :delay-duration="200">
                   <TooltipTrigger as-child>
                     <div class="cursor-help flex-shrink-0">
-                      <AlertTriangle class="h-4 w-4 text-amber-500 hover:text-amber-600 transition-colors" />
+                      <AlertTriangle class="h-4 w-4 text-amber-500 hover:text-amber-600 transition-colors"/>
                     </div>
                   </TooltipTrigger>
                   <TooltipContent
-                    side="right"
-                    class="max-w-[300px] p-3 bg-amber-50 border border-amber-200 text-black"
+                      class="max-w-[300px] p-3 bg-amber-50 border border-amber-200 text-black"
+                      side="right"
                   >
                     <p class="font-semibold text-xs mb-1 uppercase tracking-wide">Observações Clínicas</p>
                     <p class="text-sm leading-relaxed">
@@ -149,12 +149,15 @@ const getObservacoesClinicas = (ag: Agendamento) => {
               </span>
 
               <div class="flex items-center gap-2 mt-1 text-xs text-gray-800">
-                <span v-if="ag.cicloAtual" class="bg-blue-50 text-blue-700 px-1.5 rounded border border-blue-100">
-                  Ciclo {{ ag.cicloAtual }}
-                </span>
-                <span v-if="ag.diaCiclo" class="text-gray-800 px-1.5 rounded border">
-                  {{ ag.diaCiclo }}
-                </span>
+                <template v-if="isInfusao(ag)">
+                    <span v-if="ag.detalhes.infusao.ciclo_atual"
+                          class="bg-blue-50 text-blue-700 px-1.5 rounded border border-blue-100">
+                        Ciclo {{ ag.detalhes.infusao.ciclo_atual }}
+                    </span>
+                    <span v-if="ag.detalhes.infusao.dia_ciclo" class="text-gray-800 px-1.5 rounded border">
+                        {{ ag.detalhes.infusao.dia_ciclo }}
+                    </span>
+                </template>
               </div>
             </div>
           </TableCell>
@@ -190,21 +193,25 @@ const getObservacoesClinicas = (ag: Agendamento) => {
             <div class="flex flex-col gap-2">
               <Badge
                   :class="{
-                  'bg-green-100 text-green-800 border-green-200': ag.statusFarmacia === 'pronta',
-                  'bg-yellow-100 text-yellow-800 border-yellow-200': ag.statusFarmacia === 'pendente',
-                  'bg-blue-100 text-blue-800 border-blue-200': ag.statusFarmacia === 'em-preparacao',
-                  'bg-purple-100 text-purple-800 border-purple-200': ag.statusFarmacia === 'enviada'
-                }"
+                    'bg-green-100 text-green-800 border-green-200': isInfusao(ag) && ag.detalhes.infusao.status_farmacia === 'pronta',
+                    'bg-yellow-100 text-yellow-800 border-yellow-200': isInfusao(ag) && ag.detalhes.infusao.status_farmacia === 'pendente',
+                    'bg-blue-100 text-blue-800 border-blue-200': isInfusao(ag) && ag.detalhes.infusao.status_farmacia === 'em-preparacao',
+                    'bg-purple-100 text-purple-800 border-purple-200': isInfusao(ag) && ag.detalhes.infusao.status_farmacia === 'enviada'
+                  }"
                   class="w-fit font-semibold px-2 border"
                   variant="secondary"
               >
-                {{ ag.statusFarmacia ? ag.statusFarmacia.toUpperCase().replace('-', ' ') : 'PENDENTE' }}
+                {{
+                  isInfusao(ag) && ag.detalhes.infusao.status_farmacia ?
+                      ag.detalhes.infusao.status_farmacia.toUpperCase().replace('-', ' ') : 'PENDENTE'
+                }}
               </Badge>
 
               <div class="pl-1 flex items-center gap-1.5 text-xs">
                 <Clock class="h-3.5 w-3.5 text-gray-400"/>
-                <span v-if="ag.horarioPrevisaoEntrega" class="text-blue-600 font-medium">
-                  {{ ag.horarioPrevisaoEntrega }}
+                <span v-if="isInfusao(ag) && ag.detalhes.infusao.horario_previsao_entrega"
+                      class="text-blue-600 font-medium">
+                    {{ ag.detalhes.infusao.horario_previsao_entrega }}
                 </span>
                 <span v-else class="text-gray-400 italic">
                   --:--

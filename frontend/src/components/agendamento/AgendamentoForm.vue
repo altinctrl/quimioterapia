@@ -40,9 +40,10 @@ const emit = defineEmits<{
       <div class="grid grid-cols-2 gap-4">
         <div>
           <Label>Ciclo Atual</Label>
-          <Input :model-value="ultimoAgendamento?.cicloAtual ? ultimoAgendamento.cicloAtual + 1 : 1"
-                 class="bg-gray-50"
-                 readonly type="number"/>
+          <Input
+              :model-value="ultimoAgendamento?.detalhes?.infusao?.ciclo_atual ? ultimoAgendamento.detalhes.infusao.ciclo_atual + 1 : 1"
+              class="bg-gray-50"
+              readonly type="number"/>
         </div>
         <div>
           <Label>Dia do Ciclo</Label>

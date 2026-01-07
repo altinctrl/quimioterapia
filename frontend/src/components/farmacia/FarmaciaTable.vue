@@ -7,7 +7,7 @@ import {Input} from '@/components/ui/input'
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '@/components/ui/table'
 import {Badge} from '@/components/ui/badge'
 import {ChevronDown, Clock, FileText} from 'lucide-vue-next'
-import type {StatusFarmacia} from '@/types'
+import {isInfusao, type StatusFarmacia} from '@/types'
 
 const props = defineProps<{
   agendamentos: any[]
@@ -108,14 +108,14 @@ const onStatusChange = (id: string, event: Event) => {
                 <div
                     :class="[
                     'h-2.5 w-2.5 rounded-full flex-shrink-0',
-                    getStatusDotColor(isBloqueado(agendamento.status) ? 'pendente' : agendamento.statusFarmacia)
+                    getStatusDotColor(isBloqueado(agendamento.status) ? 'pendente' : (isInfusao(agendamento) ? agendamento.detalhes.infusao.status_farmacia : 'pendente'))
                   ]"
                 />
 
                 <div class="relative w-[160px]">
                   <select
                       :disabled="isBloqueado(agendamento.status)"
-                      :value="isBloqueado(agendamento.status) ? 'pendente' : agendamento.statusFarmacia"
+                      :value="isInfusao(agendamento) ? agendamento.detalhes.infusao.status_farmacia : 'pendente'"
                       class="flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-1 pr-8 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 appearance-none truncate"
                       @change="(e) => onStatusChange(agendamento.id, e)"
                   >
@@ -138,7 +138,7 @@ const onStatusChange = (id: string, event: Event) => {
                 <Clock class="h-3 w-3 text-gray-400"/>
                 <Input
                     :disabled="isBloqueado(agendamento.status)"
-                    :model-value="isBloqueado(agendamento.status) ? '' : agendamento.horarioPrevisaoEntrega"
+                    :model-value="isInfusao(agendamento) ? agendamento.detalhes.infusao.horario_previsao_entrega : ''"
                     class="w-32 h-9"
                     type="time"
                     @update:model-value="(v) => emit('alterarHorario', agendamento.id, String(v))"
