@@ -6,7 +6,7 @@ import type {User, UserRole} from '@/types'
 function mapGroupsToRole(groups: string[]): UserRole {
   if (groups.includes('Farmacia')) return 'farmacia'
   if (groups.includes('Medicos')) return 'medico'
-  if (groups.includes('GLO-SEC-HCPE-SETISD') || groups.includes('Admins')) return 'admin'
+  if (groups.includes('Administradores')) return 'admin'
   return 'enfermeiro'
 }
 
