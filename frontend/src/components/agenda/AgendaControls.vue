@@ -61,7 +61,7 @@ const activeCount = computed(() => {
 
 <template>
   <div>
-    <div class="flex items-center justify-between pb-2 border-b border-gray-100">
+    <div class="flex items-center justify-between pb-2">
       <div class="flex items-center gap-2">
         <Button
             class="h-7 w-[200px] p-4"
