@@ -10,7 +10,7 @@ import AgendaRemarcarModal from '@/components/agenda/AgendaRemarcarModal.vue'
 import StatusChangeModal from '@/components/agenda/AgendaStatusChangeModal.vue'
 import TagsModal from '@/components/modals/TagsModal.vue'
 import AgendaControls, {type FiltrosAgenda} from '@/components/agenda/AgendaControls.vue'
-import {calcularDuracaoMinutos, getGrupoInfusao} from '@/utils/agendaUtils'
+import {getDuracaoAgendamento, getGrupoInfusao} from '@/utils/agendaUtils'
 import {StatusPaciente} from "@/types";
 import {getDataLocal} from '@/lib/utils.ts';
 
@@ -56,18 +56,23 @@ const agendamentosProcessados = computed(() => {
 
   if (filtros.value.esconderRemarcados) lista = lista.filter(a => a.status !== 'remarcado')
   if (filtros.value.turno !== 'todos') lista = lista.filter(a => a.turno === filtros.value.turno)
-  if (filtros.value.statusFarmacia.length > 0) lista = lista.filter(a => filtros.value.statusFarmacia.includes(a.statusFarmacia))
+  if (filtros.value.statusFarmacia.length > 0) {
+    lista = lista.filter(a => {
+      const status = a.detalhes?.infusao?.status_farmacia
+      return status && filtros.value.statusFarmacia.includes(status)
+    })
+  }
   if (filtros.value.gruposInfusao.length > 0) {
     lista = lista.filter(a => {
-      const duracao = calcularDuracaoMinutos(a.horarioInicio, a.horarioFim)
+      const duracao = getDuracaoAgendamento(a, appStore)
       const grupo = getGrupoInfusao(duracao)
       return filtros.value.gruposInfusao.includes(grupo)
     })
   }
 
   return lista.sort((a, b) => {
-    const durA = calcularDuracaoMinutos(a.horarioInicio, a.horarioFim)
-    const durB = calcularDuracaoMinutos(b.horarioInicio, b.horarioFim)
+    const durA = getDuracaoAgendamento(a, appStore)
+    const durB = getDuracaoAgendamento(b, appStore)
 
     switch (filtros.value.ordenacao) {
       case 'grupo_asc':
@@ -102,13 +107,14 @@ const mostrarMetricas = ref(true)
 const metricas = computed(() => {
   const list = agendamentosDoDia.value
 
-  let curto = 0
+  let rapido = 0
   let medio = 0
   let longo = 0
+  const getStatusFarmacia = (a: any) => a.detalhes?.infusao?.status_farmacia
   list.forEach(a => {
-    const minutos = calcularDuracaoMinutos(a.horarioInicio, a.horarioFim)
+    const minutos = getDuracaoAgendamento(a, appStore)
     const grupo = getGrupoInfusao(minutos)
-    if (grupo === 'curto') curto++
+    if (grupo === 'rapido') rapido++
     else if (grupo === 'medio') medio++
     else if (grupo === 'longo') longo++
   })
@@ -121,13 +127,13 @@ const metricas = computed(() => {
     concluidos: list.filter(a => a.status === 'concluido').length,
     encaixes: list.filter(a => a.encaixe).length,
     suspensos: list.filter(a => a.status === 'suspenso').length,
-    curto,
+    rapido,
     medio,
     longo,
     intercorrencias: list.filter(a => a.status === 'intercorrencia').length,
-    farmaciaPendentes: list.filter(a => a.statusFarmacia === 'pendente').length,
-    farmaciaPreparando: list.filter(a => a.statusFarmacia === 'em-preparacao').length,
-    farmaciaProntas: list.filter(a => a.statusFarmacia === 'pronta').length
+    farmaciaPendentes: list.filter(a => getStatusFarmacia(a) === 'pendente').length,
+    farmaciaPreparando: list.filter(a => getStatusFarmacia(a) === 'em-preparacao').length,
+    farmaciaProntas: list.filter(a => getStatusFarmacia(a) === 'pronta').length
   }
 })
 

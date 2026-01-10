@@ -196,8 +196,8 @@ const activeCount = computed(() => {
             <DropdownMenuLabel>Grupo de Infusão</DropdownMenuLabel>
             <DropdownMenuSeparator/>
             <DropdownMenuCheckboxItem
-                :checked="filtros.gruposInfusao.includes('curto')"
-                @select.prevent="toggleFilter('gruposInfusao', 'curto')"
+                :checked="filtros.gruposInfusao.includes('rapido')"
+                @select.prevent="toggleFilter('gruposInfusao', 'rapido')"
             >
               <span class="w-2 h-2 rounded-full bg-emerald-500 mr-2"></span> Rápida (&lt;2h)
             </DropdownMenuCheckboxItem>

@@ -8,7 +8,7 @@ import {Button} from '@/components/ui/button'
 import {AlertTriangle, ChevronDown, Clock, Tag} from 'lucide-vue-next'
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/components/ui/tooltip'
 import {type Agendamento, isInfusao} from '@/types'
-import {calcularDuracaoMinutos, formatarDuracao, getBadgeGrupo, getCorGrupo, getGrupoInfusao} from '@/utils/agendaUtils'
+import {formatarDuracao, getBadgeGrupo, getCorGrupo, getDuracaoAgendamento, getGrupoInfusao} from '@/utils/agendaUtils'
 
 defineProps<{
   agendamentos: Agendamento[]
@@ -53,13 +53,13 @@ const getStatusDotColor = (statusId: string) => {
 }
 
 const getAgendamentoInfo = (ag: Agendamento) => {
-  const duracaoMin = calcularDuracaoMinutos(ag.horarioInicio, ag.horarioFim)
+  const duracaoMin = getDuracaoAgendamento(ag, appStore)
   const grupo = getGrupoInfusao(duracaoMin)
   return {
     duracaoTexto: formatarDuracao(duracaoMin),
     corBorda: getCorGrupo(grupo),
     corBadge: getBadgeGrupo(grupo),
-    grupoLabel: grupo === 'curto' ? 'Rápida' : grupo === 'medio' ? 'Média' : 'Longa'
+    grupoLabel: grupo === 'rapido' ? 'Rápida' : grupo === 'medio' ? 'Média' : 'Longa'
   }
 }
 
