@@ -10,7 +10,7 @@ defineProps<{
     tarde: number
     emAndamento: number
     concluidos: number
-    curto: number
+    rapido: number
     medio: number
     longo: number
     intercorrencias: number
@@ -64,7 +64,7 @@ defineProps<{
       <CardContent class="space-y-4">
         <div class="grid grid-cols-3 gap-2 text-center text-sm">
           <div class="bg-green-50 p-2 rounded border border-green-100">
-            <span class="text-2xl block font-bold text-green-700">{{ metricas.curto }}</span>
+            <span class="text-2xl block font-bold text-green-700">{{ metricas.rapido }}</span>
             <span class="text-xs text-green-500">Curta</span>
           </div>
           <div class="bg-amber-50 p-2 rounded border border-amber-100">

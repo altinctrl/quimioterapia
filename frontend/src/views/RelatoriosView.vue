@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {computed, ref} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useAppStore} from '@/stores/app'
 import {useAuthStore} from '@/stores/auth'
 import RelatoriosFiltros from '@/components/relatorios/RelatoriosFiltros.vue'
@@ -21,6 +21,37 @@ const filtros = ref({
   dataFim: getDataLocal()
 })
 
+watch(() => [
+  filtros.value.tipoRelatorio,
+  filtros.value.periodoTipo,
+  filtros.value.diaSelecionado,
+  filtros.value.mesSelecionado,
+  filtros.value.anoSelecionado,
+  filtros.value.dataInicio,
+  filtros.value.dataFim
+], async () => {
+  let inicio = filtros.value.diaSelecionado
+  let fim = filtros.value.diaSelecionado
+
+  if (filtros.value.tipoRelatorio === 'ocupacao-clinica' || filtros.value.tipoRelatorio === 'absenteismo') {
+    inicio = filtros.value.dataInicio
+    fim = filtros.value.dataFim
+  } else if (filtros.value.periodoTipo === 'mes') {
+    const y = parseInt(filtros.value.anoSelecionado)
+    const m = parseInt(filtros.value.mesSelecionado)
+    inicio = `${y}-${m.toString().padStart(2, '0')}-01`
+    const lastDay = new Date(y, m, 0).getDate()
+    fim = `${y}-${m.toString().padStart(2, '0')}-${lastDay}`
+  }
+
+  await appStore.fetchAgendamentos(inicio, fim)
+
+  const uniquePacientes = [...new Set(appStore.agendamentos.map(a => a.pacienteId))]
+  if (uniquePacientes.length > 0) {
+    await Promise.all(uniquePacientes.map(id => appStore.fetchPrescricoes(id)))
+  }
+}, {immediate: true, deep: true})
+
 const opcoesRelatorio = computed(() => {
   const role = authStore.user?.role
   if (role === 'farmacia') {
@@ -39,10 +70,14 @@ const usaRangeDatas = computed(() =>
 )
 
 const getPaciente = (id: string) => appStore.getPacienteById(id)
-const getProtocolo = (id?: string) => id ? appStore.getProtocoloById(id) : null
 
 const formatarStatus = (slug: string) => {
   return appStore.getStatusConfig(slug).label
+}
+
+const formatarDataLocal = (dataIso: string) => {
+  if (!dataIso) return '-'
+  return dataIso.split('-').reverse().join('/')
 }
 
 const dadosRelatorio = computed(() => {
@@ -58,7 +93,14 @@ const dadosRelatorio = computed(() => {
   const mesFormatado = `${anoSelecionado}-${mesSelecionado.padStart(2, '0')}`
 
   let agendamentosBase = []
-  if (periodoTipo === 'dia') {
+  if (['ocupacao-clinica', 'absenteismo'].includes(tipoRelatorio)) {
+     const inicioDt = new Date(dataInicio + 'T00:00:00')
+     const fimDt = new Date(dataFim + 'T23:59:59')
+     agendamentosBase = appStore.agendamentos.filter(a => {
+        const d = new Date(a.data + 'T12:00:00')
+        return d >= inicioDt && d <= fimDt
+     })
+  } else if (periodoTipo === 'dia') {
     agendamentosBase = appStore.agendamentos.filter(a => a.data === diaSelecionado)
   } else {
     agendamentosBase = appStore.agendamentos.filter(a => a.data.startsWith(mesFormatado))
@@ -82,8 +124,7 @@ const dadosRelatorio = computed(() => {
     }
 
     agendamentosBase.forEach(a => {
-      const p = getPaciente(a.pacienteId)
-      const prot = getProtocolo(p?.protocoloId)
+      const prot = appStore.getProtocoloPeloHistorico(a.pacienteId)
 
       if (prot) {
         if (prot.duracao < 120) gruposProtocolo.ate2h++
@@ -91,7 +132,7 @@ const dadosRelatorio = computed(() => {
         else gruposProtocolo.acima4h++
 
         const nome = prot.nome.toLowerCase()
-        const meds = prot.medicamentos.map(m => m.nome.toLowerCase())
+        const meds = prot.medicamentos ? prot.medicamentos.map(m => m.nome.toLowerCase()) : []
 
         if (nome.includes('faslodex') || nome.includes('eligard')) gruposProtocolo.hormonioterapias++
         if (meds.some(m => m.includes('mab'))) gruposProtocolo.imunoterapias++
@@ -106,7 +147,7 @@ const dadosRelatorio = computed(() => {
 
     return {
       type: 'complex',
-      periodo: periodoTipo === 'dia' ? new Date(diaSelecionado).toLocaleDateString('pt-BR') : mesFormatado,
+      periodo: periodoTipo === 'dia' ? formatarDataLocal(diaSelecionado) : mesFormatado,
       horarios: {inicio: '07:00', fim: '19:00'},
       censo,
       gruposProtocolo,
@@ -129,9 +170,8 @@ const dadosRelatorio = computed(() => {
         totalAusencia++
       }
 
-      const p = getPaciente(a.pacienteId)
-      const prot = getProtocolo(p?.protocoloId)
-      if (prot) {
+      const prot = appStore.getProtocoloPeloHistorico(a.pacienteId)
+      if (prot && prot.medicamentos) {
         prot.medicamentos.forEach(m => {
           const nomeMed = m.nome
           if (!meds[nomeMed]) meds[nomeMed] = {qtd: 0, prots: new Set()}
