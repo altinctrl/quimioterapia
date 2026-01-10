@@ -2,12 +2,20 @@
 import {computed, ref, watch} from 'vue'
 import {useAppStore} from '@/stores/app'
 import {isInfusao, type StatusFarmacia} from '@/types'
+import {Card, CardContent} from '@/components/ui/card'
 import FarmaciaHeader from '@/components/farmacia/FarmaciaHeader.vue'
 import FarmaciaMetrics from '@/components/farmacia/FarmaciaMetrics.vue'
 import FarmaciaTable from '@/components/farmacia/FarmaciaTable.vue'
+import FarmaciaControls, {type FiltrosFarmacia} from '@/components/farmacia/FarmaciaControls.vue'
 
 const appStore = useAppStore()
 const dataSelecionada = ref(new Date().toISOString().split('T')[0])
+
+const filtros = ref<FiltrosFarmacia>({
+  ordenacao: 'horario',
+  turno: 'todos',
+  status: []
+})
 
 const handleDiaAnterior = () => {
   const d = new Date(dataSelecionada.value)
@@ -21,10 +29,49 @@ const handleProximoDia = () => {
   dataSelecionada.value = d.toISOString().split('T')[0]
 }
 
+const handleResetFiltros = () => {
+  filtros.value = {
+    ordenacao: 'horario',
+    turno: 'todos',
+    status: []
+  }
+}
+
 const agendamentosDoDia = computed(() => {
-  return appStore.agendamentos
-      .filter(a => a.data === dataSelecionada.value)
-      .sort((a, b) => a.horarioInicio.localeCompare(b.horarioInicio))
+  let lista = appStore.agendamentos.filter(a => a.data === dataSelecionada.value)
+
+  // Filtro de Turno
+  if (filtros.value.turno !== 'todos') {
+    lista = lista.filter(a => a.turno === filtros.value.turno)
+  }
+
+  // Filtro de Status
+  if (filtros.value.status.length > 0) {
+    lista = lista.filter(a => {
+      if (!isInfusao(a)) return false
+      return filtros.value.status.includes(a.detalhes.infusao.status_farmacia)
+    })
+  }
+
+  // Ordenação
+  return lista.sort((a, b) => {
+    if (filtros.value.ordenacao === 'horario') {
+      return a.horarioInicio.localeCompare(b.horarioInicio)
+    }
+
+    if (filtros.value.ordenacao === 'status') {
+      // Prioridade: Pendente > Em Prep > Pronta > Enviada
+      const statusOrder: Record<string, number> = {
+        'pendente': 0, 'em-preparacao': 1, 'pronta': 2, 'enviada': 3
+      }
+      const sa = isInfusao(a) ? a.detalhes.infusao.status_farmacia : 'pendente'
+      const sb = isInfusao(b) ? b.detalhes.infusao.status_farmacia : 'pendente'
+      if (statusOrder[sa] !== statusOrder[sb]) return statusOrder[sa] - statusOrder[sb]
+      return a.horarioInicio.localeCompare(b.horarioInicio)
+    }
+
+    return a.horarioInicio.localeCompare(b.horarioInicio)
+  })
 })
 
 const metricas = computed(() => {
@@ -64,14 +111,25 @@ watch(dataSelecionada, async (novaData) => {
         @proximo-dia="handleProximoDia"
     />
 
-    <FarmaciaMetrics
+        <FarmaciaMetrics
         :metricas="metricas"
     />
 
-    <FarmaciaTable
-        :agendamentos="agendamentosDoDia"
-        @alterar-status="handleAlterarStatus"
-        @alterar-horario="handleAlterarHorario"
-    />
+    <Card class="overflow-hidden">
+      <div class="px-4 pt-4">
+        <FarmaciaControls
+            v-model="filtros"
+            @reset="handleResetFiltros"
+        />
+      </div>
+
+      <CardContent class="p-0 mt-0">
+        <FarmaciaTable
+            :agendamentos="agendamentosDoDia"
+            @alterar-status="handleAlterarStatus"
+            @alterar-horario="handleAlterarHorario"
+        />
+      </CardContent>
+    </Card>
   </div>
 </template>
