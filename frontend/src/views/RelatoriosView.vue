@@ -6,6 +6,7 @@ import RelatoriosFiltros from '@/components/relatorios/RelatoriosFiltros.vue'
 import RelatoriosFarmacia from '@/components/relatorios/RelatoriosFarmacia.vue'
 import RelatoriosFimPlantao from '@/components/relatorios/RelatoriosFimPlantao.vue'
 import RelatoriosTabela from '@/components/relatorios/RelatoriosTabela.vue'
+import {getDataLocal} from '@/lib/utils.ts';
 
 const appStore = useAppStore()
 const authStore = useAuthStore()
@@ -13,11 +14,11 @@ const authStore = useAuthStore()
 const filtros = ref({
   tipoRelatorio: authStore.user?.role === 'farmacia' ? 'medicamentos-farmacia' : 'fim-plantao',
   periodoTipo: 'dia' as 'dia' | 'mes',
-  diaSelecionado: new Date().toISOString().split('T')[0],
+  diaSelecionado: getDataLocal(),
   mesSelecionado: String(new Date().getMonth() + 1),
   anoSelecionado: String(new Date().getFullYear()),
-  dataInicio: new Date().toISOString().split('T')[0],
-  dataFim: new Date().toISOString().split('T')[0]
+  dataInicio: getDataLocal(),
+  dataFim: getDataLocal()
 })
 
 const opcoesRelatorio = computed(() => {
