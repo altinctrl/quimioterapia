@@ -72,7 +72,7 @@ const getObservacoesClinicas = (ag: Agendamento) => {
   <div class="rounded-md border">
     <Table>
       <TableHeader>
-        <TableRow>
+        <TableRow class="hover:bg-transparent">
           <TableHead class="pl-5 w-[100px]">Horário</TableHead>
           <TableHead class="min-w-[150px]">Paciente</TableHead>
           <TableHead class="min-w-[100px]">Protocolo</TableHead>
@@ -95,8 +95,7 @@ const getObservacoesClinicas = (ag: Agendamento) => {
             :class="{ 'bg-gray-50 opacity-60 grayscale': ag.status === 'remarcado' }"
         >
           <TableCell class="p-0 relative align-top">
-            <div
-                :class="['h-full w-[4px] absolute left-0 top-0 bottom-0 rounded-l-sm', getAgendamentoInfo(ag).corBorda]"></div>
+            <div :class="['h-full w-[4px] absolute left-0 top-0 bottom-0', getAgendamentoInfo(ag).corBorda]"></div>
             <div class="py-3 px-4 pl-5">
               <div class="text-md">
                 {{ ag.horarioInicio }}
