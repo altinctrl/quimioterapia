@@ -116,7 +116,7 @@ const handleLogout = () => {
     </aside>
 
     <div class="flex-1 flex flex-col overflow-hidden">
-      <header class="bg-white px-6 py-4 flex-shrink-0 flex items-center">
+      <header class="bg-gray-50/50 px-6 py-4 flex-shrink-0 flex items-center">
         <Button
             v-if="!sidebarOpen"
             class="-ml-2"
