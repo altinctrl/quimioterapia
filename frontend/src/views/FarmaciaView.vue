@@ -5,9 +5,10 @@ import {isInfusao, type StatusFarmacia} from '@/types'
 import FarmaciaHeader from '@/components/farmacia/FarmaciaHeader.vue'
 import FarmaciaMetrics from '@/components/farmacia/FarmaciaMetrics.vue'
 import FarmaciaTable from '@/components/farmacia/FarmaciaTable.vue'
+import {getDataLocal} from '@/lib/utils.ts';
 
 const appStore = useAppStore()
-const dataSelecionada = ref(new Date().toISOString().split('T')[0])
+const dataSelecionada = ref(getDataLocal())
 
 const handleDiaAnterior = () => {
   const d = new Date(dataSelecionada.value)

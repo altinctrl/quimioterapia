@@ -5,6 +5,7 @@ import {useAgendamentoStore} from './agendamento'
 import {useConfiguracaoStore} from './configuracao'
 import {useProtocoloStore} from './protocolo'
 import {usePrescricaoStore} from './prescricao'
+import {getDataLocal} from '@/lib/utils.ts';
 
 export const useAppStore = defineStore('app', () => {
   const pacienteStore = usePacienteStore()
@@ -62,7 +63,7 @@ export const useAppStore = defineStore('app', () => {
   async function fetchInitialData() {
     try {
       await Promise.all([fetchPacientes(), fetchProtocolos(), fetchConfiguracoes()])
-      const hoje = new Date().toISOString().split('T')[0]
+      const hoje = getDataLocal()
       await fetchAgendamentos(hoje, hoje)
     } catch (error) {
       console.error("Erro ao carregar dados iniciais", error)

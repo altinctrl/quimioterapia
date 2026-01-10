@@ -12,11 +12,12 @@ import TagsModal from '@/components/modals/TagsModal.vue'
 import AgendaControls, {type FiltrosAgenda} from '@/components/agenda/AgendaControls.vue'
 import {calcularDuracaoMinutos, getGrupoInfusao} from '@/utils/agendaUtils'
 import {StatusPaciente} from "@/types";
+import {getDataLocal} from '@/lib/utils.ts';
 
 const router = useRouter()
 const appStore = useAppStore()
 
-const dataSelecionada = ref(new Date().toISOString().split('T')[0])
+const dataSelecionada = ref(getDataLocal())
 
 const tagsModalOpen = ref(false)
 const tagsModalData = ref<{ id: string; tags: string[] } | null>(null)
