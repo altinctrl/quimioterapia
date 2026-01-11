@@ -192,14 +192,9 @@ const isChecked = (agId: string, itemNome: string) => {
 
 <template>
   <div>
-    <div v-if="agendamentos.length === 0" class="text-center py-12 text-gray-500 bg-gray-50">
-      <FileText class="h-12 w-12 mx-auto mb-3 text-gray-300"/>
-      <p>Nenhuma preparação corresponde aos filtros.</p>
-    </div>
-
-    <Table v-else>
-      <TableHeader class="bg-gray-50/50">
-        <TableRow>
+    <Table>
+      <TableHeader>
+        <TableRow class="hover:bg-transparent">
           <TableHead class="w-[50px]"></TableHead> <!-- Expander -->
           <TableHead class="w-[100px]">Horário</TableHead>
           <TableHead class="min-w-[150px]">Paciente</TableHead>
@@ -210,6 +205,11 @@ const isChecked = (agId: string, itemNome: string) => {
         </TableRow>
       </TableHeader>
       <TableBody>
+        <TableRow v-if="agendamentos.length === 0">
+          <TableCell class="text-center py-12 text-gray-500" colspan="7">
+            Nenhuma preparação corresponde aos filtros.
+          </TableCell>
+        </TableRow>
         <template v-for="agendamento in agendamentos" :key="agendamento.id">
           <!-- Linha Principal -->
           <TableRow 
