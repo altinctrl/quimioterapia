@@ -7,14 +7,9 @@ import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '@/c
 import {Badge} from '@/components/ui/badge'
 import {Button} from '@/components/ui/button'
 import {Checkbox} from '@/components/ui/checkbox'
-import {
-  ChevronDown,
-  ChevronRight,
-  Clock,
-  FileText,
-  Beaker,
-} from 'lucide-vue-next'
+import {ChevronDown, ChevronRight, Clock, AlertTriangle} from 'lucide-vue-next'
 import {isInfusao, type StatusFarmacia, type Agendamento} from '@/types'
+import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip";
 
 type MedicamentoChecklist = {
   id?: number
@@ -187,6 +182,10 @@ const toggleCheck = (agId: string, itemNome: string, statusAtual: StatusFarmacia
 const isChecked = (agId: string, itemNome: string) => {
   return checklist.value[agId]?.[itemNome] || false
 }
+
+const getObservacoesClinicas = (ag: Agendamento) => {
+  return ag.paciente?.observacoesClinicas
+}
 </script>
 
 <template>
@@ -228,19 +227,38 @@ const isChecked = (agId: string, itemNome: string) => {
             </TableCell>
 
             <TableCell>
-              <div class="font-mono text-sm font-medium text-gray-700">{{ agendamento.horarioInicio }}</div>
-              <div v-if="getChecklistLabel(agendamento)" class="text-xs text-gray-500">
+              <div class="text-md">{{ agendamento.horarioInicio }}</div>
+              <div v-if="getChecklistLabel(agendamento)" class="text-xs font-medium text-gray-500">
                 Checklist: {{ getChecklistLabel(agendamento) }}
               </div>
             </TableCell>
 
             <TableCell>
+              <div class="flex items-center gap-1.5">
               <button
                   class="text-left font-medium hover:text-blue-600 hover:underline truncate max-w-[180px] text-gray-900"
                   @click="irParaProntuario(agendamento.pacienteId)"
               >
                 {{ agendamento.paciente?.nome || 'Paciente não carregado' }}
               </button>
+              <TooltipProvider v-if="getObservacoesClinicas(agendamento)">
+                <Tooltip :delay-duration="200">
+                  <TooltipTrigger as-child>
+                    <div class="cursor-help flex-shrink-0">
+                      <AlertTriangle class="h-4 w-4 text-amber-500 hover:text-amber-600 transition-colors"/>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent
+                      class="max-w-[300px] p-3 bg-amber-50 border border-amber-200 text-black"
+                      side="right"
+                  >
+                    <p class="font-semibold text-xs mb-1 uppercase tracking-wide">Observações Clínicas</p>
+                    <p class="text-sm leading-relaxed">
+                      {{ getObservacoesClinicas(agendamento) }}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider></div>
               <div class="text-xs text-gray-500">{{ agendamento.paciente?.registro }}</div>
             </TableCell>
 
@@ -304,51 +322,45 @@ const isChecked = (agId: string, itemNome: string) => {
           </TableRow>
 
           <!-- Linha Expandida (Checklist) -->
-          <TableRow v-if="expandedSet.has(agendamento.id)" class="bg-gray-50/80 border-t-0 shadow-inner">
-            <TableCell colspan="7" class="p-0">
-              <div class="p-4 pl-[66px] grid grid-cols-1 gap-6 animate-in slide-in-from-top-1 duration-200">
-                <div v-if="!getMedicamentos(agendamento)" class="col-span-3 text-center text-muted-foreground text-sm py-4">
-                  Nenhuma prescrição encontrada para hoje.
+          <TableRow
+              v-if="expandedSet.has(agendamento.id)"
+              class="bg-gray-50/80 border-t-0 shadow-inner"
+              :class="{'bg-gray-50 opacity-75': isBloqueado(agendamento.status)}"
+          >
+            <TableCell colspan="3" class="p-0"></TableCell>
+            <TableCell colspan="1" class="p-0">
+              <div class="pt-4 pb-4 animate-in slide-in-from-top-1 duration-200">
+                <div
+                    v-if="!getMedicamentos(agendamento) || getMedicamentos(agendamento)?.qt.length === 0"
+                    class="text-muted-foreground text-sm">
+                  Nenhuma medicação encontrada para este agendamento.
                 </div>
 
                 <template v-else>
-                  <div
-                      v-if="getMedicamentos(agendamento)?.totalQt === 0"
-                      class="col-span-3 text-center text-muted-foreground text-sm py-2"
-                  >
-                    Nenhuma medicação QT para preparo.
+                  <div class="space-y-2">
+                    <div
+                        v-for="(med, idx) in getMedicamentos(agendamento)?.qt"
+                        :key="`${med.tipo}:${med.id ?? ''}:${med.nome}:${idx}`"
+                        class="flex items-start gap-2 bg-white p-2 rounded border border-gray-100 shadow-sm">
+                      <Checkbox
+                          :disabled="isBloqueado(agendamento.status)"
+                          :id="`qt-${agendamento.id}-${idx}`"
+                          :checked="isChecked(agendamento.id, getItemKey(med, idx))"
+                          @update:checked="() => toggleCheck(agendamento.id, getItemKey(med, idx), isInfusao(agendamento) ? agendamento.detalhes.infusao.status_farmacia : 'pendente')"
+                          class="mt-0.5"
+                      />
+                      <label
+                          :for="`qt-${agendamento.id}-${idx}`"
+                          class="text-sm leading-tight font-semibold block cursor-pointer w-full"
+                      >
+                        {{ med.nome }} - {{ med.dose }} {{ med.unidade }}
+                      </label>
+                    </div>
                   </div>
-                   
-                   <!-- QT -->
-                   <div v-if="getMedicamentos(agendamento)?.qt.length" class="space-y-3">
-                      <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider">
-                        <Beaker class="h-3 w-3"/> Quimioterapia
-                        <span
-                          v-if="getMedicamentos(agendamento)?.isMock"
-                          class="ml-2 text-[10px] font-medium text-muted-foreground normal-case"
-                        >
-                          mock
-                        </span>
-                      </div>
-                      <div class="space-y-2">
-                        <div v-for="(med, idx) in getMedicamentos(agendamento)?.qt" :key="`${med.tipo}:${med.id ?? ''}:${med.nome}:${idx}`" 
-                             class="flex items-start gap-2 bg-white p-2 rounded border border-gray-100 shadow-sm">
-                          <Checkbox 
-                            :id="`qt-${agendamento.id}-${idx}`"
-                            :checked="isChecked(agendamento.id, getItemKey(med, idx))"
-                            @update:checked="() => toggleCheck(agendamento.id, getItemKey(med, idx), isInfusao(agendamento) ? agendamento.detalhes.infusao.status_farmacia : 'pendente')"
-                            class="mt-0.5"
-                          />
-                          <label :for="`qt-${agendamento.id}-${idx}`" class="text-sm leading-tight cursor-pointer w-full">
-                            <span class="font-semibold block">{{ med.nome }}</span>
-                            <span class="text-gray-600 text-xs">{{ med.dose }} {{ med.unidade }}</span>
-                          </label>
-                        </div>
-                      </div>
-                   </div>
                 </template>
               </div>
             </TableCell>
+            <TableCell colspan="3" class="p-0"></TableCell>
           </TableRow>
         </template>
       </TableBody>
