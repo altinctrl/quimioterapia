@@ -12,37 +12,44 @@ import {
   ChevronRight,
   Clock,
   FileText,
-  CheckCircle2,
   Beaker,
-  Pill
 } from 'lucide-vue-next'
 import {isInfusao, type StatusFarmacia, type Agendamento} from '@/types'
 
+type MedicamentoChecklist = {
+  id?: number
+  tipo: 'qt'
+  nome: string
+  dose?: string
+  unidade?: string
+  via?: string
+}
+
 const props = defineProps<{
   agendamentos: Agendamento[]
+  expandedIds: string[]
 }>()
 
 const emit = defineEmits<{
   (e: 'alterarStatus', id: string, novoStatus: StatusFarmacia): void
   (e: 'alterarHorario', id: string, novoHorario: string): void
+  (e: 'update:expandedIds', value: string[]): void
 }>()
 
 const router = useRouter()
 const appStore = useAppStore()
 const prescricaoStore = usePrescricaoStore()
 
-// Estado local para expansão e checklist
-const expandedRows = ref<Set<string>>(new Set())
+// Estado local para checklist (expansão é controlada pelo parent)
 const checklist = ref<Record<string, Record<string, boolean>>>({})
 
+const expandedSet = computed(() => new Set(props.expandedIds))
+
 const toggleExpand = (id: string) => {
-  const newSet = new Set(expandedRows.value)
-  if (newSet.has(id)) {
-    newSet.delete(id)
-  } else {
-    newSet.add(id)
-  }
-  expandedRows.value = newSet
+  const next = new Set(props.expandedIds)
+  if (next.has(id)) next.delete(id)
+  else next.add(id)
+  emit('update:expandedIds', [...next])
 }
 
 const opcoesStatusFarmacia = computed(() => {
@@ -76,6 +83,44 @@ const onStatusChange = (id: string, event: Event) => {
 const getMedicamentos = (ag: Agendamento) => {
   // Prescrição mais recente do paciente
   const lista = prescricaoStore.getPrescricoesPorPaciente(ag.pacienteId)
+
+  const enableMock = import.meta.env.DEV || import.meta.env.VITE_ENABLE_FARMACIA_MOCK === 'true'
+  const protocoloNome = getProtocoloInferido(ag.pacienteId)?.nome || ''
+
+  const mockQtPorProtocolo = (nome: string): MedicamentoChecklist[] => {
+    const upper = nome.toUpperCase()
+    if (upper.includes('FOLFOX')) {
+      return [
+        {tipo: 'qt', nome: 'Oxaliplatina', dose: '85', unidade: 'mg/m²', via: 'EV'},
+        {tipo: 'qt', nome: 'Leucovorina', dose: '400', unidade: 'mg/m²', via: 'EV'},
+        {tipo: 'qt', nome: '5-Fluorouracil', dose: '400', unidade: 'mg/m²', via: 'EV (bolus)'},
+        {tipo: 'qt', nome: '5-Fluorouracil', dose: '2400', unidade: 'mg/m²', via: 'EV (infusão)'}
+      ]
+    }
+    if (upper.includes('AC') || upper.includes('DOXO')) {
+      return [
+        {tipo: 'qt', nome: 'Doxorrubicina', dose: '60', unidade: 'mg/m²', via: 'EV'},
+        {tipo: 'qt', nome: 'Ciclofosfamida', dose: '600', unidade: 'mg/m²', via: 'EV'}
+      ]
+    }
+    // fallback genérico para qualquer protocolo
+    return [
+      {tipo: 'qt', nome: 'Cisplatina', dose: '50', unidade: 'mg', via: 'EV'},
+      {tipo: 'qt', nome: 'Gemcitabina', dose: '1000', unidade: 'mg', via: 'EV'},
+      {tipo: 'qt', nome: 'Dexametasona', dose: '8', unidade: 'mg', via: 'EV'}
+    ]
+  }
+
+  if ((!lista || lista.length === 0) && enableMock && protocoloNome) {
+    const qt = mockQtPorProtocolo(protocoloNome)
+    return {
+      id: `mock:${ag.pacienteId}`,
+      qt,
+      totalQt: qt.length,
+      isMock: true
+    }
+  }
+
   if (!lista || lista.length === 0) return null
 
   const prescricao = [...lista].sort(
@@ -83,17 +128,41 @@ const getMedicamentos = (ag: Agendamento) => {
   )[0]
 
   const itens = prescricao.medicamentos || []
-  const pre = itens.filter(i => i.tipo === 'pre')
   const qt = itens.filter(i => i.tipo === 'qt')
-  const pos = itens.filter(i => i.tipo === 'pos')
+
+  if (qt.length === 0 && enableMock && protocoloNome) {
+    const mocked = mockQtPorProtocolo(protocoloNome)
+    return {
+      id: prescricao.id,
+      qt: mocked,
+      totalQt: mocked.length,
+      isMock: true
+    }
+  }
 
   return {
     id: prescricao.id,
-    total: itens.length,
-    pre,
     qt,
-    pos
+    totalQt: qt.length,
+    isMock: false
   }
+}
+
+const getItemKey = (med: {tipo: string; id?: number; nome: string}, idx: number) => {
+  return `${med.tipo}:${med.id ?? idx}:${med.nome}`
+}
+
+const getChecklistLabel = (ag: Agendamento) => {
+  const meds = getMedicamentos(ag)
+  if (!meds || meds.totalQt === 0) return ''
+
+  const checks = checklist.value[ag.id] || {}
+  let checked = 0
+  meds.qt.forEach((med, idx) => {
+    if (checks[getItemKey(med, idx)]) checked++
+  })
+
+  return `${checked}/${meds.totalQt}`
 }
 
 const toggleCheck = (agId: string, itemNome: string, statusAtual: StatusFarmacia) => {
@@ -154,14 +223,16 @@ const isChecked = (agId: string, itemNome: string) => {
                 class="h-8 w-8 text-gray-400 hover:text-gray-900"
                 @click="toggleExpand(agendamento.id)"
               >
-                <ChevronDown v-if="expandedRows.has(agendamento.id)" class="h-4 w-4"/>
+                <ChevronDown v-if="expandedSet.has(agendamento.id)" class="h-4 w-4"/>
                 <ChevronRight v-else class="h-4 w-4"/>
               </Button>
             </TableCell>
 
             <TableCell>
               <div class="font-mono text-sm font-medium text-gray-700">{{ agendamento.horarioInicio }}</div>
-              <div class="text-xs text-muted-foreground capitalize">{{ agendamento.turno }}</div>
+              <div v-if="getChecklistLabel(agendamento)" class="text-xs text-gray-500">
+                Checklist: {{ getChecklistLabel(agendamento) }}
+              </div>
             </TableCell>
 
             <TableCell>
@@ -175,8 +246,10 @@ const isChecked = (agId: string, itemNome: string) => {
             </TableCell>
 
             <TableCell>
-              <span :title="getProtocoloInferido(agendamento.pacienteId)?.nome || '-'"
-                    class="text-sm font-medium text-gray-700 block truncate max-w-[150px]">
+              <span
+                :title="getProtocoloInferido(agendamento.pacienteId)?.nome || '-'"
+                class="text-sm font-medium text-gray-700 block whitespace-normal break-words"
+              >
                 {{ getProtocoloInferido(agendamento.pacienteId)?.nome || '-' }}
               </span>
             </TableCell>
@@ -232,82 +305,44 @@ const isChecked = (agId: string, itemNome: string) => {
           </TableRow>
 
           <!-- Linha Expandida (Checklist) -->
-          <TableRow v-if="expandedRows.has(agendamento.id)" class="bg-gray-50/80 border-t-0 shadow-inner">
+          <TableRow v-if="expandedSet.has(agendamento.id)" class="bg-gray-50/80 border-t-0 shadow-inner">
             <TableCell colspan="7" class="p-0">
-              <div class="p-4 grid md:grid-cols-3 gap-6 animate-in slide-in-from-top-1 duration-200">
+              <div class="p-4 pl-[66px] grid grid-cols-1 gap-6 animate-in slide-in-from-top-1 duration-200">
                 <div v-if="!getMedicamentos(agendamento)" class="col-span-3 text-center text-muted-foreground text-sm py-4">
                   Nenhuma prescrição encontrada para hoje.
                 </div>
 
                 <template v-else>
                   <div
-                      v-if="getMedicamentos(agendamento)?.total === 0"
-                      class="col-span-3 text-center text-muted-foreground text-sm py-4"
+                      v-if="getMedicamentos(agendamento)?.totalQt === 0"
+                      class="col-span-3 text-center text-muted-foreground text-sm py-2"
                   >
-                    Prescrição sem medicamentos.
+                    Nenhuma medicação QT para preparo.
                   </div>
-
-                   <!-- PRE -->
-                   <div v-if="getMedicamentos(agendamento)?.pre.length" class="space-y-3">
-                      <div class="flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        <Pill class="h-3 w-3"/> Pré-Quimioterapia
-                      </div>
-                      <div class="space-y-2">
-                        <div v-for="(med, idx) in getMedicamentos(agendamento)?.pre" :key="`${med.tipo}:${med.nome}:${idx}`" 
-                             class="flex items-start gap-2 group/item">
-                          <Checkbox 
-                            :id="`pre-${agendamento.id}-${idx}`"
-                            :checked="isChecked(agendamento.id, `${med.tipo}:${med.nome}`)"
-                            @update:checked="() => toggleCheck(agendamento.id, `${med.tipo}:${med.nome}`, isInfusao(agendamento) ? agendamento.detalhes.infusao.status_farmacia : 'pendente')"
-                            class="mt-0.5"
-                          />
-                          <label :for="`pre-${agendamento.id}-${idx}`" class="text-sm leading-tight peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer">
-                            <span class="font-medium text-gray-800">{{ med.nome }}</span>
-                            <span class="text-gray-500 ml-1 text-xs">{{ med.dose }} {{ med.unidade }} - {{ med.via }}</span>
-                          </label>
-                        </div>
-                      </div>
-                   </div>
                    
                    <!-- QT -->
                    <div v-if="getMedicamentos(agendamento)?.qt.length" class="space-y-3">
-                      <div class="flex items-center gap-2 text-xs font-semibold text-rose-600 uppercase tracking-wider">
+                      <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider">
                         <Beaker class="h-3 w-3"/> Quimioterapia
+                        <span
+                          v-if="getMedicamentos(agendamento)?.isMock"
+                          class="ml-2 text-[10px] font-medium text-muted-foreground normal-case"
+                        >
+                          mock
+                        </span>
                       </div>
                       <div class="space-y-2">
-                        <div v-for="(med, idx) in getMedicamentos(agendamento)?.qt" :key="`${med.tipo}:${med.nome}:${idx}`" 
+                        <div v-for="(med, idx) in getMedicamentos(agendamento)?.qt" :key="`${med.tipo}:${med.id ?? ''}:${med.nome}:${idx}`" 
                              class="flex items-start gap-2 bg-white p-2 rounded border border-gray-100 shadow-sm">
                           <Checkbox 
                             :id="`qt-${agendamento.id}-${idx}`"
-                            :checked="isChecked(agendamento.id, `${med.tipo}:${med.nome}`)"
-                            @update:checked="() => toggleCheck(agendamento.id, `${med.tipo}:${med.nome}`, isInfusao(agendamento) ? agendamento.detalhes.infusao.status_farmacia : 'pendente')"
+                            :checked="isChecked(agendamento.id, getItemKey(med, idx))"
+                            @update:checked="() => toggleCheck(agendamento.id, getItemKey(med, idx), isInfusao(agendamento) ? agendamento.detalhes.infusao.status_farmacia : 'pendente')"
                             class="mt-0.5"
                           />
                           <label :for="`qt-${agendamento.id}-${idx}`" class="text-sm leading-tight cursor-pointer w-full">
-                            <span class="font-semibold text-rose-700 block">{{ med.nome }}</span>
+                            <span class="font-semibold block">{{ med.nome }}</span>
                             <span class="text-gray-600 text-xs">{{ med.dose }} {{ med.unidade }}</span>
-                          </label>
-                        </div>
-                      </div>
-                   </div>
-
-                   <!-- POS -->
-                   <div v-if="getMedicamentos(agendamento)?.pos.length" class="space-y-3">
-                      <div class="flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        <CheckCircle2 class="h-3 w-3"/> Pós-Quimioterapia
-                      </div>
-                       <div class="space-y-2">
-                        <div v-for="(med, idx) in getMedicamentos(agendamento)?.pos" :key="`${med.tipo}:${med.nome}:${idx}`" 
-                             class="flex items-start gap-2">
-                          <Checkbox 
-                            :id="`pos-${agendamento.id}-${idx}`"
-                            :checked="isChecked(agendamento.id, `${med.tipo}:${med.nome}`)"
-                            @update:checked="() => toggleCheck(agendamento.id, `${med.tipo}:${med.nome}`, isInfusao(agendamento) ? agendamento.detalhes.infusao.status_farmacia : 'pendente')"
-                            class="mt-0.5"
-                          />
-                          <label :for="`pos-${agendamento.id}-${idx}`" class="text-sm leading-tight cursor-pointer">
-                            <span class="font-medium text-gray-800">{{ med.nome }}</span>
-                            <span class="text-gray-500 ml-1 text-xs">{{ med.dose }} {{ med.unidade }}</span>
                           </label>
                         </div>
                       </div>
