@@ -85,7 +85,7 @@ const carregarPacienteDaUrl = async () => {
       dadosEditados.value = JSON.parse(JSON.stringify(p))
       await Promise.all([
         appStore.fetchPrescricoes(pid),
-        appStore.fetchAgendamentos(pid)
+        appStore.fetchAgendamentos()
       ])
     }
   } else {
