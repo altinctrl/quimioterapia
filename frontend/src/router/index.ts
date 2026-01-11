@@ -10,6 +10,7 @@ import RelatoriosView from '@/views/RelatoriosView.vue'
 import ProtocolosView from '@/views/ProtocolosView.vue'
 import AjustesView from '@/views/AjustesView.vue'
 import PrescricaoView from '@/views/PrescricaoView.vue'
+import EquipeView from '@/views/EquipeView.vue';
 
 const router = createRouter({
   history: createWebHistory(), routes: [
@@ -23,7 +24,8 @@ const router = createRouter({
         {path: 'relatorios', name: 'Relatorios', component: RelatoriosView},
         {path: 'protocolos', name: 'Protocolos', component: ProtocolosView},
         {path: 'ajustes', name: 'Ajustes', component: AjustesView},
-        {path: 'prescricao', name: 'Prescricao', component: PrescricaoView}
+        {path: 'prescricao', name: 'Prescricao', component: PrescricaoView},
+        {path: 'equipe', name: 'Equipe', component: EquipeView}
       ]
     }]
 })

@@ -126,7 +126,9 @@ export const useConfiguracaoStore = defineStore('configuracao', () => {
       medio: {vagas: 0, duracao: ''},
       longo: {vagas: 0, duracao: ''}
     },
-    tags: []
+    tags: [],
+    cargos: [],
+    funcoes: []
   })
 
   function getStatusConfig(id: string) {

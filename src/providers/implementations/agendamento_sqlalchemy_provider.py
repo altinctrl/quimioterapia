@@ -14,7 +14,7 @@ class AgendamentoSQLAlchemyProvider(AgendamentoProviderInterface):
         self.session = session
 
     async def listar_agendamentos(self, data_inicio: Optional[date] = None, data_fim: Optional[date] = None) -> List[Agendamento]:
-        query = select(Agendamento).options(selectinload(Agendamento.paciente))
+        query = select(Agendamento).options(selectinload(Agendamento.paciente), selectinload(Agendamento.criado_por))
 
         if data_inicio:
             query = query.where(Agendamento.data >= data_inicio)
@@ -27,7 +27,7 @@ class AgendamentoSQLAlchemyProvider(AgendamentoProviderInterface):
         return result.scalars().all()
 
     async def obter_agendamento(self, agendamento_id: str) -> Optional[Agendamento]:
-        query = select(Agendamento).where(Agendamento.id == agendamento_id).options(selectinload(Agendamento.paciente))
+        query = select(Agendamento).where(Agendamento.id == agendamento_id).options(selectinload(Agendamento.paciente), selectinload(Agendamento.criado_por))
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
 
@@ -35,13 +35,13 @@ class AgendamentoSQLAlchemyProvider(AgendamentoProviderInterface):
         self.session.add(agendamento)
         await self.session.commit()
 
-        query = select(Agendamento).where(Agendamento.id == agendamento.id).options(selectinload(Agendamento.paciente))
+        query = select(Agendamento).where(Agendamento.id == agendamento.id).options(selectinload(Agendamento.paciente), selectinload(Agendamento.criado_por))
         result = await self.session.execute(query)
         return result.scalar_one()
 
     async def atualizar_agendamento(self, agendamento: Agendamento) -> Agendamento:
         await self.session.commit()
 
-        query = select(Agendamento).where(Agendamento.id == agendamento.id).options(selectinload(Agendamento.paciente))
+        query = select(Agendamento).where(Agendamento.id == agendamento.id).options(selectinload(Agendamento.paciente), selectinload(Agendamento.criado_por))
         result = await self.session.execute(query)
         return result.scalar_one()

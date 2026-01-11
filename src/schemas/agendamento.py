@@ -5,6 +5,8 @@ from typing import List, Optional
 from pydantic import BaseModel, ConfigDict, model_validator, Field
 from pydantic.alias_generators import to_camel
 
+from src.schemas.equipe import ProfissionalResponse
+
 
 class TipoAgendamento(str, enum.Enum):
     INFUSAO = "infusao"
@@ -170,6 +172,8 @@ class AgendamentoPaciente(BaseModel):
 
 class AgendamentoResponse(AgendamentoBase):
     id: str
+    criado_por_id: Optional[str] = None
+    criado_por: Optional[ProfissionalResponse] = None
     paciente: Optional[AgendamentoPaciente] = None
 
     model_config = ConfigDict(from_attributes=True, alias_generator=to_camel, populate_by_name=True)

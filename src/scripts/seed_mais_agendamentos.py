@@ -61,6 +61,7 @@ async def add_agendamentos(data_fixa: date = None, quantidade: int = None):
                 encaixe=random.choice([True, False]),
                 tags=tags,
                 observacoes="Agendamento extra gerado via script.",
+                criado_por_id="usuario_teste",
                 detalhes={
                     "infusao": {
                         "status_farmacia": "pendente",

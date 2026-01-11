@@ -147,6 +147,8 @@ export interface Agendamento {
   };
   tipo: TipoAgendamento;
   data: string;
+  criadoPorId?: string;
+  criadoPor?: Profissional;
   turno: Turno;
   horarioInicio: string;
   horarioFim: string;
@@ -182,6 +184,8 @@ export interface ParametrosAgendamento {
     rapido: ConfigGrupoInfusao; medio: ConfigGrupoInfusao; longo: ConfigGrupoInfusao;
   };
   tags: string[];
+  cargos: string[];
+  funcoes: string[];
 }
 
 export interface ConfigStatus {
@@ -189,4 +193,31 @@ export interface ConfigStatus {
   label: string;
   cor: string;
   tipo: 'paciente' | 'farmacia';
+}
+
+export interface Profissional {
+  username: string
+  nome: string
+  cargo: string
+  coren?: string
+  ativo: boolean
+}
+
+export interface EscalaPlantao {
+  id: string
+  data: string
+  profissional_id: string
+  funcao: string
+  turno: 'Manhã' | 'Tarde' | 'Integral'
+  profissional?: Profissional
+}
+
+export interface AusenciaProfissional {
+  id: string
+  profissional_id: string
+  data_inicio: string
+  data_fim: string
+  motivo: string
+  observacao?: string
+  profissional?: Profissional
 }

@@ -7,6 +7,8 @@ import {toast} from 'vue-sonner'
 import AjustesFuncionamento from '@/components/ajustes/AjustesFuncionamento.vue'
 import AjustesCapacidade from '@/components/ajustes/AjustesCapacidade.vue'
 import AjustesTags from '@/components/ajustes/AjustesTags.vue'
+import AjustesCargos from '@/components/ajustes/AjustesCargos.vue'
+import AjustesFuncoes from '@/components/ajustes/AjustesFuncoes.vue'
 import AjustesProtocolosLink from '@/components/ajustes/AjustesProtocolosLink.vue'
 
 const appStore = useAppStore()
@@ -16,6 +18,8 @@ const horarioAbertura = ref('')
 const horarioFechamento = ref('')
 const diasSelecionados = ref<number[]>([])
 const tags = ref<string[]>([])
+const cargos = ref<string[]>([])
+const funcoes = ref<string[]>([])
 
 const grupos = reactive({
   rapido: {vagas: 0 as number | string, duracao: ''},
@@ -33,6 +37,20 @@ const handleRemoverTag = (tag: string) => {
   tags.value = tags.value.filter(t => t !== tag)
 }
 
+const handleAdicionarCargo = (item: string) => {
+  if (item && !cargos.value.includes(item)) cargos.value.push(item)
+}
+const handleRemoverCargo = (item: string) => {
+  cargos.value = cargos.value.filter(i => i !== item)
+}
+
+const handleAdicionarFuncao = (item: string) => {
+  if (item && !funcoes.value.includes(item)) funcoes.value.push(item)
+}
+const handleRemoverFuncao = (item: string) => {
+  funcoes.value = funcoes.value.filter(i => i !== item)
+}
+
 const handleSalvar = async () => {
   const payload = {
     horarioAbertura: horarioAbertura.value,
@@ -43,7 +61,9 @@ const handleSalvar = async () => {
       medio: {...grupos.medio, vagas: Number(grupos.medio.vagas)},
       longo: {...grupos.longo, vagas: Number(grupos.longo.vagas)}
     },
-    tags: [...tags.value]
+    tags: [...tags.value],
+    cargos: [...cargos.value],
+    funcoes: [...funcoes.value]
   }
   try {
     await appStore.salvarConfiguracoes(payload)
@@ -74,6 +94,8 @@ watch(
         horarioFechamento.value = newVal.horarioFechamento
         diasSelecionados.value = [...newVal.diasFuncionamento]
         tags.value = [...(newVal.tags || [])]
+        cargos.value = [...(newVal.cargos || [])]
+        funcoes.value = [...(newVal.funcoes || [])]
         Object.assign(grupos.rapido, newVal.gruposInfusao.rapido)
         Object.assign(grupos.medio, newVal.gruposInfusao.medio)
         Object.assign(grupos.longo, newVal.gruposInfusao.longo)
@@ -111,6 +133,18 @@ watch(
           :tags="tags"
           @adicionar="handleAdicionarTag"
           @remover="handleRemoverTag"
+      />
+
+      <AjustesCargos
+          :cargos="cargos"
+          @adicionar="handleAdicionarCargo"
+          @remover="handleRemoverCargo"
+      />
+
+      <AjustesFuncoes
+          :funcoes="funcoes"
+          @adicionar="handleAdicionarFuncao"
+          @remover="handleRemoverFuncao"
       />
 
       <AjustesProtocolosLink/>

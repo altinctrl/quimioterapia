@@ -2,7 +2,7 @@
 import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from '@/components/ui/dialog'
 import {Button} from '@/components/ui/button'
 import {Badge} from '@/components/ui/badge'
-import {AlertCircle, Calendar, Clock, FileText, Tag} from 'lucide-vue-next'
+import {AlertCircle, Calendar, Clock, FileText, Tag, User} from 'lucide-vue-next'
 import {type Agendamento, isInfusao} from '@/types'
 
 defineProps<{
@@ -86,6 +86,19 @@ const formatarData = (data: string) => {
               <div>
                 <p class="text-sm text-blue-600 font-medium">Previsão Farmácia</p>
                 <p class="text-blue-900 font-bold">{{ agendamento.detalhes.infusao.horario_previsao_entrega }}</p>
+              </div>
+            </div>
+
+            <div class="flex items-start gap-3">
+              <User class="h-5 w-5 text-gray-500 mt-0.5"/>
+              <div>
+                <p class="text-sm text-gray-500 font-medium">Criado por</p>
+                <p class="text-gray-900">
+                  {{ agendamento.criadoPor?.nome || agendamento.criadoPorId || '-' }}
+                </p>
+                <p v-if="agendamento.criadoPor?.cargo" class="text-xs text-gray-500">
+                  {{ agendamento.criadoPor.cargo }}
+                </p>
               </div>
             </div>
           </div>

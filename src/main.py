@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.resources.database import app_engine, aghu_engine
-from src.routers import auth, agendamento, configuracao, paciente, prescricao, protocolo
+from src.routers import auth, agendamento, configuracao, paciente, prescricao, protocolo, equipe
 
 
 @asynccontextmanager
@@ -36,6 +36,7 @@ app.add_middleware(
 app.include_router(agendamento.router)
 app.include_router(auth.router)
 app.include_router(configuracao.router)
+app.include_router(equipe.router)
 app.include_router(paciente.router)
 app.include_router(prescricao.router)
 app.include_router(protocolo.router)
