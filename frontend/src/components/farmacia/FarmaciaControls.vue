@@ -19,11 +19,13 @@ export interface FiltrosFarmacia {
 
 const props = defineProps<{
   modelValue: FiltrosFarmacia
+  allExpanded?: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: FiltrosFarmacia): void
   (e: 'reset'): void
+  (e: 'toggleExpandAll'): void
 }>()
 
 const isExpanded = ref(false)
@@ -82,6 +84,17 @@ const activeCount = computed(() => {
         >
           <X/>
           Limpar Filtros
+        </Button>
+
+        <Button
+            class="h-7 text-xs text-muted-foreground hover:text-gray-900"
+            size="sm"
+            variant="ghost"
+            @click="emit('toggleExpandAll')"
+        >
+          <ChevronUp v-if="props.allExpanded" class="h-4 w-4"/>
+          <ChevronDown v-else class="h-4 w-4"/>
+          {{ props.allExpanded ? 'Recolher todos' : 'Expandir todos' }}
         </Button>
       </div>
     </div>
