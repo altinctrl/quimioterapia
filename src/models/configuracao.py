@@ -12,3 +12,5 @@ class Configuracao(Base):
     dias_funcionamento = Column(JSON, default=[1, 2, 3, 4, 5])
     grupos_infusao = Column(JSON)
     tags = Column(JSON, default=[])
+    cargos = Column(JSON, default=[])
+    funcoes = Column(JSON, default=[])

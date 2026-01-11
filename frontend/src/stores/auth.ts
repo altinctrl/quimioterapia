@@ -78,10 +78,10 @@ export const useAuthStore = defineStore('auth', () => {
     if (!user.value) return false
 
     const rolePermissions: Record<UserRole, string[]> = {
-      'enfermeiro': ['dashboard', 'pacientes', 'agenda', 'agendamento', 'ajustes', 'relatorios', 'protocolos'],
+      'enfermeiro': ['dashboard', 'pacientes', 'agenda', 'agendamento', 'ajustes', 'relatorios', 'protocolos', 'equipe'],
       'medico': ['pacientes', 'prescricao', 'protocolos'],
       'farmacia': ['farmacia', 'pacientes', 'relatorios'],
-      'admin': ['dashboard', 'pacientes', 'agenda', 'agendamento', 'farmacia', 'relatorios', 'protocolos', 'ajustes', 'prescricao']
+      'admin': ['dashboard', 'pacientes', 'agenda', 'agendamento', 'farmacia', 'relatorios', 'protocolos', 'ajustes', 'prescricao', 'equipe']
     }
 
     const permissions = rolePermissions[user.value.role]

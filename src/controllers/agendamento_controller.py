@@ -16,9 +16,19 @@ async def listar_agendamentos(provider: AgendamentoProviderInterface, data_inici
     return [AgendamentoResponse.model_validate(a) for a in agendamentos]
 
 
-async def criar_agendamento(provider: AgendamentoProviderInterface, dados: AgendamentoCreate) -> AgendamentoResponse:
+async def criar_agendamento(
+        provider: AgendamentoProviderInterface,
+        dados: AgendamentoCreate,
+        criado_por_id: str
+) -> AgendamentoResponse:
     novo_id = str(uuid.uuid4())
-    agendamento = Agendamento(**dados.model_dump(), id=novo_id)
+
+    agendamento = Agendamento(
+        **dados.model_dump(),
+        id=novo_id,
+        criado_por_id=criado_por_id
+    )
+
     criado = await provider.criar_agendamento(agendamento)
     return AgendamentoResponse.model_validate(criado)
 

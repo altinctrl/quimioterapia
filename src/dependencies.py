@@ -3,12 +3,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.providers.implementations.agendamento_sqlalchemy_provider import AgendamentoSQLAlchemyProvider
 from src.providers.implementations.configuracao_sqlalchemy_provider import ConfiguracaoSQLAlchemyProvider
+from src.providers.implementations.equipe_sqlalchemy_provider import EquipeSqlAlchemyProvider
 from src.providers.implementations.paciente_sqlalchemy_provider import PacienteSQLAlchemyProvider
 from src.providers.implementations.paciente_legacy_provider import PacienteLegacyProvider
 from src.providers.implementations.prescricao_sqlalchemy_provider import PrescricaoSQLAlchemyProvider
 from src.providers.implementations.protocolo_sqlalchemy_provider import ProtocoloSQLAlchemyProvider
 from src.providers.interfaces.agendamento_provider_interface import AgendamentoProviderInterface
 from src.providers.interfaces.configuracao_provider_interface import ConfiguracaoProviderInterface
+from src.providers.interfaces.equipe_provider_interface import EquipeProviderInterface
 from src.providers.interfaces.paciente_provider_interface import PacienteProviderInterface
 from src.providers.interfaces.prescricao_provider_interface import PrescricaoProviderInterface
 from src.providers.interfaces.protocolo_provider_interface import ProtocoloProviderInterface
@@ -37,3 +39,7 @@ def get_prescricao_provider(session: AsyncSession = Depends(get_app_db_session))
 
 def get_configuracao_provider(session: AsyncSession = Depends(get_app_db_session)) -> ConfiguracaoProviderInterface:
     return ConfiguracaoSQLAlchemyProvider(session=session)
+
+
+async def get_equipe_provider(db: AsyncSession = Depends(get_app_db_session)) -> EquipeProviderInterface:
+    return EquipeSqlAlchemyProvider(db)

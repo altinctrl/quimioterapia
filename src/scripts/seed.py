@@ -9,6 +9,7 @@ from sqlalchemy import text
 from src.models.agendamento import Agendamento
 from src.models.aghu import AghuPaciente
 from src.models.configuracao import Configuracao
+from src.models.equipe import Profissional, EscalaPlantao, AusenciaProfissional
 from src.models.paciente import Paciente, ContatoEmergencia
 from src.models.prescricao import Prescricao, ItemPrescricao
 from src.models.protocolo import Protocolo, ItemProtocolo
@@ -20,6 +21,10 @@ TAGS_CONFIG = [
     "1ª Vez de Quimio", "Mudança de Protocolo", "Redução de Dose", "Virá à Tarde", "Continuidade", "Aguarda Contínuo",
     "Laboratório Ciente", "Quimio Adiada", "Comunicado ao Paciente", "Virá Após a RDT"
 ]
+
+CARGOS = ["Enfermeiro", "Técnico de Enfermagem", "Farmacêutico", "Médico", "Administrador"]
+
+FUNCOES = ["Gestão", "Salão QT", "Triagem/Marcação", "Consulta de Enfermagem", "Apoio"]
 
 PROTOCOLOS_DATA = [
     {
@@ -136,6 +141,9 @@ async def setup_app(aghu_pacientes):
     print("Configurando banco de dados principal...")
 
     async with app_engine.begin() as conn:
+        await conn.execute(text("DROP TABLE IF EXISTS escala_plantao CASCADE"))
+        await conn.execute(text("DROP TABLE IF EXISTS ausencia_profissional CASCADE"))
+        await conn.execute(text("DROP TABLE IF EXISTS profissionais CASCADE"))
         await conn.execute(text("DROP TABLE IF EXISTS itens_prescricao CASCADE"))
         await conn.execute(text("DROP TABLE IF EXISTS prescricoes CASCADE"))
         await conn.execute(text("DROP TABLE IF EXISTS agendamentos CASCADE"))
@@ -161,9 +169,36 @@ async def setup_app(aghu_pacientes):
                 "medio": {"vagas": 8, "duracao": "2h - 4h"},
                 "longo": {"vagas": 4, "duracao": "> 4h"}
             },
-            tags=TAGS_CONFIG
+            tags=TAGS_CONFIG,
+            cargos= CARGOS,
+            funcoes=FUNCOES
         )
         session.add(conf)
+
+        print("Criando profissionais e equipe...")
+        profissionais = [
+            Profissional(username="usuario_teste", nome="Louro José", cargo="Administrador", ativo=True),
+            Profissional(username="enf.ana", nome="Ana Maria", cargo="Enfermeiro", coren="12345-ENF", ativo=True),
+            Profissional(username="tec.joao", nome="João Silva", cargo="Técnico de Enfermagem", coren="54321-TEC", ativo=True),
+            Profissional(username="med.carlos", nome="Dr. Carlos", cargo="Médico", ativo=True),
+        ]
+        session.add_all(profissionais)
+
+        hoje = date.today()
+        escalas = [
+            EscalaPlantao(data=hoje, profissional_id="enf.ana", funcao="Gestão", turno="Integral"),
+            EscalaPlantao(data=hoje, profissional_id="tec.joao", funcao="Salão QT", turno="Manhã"),
+        ]
+        session.add_all(escalas)
+
+        ausencia = AusenciaProfissional(
+            profissional_id="enf.ana",
+            data_inicio=hoje + timedelta(days=5),
+            data_fim=hoje + timedelta(days=20),
+            motivo="Férias"
+        )
+        session.add(ausencia)
+        await session.commit()
 
         print("Criando protocolos...")
         protocolos_objs = []
@@ -277,6 +312,7 @@ async def setup_app(aghu_pacientes):
                     status=status_ag,
                     tags=list(set(tags_agendamento)),
                     observacoes="Agendamento automático via seed.",
+                    criado_por_id="usuario_teste",
                     detalhes={
                         "infusao": {
                             "status_farmacia": status_farm,
