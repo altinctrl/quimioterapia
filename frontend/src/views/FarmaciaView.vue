@@ -18,6 +18,15 @@ const filtros = ref<FiltrosFarmacia>({
   status: []
 })
 
+const expandedIds = ref<string[]>([])
+
+const allExpanded = computed(() => {
+  const ids = agendamentosDoDia.value.map(a => a.id)
+  if (ids.length === 0) return false
+  const expanded = new Set(expandedIds.value)
+  return ids.every(id => expanded.has(id))
+})
+
 const handleDiaAnterior = () => {
   const d = new Date(dataSelecionada.value)
   d.setDate(d.getDate() - 1)
@@ -36,6 +45,16 @@ const handleResetFiltros = () => {
     turno: 'todos',
     status: []
   }
+}
+
+const handleToggleExpandAll = () => {
+  const ids = agendamentosDoDia.value.map(a => a.id)
+  if (ids.length === 0) {
+    expandedIds.value = []
+    return
+  }
+
+  expandedIds.value = allExpanded.value ? [] : ids
 }
 
 const agendamentosDoDia = computed(() => {
@@ -100,6 +119,11 @@ watch(dataSelecionada, async (novaData) => {
     await Promise.all(pacientesIds.map(id => appStore.fetchPrescricoes(id)))
   }
 }, {immediate: true})
+
+watch(agendamentosDoDia, (lista) => {
+  const ids = new Set(lista.map(a => a.id))
+  expandedIds.value = expandedIds.value.filter(id => ids.has(id))
+})
 </script>
 
 <template>
@@ -120,6 +144,8 @@ watch(dataSelecionada, async (novaData) => {
       <div class="px-4 pt-4">
         <FarmaciaControls
             v-model="filtros"
+            :all-expanded="allExpanded"
+            @toggle-expand-all="handleToggleExpandAll"
             @reset="handleResetFiltros"
         />
       </div>
@@ -127,6 +153,7 @@ watch(dataSelecionada, async (novaData) => {
       <CardContent class="p-0 mt-0">
         <FarmaciaTable
             :agendamentos="agendamentosDoDia"
+            v-model:expanded-ids="expandedIds"
             @alterar-status="handleAlterarStatus"
             @alterar-horario="handleAlterarHorario"
         />
