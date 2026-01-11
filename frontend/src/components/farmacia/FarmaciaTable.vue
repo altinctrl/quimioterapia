@@ -84,7 +84,7 @@ const getMedicamentos = (ag: Agendamento) => {
   // Prescrição mais recente do paciente
   const lista = prescricaoStore.getPrescricoesPorPaciente(ag.pacienteId)
 
-  const enableMock = import.meta.env.DEV || import.meta.env.VITE_ENABLE_FARMACIA_MOCK === 'true'
+  const enableMock = import.meta.env.VITE_ENABLE_FARMACIA_MOCK === 'true'
   const protocoloNome = getProtocoloInferido(ag.pacienteId)?.nome || ''
 
   const mockQtPorProtocolo = (nome: string): MedicamentoChecklist[] => {
@@ -127,8 +127,7 @@ const getMedicamentos = (ag: Agendamento) => {
     (a, b) => new Date(b.dataPrescricao).getTime() - new Date(a.dataPrescricao).getTime()
   )[0]
 
-  const itens = prescricao.medicamentos || []
-  const qt = itens.filter(i => i.tipo === 'qt')
+  let qt = prescricao.qt || []
 
   if (qt.length === 0 && enableMock && protocoloNome) {
     const mocked = mockQtPorProtocolo(protocoloNome)
