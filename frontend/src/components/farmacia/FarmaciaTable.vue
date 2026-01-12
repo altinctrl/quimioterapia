@@ -1,42 +1,50 @@
 <script lang="ts" setup>
-import {computed, ref} from 'vue'
-import {useRouter} from 'vue-router'
-import {useAppStore} from '@/stores/app'
-import {usePrescricaoStore} from '@/stores/prescricao'
+import {computed} from 'vue'
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '@/components/ui/table'
 import {Badge} from '@/components/ui/badge'
 import {Button} from '@/components/ui/button'
 import {Checkbox} from '@/components/ui/checkbox'
-import {ChevronDown, ChevronRight, Clock, AlertTriangle} from 'lucide-vue-next'
-import {isInfusao, type StatusFarmacia, type Agendamento} from '@/types'
+import {AlertTriangle, ChevronDown, ChevronRight, Clock} from 'lucide-vue-next'
+import type {StatusFarmacia} from '@/types'
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip";
 
-type MedicamentoChecklist = {
-  id?: number
-  tipo: 'qt'
-  nome: string
-  dose?: string
-  unidade?: string
-  via?: string
+export interface FarmaciaTableRow {
+  id: string
+  pacienteId: string
+  horario: string
+  pacienteNome: string
+  pacienteRegistro: string
+  observacoesClinicas: string | undefined
+  protocoloNome: string
+  statusTexto: string
+  statusBloqueado: boolean
+  statusFarmacia: StatusFarmacia
+  statusFarmaciaCor: string
+  previsaoEntrega: string
+  medicamentos: Array<{
+    key: string
+    nome: string
+    dose: string
+    unidade: string
+    checked: boolean
+  }>
+  checklistLabel: string
+  hasMedicamentos: boolean
 }
 
 const props = defineProps<{
-  agendamentos: Agendamento[]
+  rows: FarmaciaTableRow[]
   expandedIds: string[]
+  opcoesStatus: { id: string, label: string }[]
 }>()
 
 const emit = defineEmits<{
   (e: 'alterarStatus', id: string, novoStatus: StatusFarmacia): void
   (e: 'alterarHorario', id: string, novoHorario: string): void
   (e: 'update:expandedIds', value: string[]): void
+  (e: 'clickPaciente', pacienteId: string): void
+  (e: 'toggleCheckItem', id: string, itemKey: string, statusAtual: StatusFarmacia): void
 }>()
-
-const router = useRouter()
-const appStore = useAppStore()
-const prescricaoStore = usePrescricaoStore()
-
-// Estado local para checklist (expansão é controlada pelo parent)
-const checklist = ref<Record<string, Record<string, boolean>>>({})
 
 const expandedSet = computed(() => new Set(props.expandedIds))
 
@@ -47,144 +55,9 @@ const toggleExpand = (id: string) => {
   emit('update:expandedIds', [...next])
 }
 
-const opcoesStatusFarmacia = computed(() => {
-  return appStore.statusConfig.filter(s => s.tipo === 'farmacia')
-})
-
-const getStatusDotColor = (statusId: string) => {
-  const config = appStore.getStatusConfig(statusId)
-  return config ? config.cor.split(' ')[0] : 'bg-gray-200'
-}
-
-const getProtocoloInferido = (pid: string) => appStore.getProtocoloPeloHistorico(pid)
-
-const formatarStatus = (status: string) => {
-  if (!status) return ''
-  return status.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-}
-
-const isBloqueado = (status: string) => ['suspenso', 'remarcado'].includes(status)
-
-const irParaProntuario = (pacienteId: string) => {
-  router.push({path: '/pacientes', query: {pacienteId}})
-}
-
 const onStatusChange = (id: string, event: Event) => {
   const val = (event.target as HTMLSelectElement).value as StatusFarmacia
   emit('alterarStatus', id, val)
-}
-
-// Prescricao & Checklist Logic
-const getMedicamentos = (ag: Agendamento) => {
-  // Prescrição mais recente do paciente
-  const lista = prescricaoStore.getPrescricoesPorPaciente(ag.pacienteId)
-
-  const enableMock = import.meta.env.VITE_ENABLE_FARMACIA_MOCK === 'true'
-  const protocoloNome = getProtocoloInferido(ag.pacienteId)?.nome || ''
-
-  const mockQtPorProtocolo = (nome: string): MedicamentoChecklist[] => {
-    const upper = nome.toUpperCase()
-    if (upper.includes('FOLFOX')) {
-      return [
-        {tipo: 'qt', nome: 'Oxaliplatina', dose: '85', unidade: 'mg/m²', via: 'EV'},
-        {tipo: 'qt', nome: 'Leucovorina', dose: '400', unidade: 'mg/m²', via: 'EV'},
-        {tipo: 'qt', nome: '5-Fluorouracil', dose: '400', unidade: 'mg/m²', via: 'EV (bolus)'},
-        {tipo: 'qt', nome: '5-Fluorouracil', dose: '2400', unidade: 'mg/m²', via: 'EV (infusão)'}
-      ]
-    }
-    if (upper.includes('AC') || upper.includes('DOXO')) {
-      return [
-        {tipo: 'qt', nome: 'Doxorrubicina', dose: '60', unidade: 'mg/m²', via: 'EV'},
-        {tipo: 'qt', nome: 'Ciclofosfamida', dose: '600', unidade: 'mg/m²', via: 'EV'}
-      ]
-    }
-    // fallback genérico para qualquer protocolo
-    return [
-      {tipo: 'qt', nome: 'Cisplatina', dose: '50', unidade: 'mg', via: 'EV'},
-      {tipo: 'qt', nome: 'Gemcitabina', dose: '1000', unidade: 'mg', via: 'EV'},
-      {tipo: 'qt', nome: 'Dexametasona', dose: '8', unidade: 'mg', via: 'EV'}
-    ]
-  }
-
-  if ((!lista || lista.length === 0) && enableMock && protocoloNome) {
-    const qt = mockQtPorProtocolo(protocoloNome)
-    return {
-      id: `mock:${ag.pacienteId}`,
-      qt,
-      totalQt: qt.length,
-      isMock: true
-    }
-  }
-
-  if (!lista || lista.length === 0) return null
-
-  const prescricao = [...lista].sort(
-    (a, b) => new Date(b.dataPrescricao).getTime() - new Date(a.dataPrescricao).getTime()
-  )[0]
-
-  let qt = prescricao.qt || []
-
-  if (qt.length === 0 && enableMock && protocoloNome) {
-    const mocked = mockQtPorProtocolo(protocoloNome)
-    return {
-      id: prescricao.id,
-      qt: mocked,
-      totalQt: mocked.length,
-      isMock: true
-    }
-  }
-
-  return {
-    id: prescricao.id,
-    qt,
-    totalQt: qt.length,
-    isMock: false
-  }
-}
-
-const getItemKey = (med: {tipo: string; id?: number; nome: string}, idx: number) => {
-  return `${med.tipo}:${med.id ?? idx}:${med.nome}`
-}
-
-const getChecklistLabel = (ag: Agendamento) => {
-  const meds = getMedicamentos(ag)
-  if (!meds || meds.totalQt === 0) return ''
-
-  const checks = checklist.value[ag.id] || {}
-  let checked = 0
-  meds.qt.forEach((med, idx) => {
-    if (checks[getItemKey(med, idx)]) checked++
-  })
-
-  return `${checked}/${meds.totalQt}`
-}
-
-const toggleCheck = (agId: string, itemNome: string, statusAtual: StatusFarmacia) => {
-  if (!checklist.value[agId]) {
-    checklist.value[agId] = {}
-  }
-  checklist.value[agId][itemNome] = !checklist.value[agId][itemNome]
-  
-  // Lógica de Atualização Automática
-  const checks = checklist.value[agId]
-  const totalChecked = Object.values(checks).filter(Boolean).length
-  
-  if (statusAtual === 'pendente' && totalChecked > 0) {
-    emit('alterarStatus', agId, 'em-preparacao')
-  }
-  
-  // Verificar se tudos estão marcados é complexo sem saber o total exato aqui facilmente
-  // Mas podemos verificar no render loop ou inferir. 
-  // Por simplicidade, se o usuário marcou algo, mudamos para Em Preparação. 
-  // Pronta deve ser manual ou se ele marcar tudo (implementação futura mais robusta).
-}
-
-const isChecked = (agId: string, itemNome: string) => {
-  return checklist.value[agId]?.[itemNome] || false
-}
-
-const getObservacoesClinicas = (ag: Agendamento) => {
-  return ag.paciente?.observacoesClinicas
 }
 </script>
 
@@ -193,7 +66,7 @@ const getObservacoesClinicas = (ag: Agendamento) => {
     <Table>
       <TableHeader>
         <TableRow class="hover:bg-transparent">
-          <TableHead class="w-[50px]"></TableHead> <!-- Expander -->
+          <TableHead class="w-[50px]"></TableHead>
           <TableHead class="w-[100px]">Horário</TableHead>
           <TableHead class="min-w-[150px]">Paciente</TableHead>
           <TableHead class="min-w-[100px]">Protocolo</TableHead>
@@ -203,79 +76,78 @@ const getObservacoesClinicas = (ag: Agendamento) => {
         </TableRow>
       </TableHeader>
       <TableBody>
-        <TableRow v-if="agendamentos.length === 0">
+        <TableRow v-if="rows.length === 0">
           <TableCell class="text-center py-12 text-gray-500" colspan="7">
             Nenhuma preparação corresponde aos filtros.
           </TableCell>
         </TableRow>
-        <template v-for="agendamento in agendamentos" :key="agendamento.id">
-          <!-- Linha Principal -->
-          <TableRow 
-            class="group transition-colors hover:bg-gray-50/50"
-            :class="{'bg-gray-50 opacity-75': isBloqueado(agendamento.status)}"
+        <template v-for="row in rows" :key="row.id">
+          <TableRow
+              :class="{'bg-gray-50 opacity-75': row.statusBloqueado}"
+              class="group transition-colors hover:bg-gray-50/50"
           >
             <TableCell class="p-2 text-center">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                class="h-8 w-8 text-gray-400 hover:text-gray-900"
-                @click="toggleExpand(agendamento.id)"
+              <Button
+                  class="h-8 w-8 text-gray-400 hover:text-gray-900"
+                  size="icon"
+                  variant="ghost"
+                  @click="toggleExpand(row.id)"
               >
-                <ChevronDown v-if="expandedSet.has(agendamento.id)" class="h-4 w-4"/>
+                <ChevronDown v-if="expandedSet.has(row.id)" class="h-4 w-4"/>
                 <ChevronRight v-else class="h-4 w-4"/>
               </Button>
             </TableCell>
 
             <TableCell>
-              <div class="text-md">{{ agendamento.horarioInicio }}</div>
-              <div v-if="getChecklistLabel(agendamento)" class="text-xs font-medium text-gray-500">
-                Checklist: {{ getChecklistLabel(agendamento) }}
+              <div class="text-md">{{ row.horario }}</div>
+              <div v-if="row.checklistLabel" class="text-xs font-medium text-gray-500">
+                Checklist: {{ row.checklistLabel }}
               </div>
             </TableCell>
 
             <TableCell>
               <div class="flex items-center gap-1.5">
-              <button
-                  class="text-left font-medium hover:text-blue-600 hover:underline truncate max-w-[180px] text-gray-900"
-                  @click="irParaProntuario(agendamento.pacienteId)"
-              >
-                {{ agendamento.paciente?.nome || 'Paciente não carregado' }}
-              </button>
-              <TooltipProvider v-if="getObservacoesClinicas(agendamento)">
-                <Tooltip :delay-duration="200">
-                  <TooltipTrigger as-child>
-                    <div class="cursor-help flex-shrink-0">
-                      <AlertTriangle class="h-4 w-4 text-amber-500 hover:text-amber-600 transition-colors"/>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent
-                      class="max-w-[300px] p-3 bg-amber-50 border border-amber-200 text-black"
-                      side="right"
-                  >
-                    <p class="font-semibold text-xs mb-1 uppercase tracking-wide">Observações Clínicas</p>
-                    <p class="text-sm leading-relaxed">
-                      {{ getObservacoesClinicas(agendamento) }}
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider></div>
-              <div class="text-xs text-gray-500">{{ agendamento.paciente?.registro }}</div>
+                <button
+                    class="text-left font-medium hover:text-blue-600 hover:underline truncate max-w-[180px] text-gray-900"
+                    @click="emit('clickPaciente', row.pacienteId)"
+                >
+                  {{ row.pacienteNome }}
+                </button>
+                <TooltipProvider v-if="row.observacoesClinicas">
+                  <Tooltip :delay-duration="200">
+                    <TooltipTrigger as-child>
+                      <div class="cursor-help flex-shrink-0">
+                        <AlertTriangle class="h-4 w-4 text-amber-500 hover:text-amber-600 transition-colors"/>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent
+                        class="max-w-[300px] p-3 bg-amber-50 border border-amber-200 text-black"
+                        side="right"
+                    >
+                      <p class="font-semibold text-xs mb-1 uppercase tracking-wide">Observações Clínicas</p>
+                      <p class="text-sm leading-relaxed">
+                        {{ row.observacoesClinicas }}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <div class="text-xs text-gray-500">{{ row.pacienteRegistro }}</div>
             </TableCell>
 
             <TableCell>
               <span
-                :title="getProtocoloInferido(agendamento.pacienteId)?.nome || '-'"
-                class="text-sm font-medium text-gray-700 block whitespace-normal break-words"
+                  :title="row.protocoloNome"
+                  class="text-sm font-medium text-gray-700 block whitespace-normal break-words"
               >
-                {{ getProtocoloInferido(agendamento.pacienteId)?.nome || '-' }}
+                {{ row.protocoloNome }}
               </span>
             </TableCell>
 
             <TableCell>
-               <!-- Badge simplificado alinhado com layout -->
-              <Badge :variant="isBloqueado(agendamento.status) ? 'destructive' : 'outline'" 
+              <Badge :variant="row.statusBloqueado ? 'destructive' : 'outline'"
                      class="font-normal capitalize">
-                {{ formatarStatus(agendamento.status) }}
+                {{ row.statusTexto }}
               </Badge>
             </TableCell>
 
@@ -284,18 +156,21 @@ const getObservacoesClinicas = (ag: Agendamento) => {
                 <div
                     :class="[
                     'h-2.5 w-2.5 rounded-full flex-shrink-0 shadow-sm transition-colors',
-                    getStatusDotColor(isBloqueado(agendamento.status) ? 'pendente' : (isInfusao(agendamento) ? agendamento.detalhes.infusao.status_farmacia : 'pendente'))
+                    row.statusFarmaciaCor
                   ]"
                 />
                 <div class="relative w-full max-w-[150px]">
                   <select
-                      :disabled="isBloqueado(agendamento.status)"
-                      :value="isInfusao(agendamento) ? agendamento.detalhes.infusao.status_farmacia : 'pendente'"
-                      class="flex h-8 w-full items-center justify-between rounded-md border border-input bg-transparent px-2 py-1 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 appearance-none truncate font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-                      @change="(e) => onStatusChange(agendamento.id, e)"
+                      :disabled="row.statusBloqueado"
+                      :value="row.statusFarmacia"
+                      class="flex h-8 w-full items-center justify-between rounded-md border border-input bg-transparent
+                      px-2 py-1 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none
+                      focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50
+                      appearance-none truncate font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                      @change="(e) => onStatusChange(row.id, e)"
                   >
                     <option
-                        v-for="opcao in opcoesStatusFarmacia"
+                        v-for="opcao in opcoesStatus"
                         :key="opcao.id"
                         :value="opcao.id"
                     >
@@ -311,27 +186,27 @@ const getObservacoesClinicas = (ag: Agendamento) => {
               <div class="flex items-center gap-1.5">
                 <Clock class="h-3.5 w-3.5 text-gray-400"/>
                 <input
-                    :disabled="isBloqueado(agendamento.status)"
-                    :value="isInfusao(agendamento) ? agendamento.detalhes.infusao.horario_previsao_entrega : ''"
-                    class="w-24 h-8 text-sm bg-transparent border-b border-transparent hover:border-gray-300 focus:border-primary focus:outline-none transition-colors"
+                    :disabled="row.statusBloqueado"
+                    :value="row.previsaoEntrega"
+                    class="w-24 h-8 text-sm bg-transparent border-b border-transparent hover:border-gray-300
+                    focus:border-primary focus:outline-none transition-colors"
                     type="time"
-                    @input="(e) => emit('alterarHorario', agendamento.id, (e.target as HTMLInputElement).value)"
+                    @input="(e) => emit('alterarHorario', row.id, (e.target as HTMLInputElement).value)"
                 />
               </div>
             </TableCell>
           </TableRow>
 
-          <!-- Linha Expandida (Checklist) -->
           <TableRow
-              v-if="expandedSet.has(agendamento.id)"
+              v-if="expandedSet.has(row.id)"
+              :class="{'bg-gray-50 opacity-75': row.statusBloqueado}"
               class="bg-gray-50/80 border-t-0 shadow-inner"
-              :class="{'bg-gray-50 opacity-75': isBloqueado(agendamento.status)}"
           >
-            <TableCell colspan="3" class="p-0"></TableCell>
-            <TableCell colspan="1" class="p-0">
+            <TableCell class="p-0" colspan="3"></TableCell>
+            <TableCell class="p-0" colspan="1">
               <div class="pt-4 pb-4 animate-in slide-in-from-top-1 duration-200">
                 <div
-                    v-if="!getMedicamentos(agendamento) || getMedicamentos(agendamento)?.qt.length === 0"
+                    v-if="!row.hasMedicamentos"
                     class="text-muted-foreground text-sm">
                   Nenhuma medicação encontrada para este agendamento.
                 </div>
@@ -339,18 +214,18 @@ const getObservacoesClinicas = (ag: Agendamento) => {
                 <template v-else>
                   <div class="space-y-2">
                     <div
-                        v-for="(med, idx) in getMedicamentos(agendamento)?.qt"
-                        :key="`${med.tipo}:${med.id ?? ''}:${med.nome}:${idx}`"
+                        v-for="med in row.medicamentos"
+                        :key="med.key"
                         class="flex items-start gap-2 bg-white p-2 rounded border border-gray-100 shadow-sm">
                       <Checkbox
-                          :disabled="isBloqueado(agendamento.status)"
-                          :id="`qt-${agendamento.id}-${idx}`"
-                          :checked="isChecked(agendamento.id, getItemKey(med, idx))"
-                          @update:checked="() => toggleCheck(agendamento.id, getItemKey(med, idx), isInfusao(agendamento) ? agendamento.detalhes.infusao.status_farmacia : 'pendente')"
+                          :id="`qt-${row.id}-${med.key}`"
+                          :checked="med.checked"
+                          :disabled="row.statusBloqueado"
                           class="mt-0.5"
+                          @update:checked="() => emit('toggleCheckItem', row.id, med.key, row.statusFarmacia)"
                       />
                       <label
-                          :for="`qt-${agendamento.id}-${idx}`"
+                          :for="`qt-${row.id}-${med.key}`"
                           class="text-sm leading-tight font-semibold block cursor-pointer w-full"
                       >
                         {{ med.nome }} - {{ med.dose }} {{ med.unidade }}
@@ -360,7 +235,7 @@ const getObservacoesClinicas = (ag: Agendamento) => {
                 </template>
               </div>
             </TableCell>
-            <TableCell colspan="3" class="p-0"></TableCell>
+            <TableCell class="p-0" colspan="3"></TableCell>
           </TableRow>
         </template>
       </TableBody>
