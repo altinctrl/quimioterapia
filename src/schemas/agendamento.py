@@ -1,11 +1,12 @@
 import enum
 from datetime import date
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 from pydantic import BaseModel, ConfigDict, model_validator, Field
 from pydantic.alias_generators import to_camel
 
 from src.schemas.equipe import ProfissionalResponse
+from src.schemas.prescricao import PrescricaoResponse
 
 
 class TipoAgendamento(str, enum.Enum):
@@ -50,6 +51,7 @@ class DetalhesInfusao(BaseModel):
     horario_previsao_entrega: Optional[str] = None
     ciclo_atual: Optional[int] = None
     dia_ciclo: Optional[str] = None
+    checklist_farmacia: Optional[Dict[str, bool]] = {}
 
 
 class DetalhesProcedimento(BaseModel):
@@ -85,6 +87,7 @@ class DetalhesInfusaoUpdate(BaseModel):
     horario_previsao_entrega: Optional[str] = None
     ciclo_atual: Optional[int] = None
     dia_ciclo: Optional[str] = None
+    checklist_farmacia: Optional[Dict[str, bool]] = None
 
 
 class DetalhesProcedimentoUpdate(BaseModel):
@@ -175,5 +178,6 @@ class AgendamentoResponse(AgendamentoBase):
     criado_por_id: Optional[str] = None
     criado_por: Optional[ProfissionalResponse] = None
     paciente: Optional[AgendamentoPaciente] = None
+    prescricao: Optional[PrescricaoResponse] = None
 
     model_config = ConfigDict(from_attributes=True, alias_generator=to_camel, populate_by_name=True)

@@ -53,3 +53,14 @@ export function getBadgeGrupo(grupo: GrupoInfusao): string {
     default: return 'text-gray-500 bg-gray-50 border-gray-100'
   }
 }
+
+export const somarDias = (dataStr: string, dias: number): string => {
+  const [y, m, d] = dataStr.split('-').map(Number)
+  const date = new Date(y, m - 1, d) // Construtor local
+  date.setDate(date.getDate() + dias)
+
+  const ano = date.getFullYear()
+  const mes = String(date.getMonth() + 1).padStart(2, '0')
+  const dia = String(date.getDate()).padStart(2, '0')
+  return `${ano}-${mes}-${dia}`
+}

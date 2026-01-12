@@ -128,6 +128,7 @@ export interface DetalhesInfusao {
   horario_previsao_entrega?: string;
   ciclo_atual?: number;
   dia_ciclo?: string;
+  checklist_farmacia?: Record<string, boolean>;
 }
 
 export interface DetalhesAgendamento {
@@ -157,6 +158,7 @@ export interface Agendamento {
   observacoes?: string;
   tags?: string[];
   detalhes?: DetalhesAgendamento;
+  prescricao?: PrescricaoMedica;
 }
 
 export function isInfusao(ag: Partial<Agendamento>): ag is Agendamento & { detalhes: { infusao: DetalhesInfusao } } {

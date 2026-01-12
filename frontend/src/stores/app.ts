@@ -57,7 +57,8 @@ export const useAppStore = defineStore('app', () => {
     atualizarStatusFarmacia,
     atualizarHorarioPrevisao,
     remarcarAgendamento,
-    atualizarTagsAgendamento
+    atualizarTagsAgendamento,
+    salvarChecklistFarmacia
   } = agendamentoStore
 
   async function fetchInitialData() {
@@ -103,6 +104,7 @@ export const useAppStore = defineStore('app', () => {
     atualizarHorarioPrevisao,
     remarcarAgendamento,
     atualizarTagsAgendamento,
+    salvarChecklistFarmacia,
     adicionarProtocolo,
     atualizarProtocolo,
     desativarProtocolo,

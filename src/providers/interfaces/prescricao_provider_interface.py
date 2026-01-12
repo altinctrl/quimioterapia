@@ -10,6 +10,10 @@ class PrescricaoProviderInterface(ABC):
         pass
 
     @abstractmethod
+    async def listar_por_paciente_multi(self, paciente_ids: List[str]) -> List[Prescricao]:
+        pass
+
+    @abstractmethod
     async def obter_prescricao(self, prescricao_id: str) -> Optional[Prescricao]:
         pass
 
