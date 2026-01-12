@@ -157,6 +157,7 @@ export interface Agendamento {
   observacoes?: string;
   tags?: string[];
   detalhes?: DetalhesAgendamento;
+  prescricao?: PrescricaoMedica;
 }
 
 export function isInfusao(ag: Partial<Agendamento>): ag is Agendamento & { detalhes: { infusao: DetalhesInfusao } } {
