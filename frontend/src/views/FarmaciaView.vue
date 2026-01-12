@@ -68,6 +68,7 @@ const viewRows = computed<FarmaciaTableRow[]>(() => {
   return agendamentosFiltrados.value.map(ag => {
     const listaMedicamentos = ag.prescricao?.qt || []
     const hasMedicamentos = listaMedicamentos.length > 0
+    const savedChecklist = (isInfusao(ag) ? ag.detalhes.infusao.checklist_farmacia : {}) || {}
 
     const medicamentos = listaMedicamentos.map((med, idx) => {
       const key = `${med.tipo}:${med.id ?? idx}:${med.nome}`
@@ -76,7 +77,7 @@ const viewRows = computed<FarmaciaTableRow[]>(() => {
         nome: med.nome,
         dose: med.dose?.toString() || '',
         unidade: med.unidade || '',
-        checked: checklist.value[ag.id]?.[key] || false
+        checked: savedChecklist[key] || false
       }
     })
 
@@ -154,21 +155,35 @@ const handleNavigatePaciente = (pacienteId: string) => {
   router.push({path: '/pacientes', query: {pacienteId}})
 }
 
-const handleToggleCheckItem = (agId: string, itemKey: string, statusAtual: StatusFarmacia) => {
-  if (!checklist.value[agId]) checklist.value[agId] = {}
-  checklist.value[agId][itemKey] = !checklist.value[agId][itemKey]
+const handleToggleCheckItem = async (agId: string, itemKey: string, statusAtual: StatusFarmacia) => {
+  const agendamento = appStore.agendamentos.find(a => a.id === agId)
+  if (!agendamento || !isInfusao(agendamento)) return
 
-  const checks = checklist.value[agId]
-  const values = Object.values(checks)
+  const currentChecklist = agendamento.detalhes.infusao.checklist_farmacia || {}
+  const novoValor = !currentChecklist[itemKey]
+  const novoChecklist = {...currentChecklist, [itemKey]: novoValor}
+  agendamento.detalhes.infusao.checklist_farmacia = novoChecklist
+
+  const values = Object.values(novoChecklist)
   const totalChecked = values.filter(Boolean).length
+  const totalItens = agendamento.prescricao?.qt?.length || Object.keys(currentChecklist).length || 0
 
+  let proximoStatus: StatusFarmacia | null = null
   if (statusAtual === 'pendente' && totalChecked > 0) {
-    handleAlterarStatus(agId, 'em-preparacao')
+    proximoStatus = 'em-preparacao'
+  } else if (totalChecked === totalItens && totalItens > 0 && statusAtual !== 'pronta') {
+    proximoStatus = 'pronta'
+  } else if (totalChecked < totalItens && statusAtual === 'pronta') {
+    proximoStatus = 'em-preparacao'
   }
 
-  const row = viewRows.value.find(r => r.id === agId)
-  if (row && row.medicamentos.length > 0 && totalChecked === row.medicamentos.length) {
-    handleAlterarStatus(agId, 'pronta')
+  try {
+    await appStore.salvarChecklistFarmacia(agId, novoChecklist)
+    if (proximoStatus && proximoStatus !== statusAtual) {
+      handleAlterarStatus(agId, proximoStatus)
+    }
+  } catch (error) {
+    console.error("Erro ao sincronizar farmácia", error)
   }
 }
 

@@ -60,8 +60,10 @@ export const useAgendamentoStore = defineStore('agendamento', () => {
       const payload = {detalhes: {infusao: {status_farmacia: status}}}
       const res = await api.put(`/api/agendamentos/${id}`, payload)
       const idx = agendamentos.value.findIndex(a => a.id === id)
-      if (idx !== -1) agendamentos.value[idx] = res.data
-      toast.success("Status farmácia atualizado")
+      if (idx !== -1) {
+        const prescricaoAntiga = agendamentos.value[idx].prescricao
+        agendamentos.value[idx] = {...res.data, prescricao: prescricaoAntiga}
+      }
     } catch (e) {
       toast.error("Erro na atualização")
     }
@@ -133,6 +135,23 @@ export const useAgendamentoStore = defineStore('agendamento', () => {
     }
   }
 
+  async function salvarChecklistFarmacia(id: string, checklist: Record<string, boolean>) {
+    try {
+      const payload = {detalhes: {infusao: {checklist_farmacia: checklist}}}
+      const res = await api.put(`/api/agendamentos/${id}`, payload)
+
+      const idx = agendamentos.value.findIndex(a => a.id === id)
+      if (idx !== -1) {
+        const prescricaoAntiga = agendamentos.value[idx].prescricao
+        agendamentos.value[idx] = {...res.data, prescricao: prescricaoAntiga}
+      }
+
+    } catch (e) {
+      console.error("Erro ao salvar checklist", e)
+      toast.error("Erro ao salvar checklist")
+    }
+  }
+
   return {
     agendamentos,
     getAgendamentosDoDia,
@@ -142,6 +161,7 @@ export const useAgendamentoStore = defineStore('agendamento', () => {
     atualizarStatusFarmacia,
     atualizarHorarioPrevisao,
     remarcarAgendamento,
-    atualizarTagsAgendamento
+    atualizarTagsAgendamento,
+    salvarChecklistFarmacia
   }
 })
