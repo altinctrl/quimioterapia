@@ -19,6 +19,19 @@ class PrescricaoSQLAlchemyProvider(PrescricaoProviderInterface):
         result = await self.session.execute(query)
         return result.scalars().all()
 
+    async def listar_por_paciente_multi(self, paciente_ids: List[str]) -> List[Prescricao]:
+        if not paciente_ids:
+            return []
+
+        query = select(Prescricao).where(
+            Prescricao.paciente_id.in_(paciente_ids)
+        ).options(selectinload(Prescricao.itens))
+
+        query = query.order_by(Prescricao.data_prescricao.desc())
+
+        result = await self.session.execute(query)
+        return result.scalars().all()
+
     async def obter_prescricao(self, prescricao_id: str) -> Optional[Prescricao]:
         query = select(Prescricao).where(Prescricao.id == prescricao_id).options(selectinload(Prescricao.itens))
 

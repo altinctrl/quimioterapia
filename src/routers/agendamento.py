@@ -5,17 +5,27 @@ from fastapi import APIRouter, Depends, Query, HTTPException
 
 from src.auth.auth import auth_handler
 from src.controllers import agendamento_controller
-from src.dependencies import get_agendamento_provider
+from src.dependencies import get_agendamento_provider, get_prescricao_provider
 from src.providers.interfaces.agendamento_provider_interface import AgendamentoProviderInterface
+from src.providers.interfaces.prescricao_provider_interface import PrescricaoProviderInterface
 from src.schemas.agendamento import AgendamentoCreate, AgendamentoUpdate, AgendamentoResponse
 
 router = APIRouter(prefix="/api/agendamentos", tags=["Agendamentos"], dependencies=[Depends(auth_handler.decode_token)])
 
 
 @router.get("", response_model=List[AgendamentoResponse])
-async def listar_agendamentos(data_inicio: Optional[date] = Query(None), data_fim: Optional[date] = Query(None),
-        provider: AgendamentoProviderInterface = Depends(get_agendamento_provider)):
-    return await agendamento_controller.listar_agendamentos(provider, data_inicio, data_fim)
+async def listar_agendamentos(
+        data_inicio: Optional[date] = Query(None),
+        data_fim: Optional[date] = Query(None),
+        agendamento_provider: AgendamentoProviderInterface = Depends(get_agendamento_provider),
+        prescricao_provider: PrescricaoProviderInterface = Depends(get_prescricao_provider)
+):
+    return await agendamento_controller.listar_agendamentos(
+        agendamento_provider,
+        prescricao_provider,
+        data_inicio,
+        data_fim
+    )
 
 
 @router.post("", response_model=AgendamentoResponse)

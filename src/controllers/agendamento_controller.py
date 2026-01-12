@@ -7,13 +7,41 @@ from sqlalchemy.orm.attributes import flag_modified  # Importação necessária
 
 from src.models.agendamento import Agendamento
 from src.providers.interfaces.agendamento_provider_interface import AgendamentoProviderInterface
+from src.providers.interfaces.prescricao_provider_interface import PrescricaoProviderInterface
 from src.schemas.agendamento import AgendamentoCreate, AgendamentoUpdate, AgendamentoResponse, TipoAgendamento
+from src.schemas.prescricao import PrescricaoResponse
 
 
-async def listar_agendamentos(provider: AgendamentoProviderInterface, data_inicio: Optional[date],
-                              data_fim: Optional[date]) -> List[AgendamentoResponse]:
-    agendamentos = await provider.listar_agendamentos(data_inicio, data_fim)
-    return [AgendamentoResponse.model_validate(a) for a in agendamentos]
+async def listar_agendamentos(
+        agendamento_provider: AgendamentoProviderInterface,
+        prescricao_provider: PrescricaoProviderInterface,
+        data_inicio: Optional[date],
+        data_fim: Optional[date]
+) -> List[AgendamentoResponse]:
+    agendamentos = await agendamento_provider.listar_agendamentos(data_inicio, data_fim)
+    if not agendamentos: return []
+
+    paciente_ids = list(set([a.paciente_id for a in agendamentos if a.paciente_id]))
+    prescricoes = await prescricao_provider.listar_por_paciente_multi(paciente_ids)
+    mapa_prescricoes = {p.paciente_id: p for p in reversed(prescricoes)}
+
+    response = []
+    for ag in agendamentos:
+        ag_resp = AgendamentoResponse.model_validate(ag)
+
+        if ag.paciente_id in mapa_prescricoes:
+            prescricao_obj = mapa_prescricoes[ag.paciente_id]
+            p_resp = PrescricaoResponse.model_validate(prescricao_obj)
+            p_resp.protocolo = prescricao_obj.protocolo_nome_snapshot
+            p_dict = p_resp.model_dump()
+            p_dict['qt'] = [i for i in prescricao_obj.itens if i.tipo == 'qt']
+            p_dict['medicamentos'] = [i for i in prescricao_obj.itens if i.tipo == 'pre']
+            p_dict['pos_medicacoes'] = [i for i in prescricao_obj.itens if i.tipo == 'pos']
+            ag_resp.prescricao = PrescricaoResponse(**p_dict)
+
+        response.append(ag_resp)
+
+    return response
 
 
 async def criar_agendamento(

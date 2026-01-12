@@ -2,17 +2,25 @@
 import {computed, ref, watch} from 'vue'
 import {useRouter} from 'vue-router'
 import {useAppStore} from '@/stores/app'
-import {type Agendamento, isInfusao, type StatusFarmacia} from '@/types'
+import {isInfusao, type StatusFarmacia} from '@/types'
 import {Card, CardContent} from '@/components/ui/card'
 import FarmaciaHeader from '@/components/farmacia/FarmaciaHeader.vue'
 import FarmaciaMetrics from '@/components/farmacia/FarmaciaMetrics.vue'
 import FarmaciaTable, {type FarmaciaTableRow} from '@/components/farmacia/FarmaciaTable.vue'
 import FarmaciaControls, {type FiltrosFarmacia} from '@/components/farmacia/FarmaciaControls.vue'
 import {getDataLocal} from '@/lib/utils.ts'
+import {somarDias} from '@/utils/agendaUtils.ts'
 
 const router = useRouter()
 const appStore = useAppStore()
 const dataSelecionada = ref(getDataLocal())
+
+const STATUS_ORDER: Record<string, number> = {
+  'pendente': 0,
+  'em-preparacao': 1,
+  'pronta': 2,
+  'enviada': 3
+}
 
 const filtros = ref<FiltrosFarmacia>({
   ordenacao: 'horario',
@@ -28,17 +36,8 @@ const getStatusDotColor = (statusId: string) => {
   return config ? config.cor.split(' ')[0] : 'bg-gray-200'
 }
 
-const getMedicamentosData = (ag: Agendamento) => {
-  const lista = appStore.getPrescricoesPorPaciente(ag.pacienteId)
-  if (!lista || lista.length === 0) return null
-  const prescricao = [...lista].sort(
-      (a, b) => new Date(b.dataPrescricao).getTime() - new Date(a.dataPrescricao).getTime()
-  )[0]
-  return {id: prescricao.id, qt: prescricao.qt || []}
-}
-
 const agendamentosFiltrados = computed(() => {
-  let lista = appStore.agendamentos.filter(a => a.data === dataSelecionada.value)
+  let lista = [...appStore.agendamentos]
 
   if (filtros.value.turno !== 'todos') {
     lista = lista.filter(a => a.turno === filtros.value.turno)
@@ -56,10 +55,9 @@ const agendamentosFiltrados = computed(() => {
       return a.horarioInicio.localeCompare(b.horarioInicio)
     }
     if (filtros.value.ordenacao === 'status') {
-      const statusOrder: Record<string, number> = {'pendente': 0, 'em-preparacao': 1, 'pronta': 2, 'enviada': 3}
       const sa = isInfusao(a) ? a.detalhes.infusao.status_farmacia : 'pendente'
       const sb = isInfusao(b) ? b.detalhes.infusao.status_farmacia : 'pendente'
-      if (statusOrder[sa] !== statusOrder[sb]) return statusOrder[sa] - statusOrder[sb]
+      if (STATUS_ORDER[sa] !== STATUS_ORDER[sb]) return STATUS_ORDER[sa] - STATUS_ORDER[sb]
       return a.horarioInicio.localeCompare(b.horarioInicio)
     }
     return a.horarioInicio.localeCompare(b.horarioInicio)
@@ -68,10 +66,10 @@ const agendamentosFiltrados = computed(() => {
 
 const viewRows = computed<FarmaciaTableRow[]>(() => {
   return agendamentosFiltrados.value.map(ag => {
-    const medsData = getMedicamentosData(ag)
-    const hasMedicamentos = !!medsData && medsData.qt.length > 0
+    const listaMedicamentos = ag.prescricao?.qt || []
+    const hasMedicamentos = listaMedicamentos.length > 0
 
-    const medicamentos = hasMedicamentos ? medsData!.qt.map((med, idx) => {
+    const medicamentos = listaMedicamentos.map((med, idx) => {
       const key = `${med.tipo}:${med.id ?? idx}:${med.nome}`
       return {
         key,
@@ -80,7 +78,7 @@ const viewRows = computed<FarmaciaTableRow[]>(() => {
         unidade: med.unidade || '',
         checked: checklist.value[ag.id]?.[key] || false
       }
-    }) : []
+    })
 
     let checklistLabel = ''
     if (hasMedicamentos) {
@@ -103,7 +101,7 @@ const viewRows = computed<FarmaciaTableRow[]>(() => {
       pacienteNome: ag.paciente?.nome || 'Paciente não carregado',
       pacienteRegistro: ag.paciente?.registro || '',
       observacoesClinicas: ag.paciente?.observacoesClinicas,
-      protocoloNome: protocolo?.nome || '-',
+      protocoloNome: ag.prescricao?.protocolo || protocolo?.nome || '-',
       statusTexto: ag.status ? ag.status.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : '',
       statusBloqueado: bloqueado,
       statusFarmacia: statusFarmacia,
@@ -124,15 +122,11 @@ const allExpanded = computed(() => {
 })
 
 const handleDiaAnterior = () => {
-  const d = new Date(dataSelecionada.value)
-  d.setDate(d.getDate() - 1)
-  dataSelecionada.value = d.toISOString().split('T')[0]
+  dataSelecionada.value = somarDias(dataSelecionada.value, -1)
 }
 
 const handleProximoDia = () => {
-  const d = new Date(dataSelecionada.value)
-  d.setDate(d.getDate() + 1)
-  dataSelecionada.value = d.toISOString().split('T')[0]
+  dataSelecionada.value = somarDias(dataSelecionada.value, 1)
 }
 
 const handleResetFiltros = () => {
@@ -165,9 +159,16 @@ const handleToggleCheckItem = (agId: string, itemKey: string, statusAtual: Statu
   checklist.value[agId][itemKey] = !checklist.value[agId][itemKey]
 
   const checks = checklist.value[agId]
-  const totalChecked = Object.values(checks).filter(Boolean).length
+  const values = Object.values(checks)
+  const totalChecked = values.filter(Boolean).length
+
   if (statusAtual === 'pendente' && totalChecked > 0) {
     handleAlterarStatus(agId, 'em-preparacao')
+  }
+
+  const row = viewRows.value.find(r => r.id === agId)
+  if (row && row.medicamentos.length > 0 && totalChecked === row.medicamentos.length) {
+    handleAlterarStatus(agId, 'pronta')
   }
 }
 
@@ -187,10 +188,6 @@ const opcoesStatusFarmacia = computed(() => {
 
 watch(dataSelecionada, async (novaData) => {
   await appStore.fetchAgendamentos(novaData, novaData)
-  const pacientesIds = [...new Set(appStore.agendamentos.map(a => a.pacienteId))]
-  if (pacientesIds.length > 0) {
-    await Promise.all(pacientesIds.map(id => appStore.fetchPrescricoes(id)))
-  }
 }, {immediate: true})
 
 watch(agendamentosFiltrados, (lista) => {
