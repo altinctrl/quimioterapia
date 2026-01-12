@@ -1,6 +1,6 @@
 import enum
 from datetime import date
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 from pydantic import BaseModel, ConfigDict, model_validator, Field
 from pydantic.alias_generators import to_camel
@@ -51,6 +51,7 @@ class DetalhesInfusao(BaseModel):
     horario_previsao_entrega: Optional[str] = None
     ciclo_atual: Optional[int] = None
     dia_ciclo: Optional[str] = None
+    checklist_farmacia: Optional[Dict[str, bool]] = {}
 
 
 class DetalhesProcedimento(BaseModel):
@@ -86,6 +87,7 @@ class DetalhesInfusaoUpdate(BaseModel):
     horario_previsao_entrega: Optional[str] = None
     ciclo_atual: Optional[int] = None
     dia_ciclo: Optional[str] = None
+    checklist_farmacia: Optional[Dict[str, bool]] = None
 
 
 class DetalhesProcedimentoUpdate(BaseModel):

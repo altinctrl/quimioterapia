@@ -128,6 +128,7 @@ export interface DetalhesInfusao {
   horario_previsao_entrega?: string;
   ciclo_atual?: number;
   dia_ciclo?: string;
+  checklist_farmacia?: Record<string, boolean>;
 }
 
 export interface DetalhesAgendamento {
