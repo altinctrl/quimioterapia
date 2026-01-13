@@ -5,7 +5,7 @@ import {Button} from '@/components/ui/button'
 import {Input} from '@/components/ui/input'
 import {Label} from '@/components/ui/label'
 import {Badge} from '@/components/ui/badge'
-import {Ban, Beaker, CheckCircle2, Clock, Edit, Eye, Search, XCircle} from 'lucide-vue-next'
+import {Beaker,Clock, Edit, Search, XCircle} from 'lucide-vue-next'
 
 const props = defineProps<{
   protocolos: any[]
@@ -124,31 +124,25 @@ const filteredProtocolos = computed(() => {
     </Card>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <Card v-for="p in filteredProtocolos" :key="p.id" :class="!p.ativo ? 'opacity-70 bg-gray-50' : ''">
+      <Card
+          v-for="p in filteredProtocolos"
+          :key="p.id"
+          :class="!p.ativo ? 'opacity-70 bg-gray-50' : ''"
+          class="cursor-pointer"
+          @click="emit('details', p)">
         <CardHeader class="p-5 pb-3">
           <div class="flex justify-between items-start gap-4">
             <div class="overflow-hidden">
-              <CardTitle :title="p.nome" class="flex items-center gap-2 text-lg"> {{ p.nome }}
-                <CheckCircle2 v-if="p.ativo" class="h-4 w-4 text-green-600 flex-shrink-0"/>
-                <XCircle v-else class="h-4 w-4 text-gray-400 flex-shrink-0"/>
+              <CardTitle :title="p.nome" class="flex items-center gap-2 text-lg">
+                <XCircle v-if="!p.ativo" class="h-4 w-4 text-gray-400 flex-shrink-0"/>
+                {{ p.nome }}
               </CardTitle>
               <CardDescription :title="p.indicacao" class="text-sm mt-1">{{ p.indicacao }}</CardDescription>
             </div>
 
-            <div class="flex gap-1 flex-shrink-0">
-              <Button class="h-8 w-8" size="icon" variant="ghost" @click="emit('details', p)">
-                <Eye class="h-4 w-4"/>
-              </Button>
-              <Button class="h-8 w-8" size="icon" variant="ghost" @click="emit('edit', p)">
-                <Edit class="h-4 w-4"/>
-              </Button>
-              <Button class="h-8 w-8 text-orange-500 hover:text-orange-600 hover:bg-orange-50" size="icon"
-                      title="Desativar/Ativar"
-                      variant="ghost" @click="emit('toggleStatus', p)">
-                <Ban class="h-4 w-4"/>
-              </Button>
-            </div>
-
+            <Button class="h-8 w-8" size="icon" variant="ghost" @click.stop="emit('edit', p)">
+              <Edit class="h-4 w-4"/>
+            </Button>
           </div>
         </CardHeader>
 
@@ -171,7 +165,7 @@ const filteredProtocolos = computed(() => {
             }}
           </div>
 
-          <div class="flex flex-wrap gap-1.5 h-14 overflow-hidden content-start">
+          <div class="flex flex-wrap gap-1.5 overflow-hidden content-start">
             <Badge v-for="(m, idx) in p.medicamentos.slice(0, 4)" :key="idx" class="px-2 py-0.5" variant="secondary">
               {{ m.nome }}
             </Badge>
