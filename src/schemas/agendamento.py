@@ -65,11 +65,14 @@ class DetalhesConsulta(BaseModel):
 class DetalhesIntercorrencia(BaseModel):
     tipo_intercorrencia: TipoIntercorrencia
     medicamento_intercorrencia: str
+    vigihosp: Optional[bool] = None
+    observacoes: Optional[str] = None
 
 
 class DetalhesSuspensao(BaseModel):
     motivo_suspensao: MotivoSuspensao
     medicamento_falta: Optional[str] = None
+    observacoes: Optional[str] = None
 
 
 class DetalhesCancelamento(BaseModel):

@@ -82,24 +82,20 @@ const handleConfirm = () => {
   const payloadDetalhes: any = {}
 
   if (isSuspensao.value) {
-    payloadDetalhes.tipo = 'suspensao'
-    payloadDetalhes.motivo = motivoSuspensao.value
-
-    if (motivoSuspensao.value === 'medicacao_falta') {
-      payloadDetalhes.medicamento = medicamentoFalta.value
-    }
+    payloadDetalhes.suspensao = {}
+    payloadDetalhes.suspensao.motivo_suspensao = motivoSuspensao.value
+    if (motivoSuspensao.value === 'medicacao_falta')
+      payloadDetalhes.suspensao.medicamento_falta = medicamentoFalta.value
+    if (observacaoLivre.value)
+      payloadDetalhes.suspensao.observacoes = observacaoLivre.value
   } else if (isIntercorrencia.value) {
-    payloadDetalhes.tipo = 'intercorrencia'
-    payloadDetalhes.subtipo = tipoIntercorrencia.value
-    payloadDetalhes.medicamento = medicamentoIntercorrencia.value
-
-    if (tipoIntercorrencia.value === 'hipersensibilidade') {
-      payloadDetalhes.vigihosp = vigihospFeito.value
-    }
-  }
-
-  if (observacaoLivre.value) {
-    payloadDetalhes.texto_adicional = observacaoLivre.value
+    payloadDetalhes.intercorrencia = {}
+    payloadDetalhes.intercorrencia.tipo_intercorrencia = tipoIntercorrencia.value
+    payloadDetalhes.intercorrencia.medicamento_intercorrencia = medicamentoIntercorrencia.value
+    if (tipoIntercorrencia.value === 'hipersensibilidade')
+      payloadDetalhes.intercorrencia.vigihosp = vigihospFeito.value
+    if (observacaoLivre.value)
+      payloadDetalhes.intercorrencia.observacoes = observacaoLivre.value
   }
 
   emit('confirm', payloadDetalhes)
