@@ -116,13 +116,6 @@ const viewRows = computed<FarmaciaTableRow[]>(() => {
   })
 })
 
-const allExpanded = computed(() => {
-  const ids = viewRows.value.map(r => r.id)
-  if (ids.length === 0) return false
-  const expanded = new Set(expandedIds.value)
-  return ids.every(id => expanded.has(id))
-})
-
 const handleDiaAnterior = () => {
   dataSelecionada.value = somarDias(dataSelecionada.value, -1)
 }
@@ -133,15 +126,6 @@ const handleProximoDia = () => {
 
 const handleResetFiltros = () => {
   filtros.value = {ordenacao: 'horario', turno: 'todos', status: []}
-}
-
-const handleToggleExpandAll = () => {
-  const ids = viewRows.value.map(r => r.id)
-  if (ids.length === 0) {
-    expandedIds.value = []
-    return
-  }
-  expandedIds.value = allExpanded.value ? [] : ids
 }
 
 const handleAlterarStatus = (agendamentoId: string, novoStatus: StatusFarmacia) => {
@@ -233,9 +217,7 @@ watch(agendamentosFiltrados, (lista) => {
       <div class="px-4 pt-4">
         <FarmaciaControls
             v-model="filtros"
-            :all-expanded="allExpanded"
             @reset="handleResetFiltros"
-            @toggle-expand-all="handleToggleExpandAll"
         />
       </div>
 
