@@ -16,6 +16,7 @@ class Agendamento(Base):
     horario_inicio = Column(String, nullable=False)
     horario_fim = Column(String, nullable=False)
     encaixe = Column(Boolean, default=False)
+    checkin = Column(Boolean, default=False)
     status = Column(String, default='agendado')
     observacoes = Column(Text, nullable=True)
     tags = Column(JSON, nullable=True)

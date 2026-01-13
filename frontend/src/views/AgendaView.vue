@@ -13,9 +13,20 @@ import AgendaControls, {type FiltrosAgenda} from '@/components/agenda/AgendaCont
 import {getDuracaoAgendamento, getGrupoInfusao} from '@/utils/agendaUtils'
 import {StatusPaciente} from "@/types";
 import {getDataLocal} from '@/lib/utils.ts';
+import {toast} from "vue-sonner";
 
 const router = useRouter()
 const appStore = useAppStore()
+
+const statusPermitidosSemCheckin = [
+  'agendado',
+  'aguardando-consulta',
+  'aguardando-exame',
+  'aguardando-medicamento',
+  'internado',
+  'suspenso',
+  'remarcado'
+]
 
 const dataSelecionada = ref(getDataLocal())
 
@@ -167,6 +178,17 @@ const salvarTags = async (id: string, tags: string[]) => {
   tagsModalOpen.value = false
 }
 
+const handleAlterarCheckin = async (agendamento: any, novoCheckin: boolean) => {
+  if (!novoCheckin && !statusPermitidosSemCheckin.includes(agendamento.status)) {
+    toast.error("Ação Bloqueada", {
+      description: `Não é possível remover o check-in pois o status "${agendamento.status}" exige presença do paciente.`
+    })
+    return
+  }
+
+  await appStore.atualizarCheckin(agendamento.id, novoCheckin)
+}
+
 const handleAlterarStatus = (agendamento: any, novoStatus: string) => {
   if (['suspenso', 'intercorrencia'].includes(novoStatus)) {
     statusPendingData.value = {
@@ -254,6 +276,7 @@ const handleRemarcado = () => {
             class="border-0 rounded-none shadow-none"
             @abrir-tags="handleAbrirTags"
             @abrir-remarcar="handleAbrirRemarcar"
+            @alterar-checkin="handleAlterarCheckin"
             @alterar-status="handleAlterarStatus"
         />
       </CardContent>

@@ -47,7 +47,7 @@ async def add_agendamentos(data_fixa: date = None, quantidade: int = None):
             data_ag = data_fixa if data_fixa else (date.today() + timedelta(days=random.randint(1, 15)))
             inicio, fim = gerar_horario_random()
             tags = random.sample(TAGS_EXTRA, k=random.randint(0, 2))
-
+            checkin_status = (data_ag == date.today() and random.choice([True, False]))
             ciclo = random.randint(1, 12)
             ag = Agendamento(
                 id=str(uuid.uuid4()),
@@ -57,6 +57,7 @@ async def add_agendamentos(data_fixa: date = None, quantidade: int = None):
                 turno="manha" if int(inicio[:2]) < 12 else "tarde",
                 horario_inicio=inicio,
                 horario_fim=fim,
+                checkin=checkin_status,
                 status="agendado",
                 encaixe=random.choice([True, False]),
                 tags=tags,

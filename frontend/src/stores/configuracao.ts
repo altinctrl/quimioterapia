@@ -12,12 +12,6 @@ const defaultStatusConfig: ConfigStatus[] = [
     tipo: 'paciente'
   },
   {
-    id: 'em-triagem',
-    label: 'Em Triagem',
-    cor: 'bg-blue-500 text-white hover:bg-blue-600',
-    tipo: 'paciente'
-  },
-  {
     id: 'aguardando-consulta',
     label: 'Aguardando Consulta',
     cor: 'bg-indigo-500 text-white hover:bg-indigo-600',
@@ -36,24 +30,6 @@ const defaultStatusConfig: ConfigStatus[] = [
     tipo: 'paciente'
   },
   {
-    id: 'em-infusao',
-    label: 'Em Infusão',
-    cor: 'bg-green-600 text-white hover:bg-green-700',
-    tipo: 'paciente'
-  },
-  {
-    id: 'pos-qt',
-    label: 'Pós-QT',
-    cor: 'bg-emerald-600 text-white hover:bg-emerald-700',
-    tipo: 'paciente'
-  },
-  {
-    id: 'concluido',
-    label: 'Concluído',
-    cor: 'bg-teal-600 text-white hover:bg-teal-700',
-    tipo: 'paciente'
-  },
-  {
     id: 'internado',
     label: 'Internado',
     cor: 'bg-orange-500 text-white hover:bg-orange-600',
@@ -66,9 +42,21 @@ const defaultStatusConfig: ConfigStatus[] = [
     tipo: 'paciente'
   },
   {
-    id: 'ausente',
-    label: 'Ausente',
-    cor: 'bg-rose-600 text-white hover:bg-rose-700',
+    id: 'remarcado',
+    label: 'Remarcado',
+    cor: 'bg-gray-200 text-gray-500 border-gray-300',
+    tipo: 'paciente'
+  },
+  {
+    id: 'em-triagem',
+    label: 'Em Triagem',
+    cor: 'bg-blue-500 text-white hover:bg-blue-600',
+    tipo: 'paciente'
+  },
+  {
+    id: 'em-infusao',
+    label: 'Em Infusão',
+    cor: 'bg-green-600 text-white hover:bg-green-700',
     tipo: 'paciente'
   },
   {
@@ -78,15 +66,9 @@ const defaultStatusConfig: ConfigStatus[] = [
     tipo: 'paciente'
   },
   {
-    id: 'obito',
-    label: 'Óbito',
-    cor: 'bg-gray-900 text-white hover:bg-black',
-    tipo: 'paciente'
-  },
-  {
-    id: 'remarcado',
-    label: 'Remarcado',
-    cor: 'bg-gray-200 text-gray-500 border-gray-300',
+    id: 'concluido',
+    label: 'Concluído',
+    cor: 'bg-teal-600 text-white hover:bg-teal-700',
     tipo: 'paciente'
   },
   {

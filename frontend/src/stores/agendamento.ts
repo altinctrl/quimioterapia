@@ -35,6 +35,21 @@ export const useAgendamentoStore = defineStore('agendamento', () => {
     }
   }
 
+  async function atualizarCheckin(id: string, checkin: boolean) {
+    try {
+      const res = await api.put(`/api/agendamentos/${id}`, {checkin})
+
+      const idx = agendamentos.value.findIndex(a => a.id === id)
+      if (idx !== -1) {
+        const prescricaoAntiga = agendamentos.value[idx].prescricao
+        agendamentos.value[idx] = {...res.data, prescricao: prescricaoAntiga}
+      }
+    } catch (e: any) {
+      const errorMsg = e.response?.data?.detail || "Erro ao atualizar check-in"
+      toast.error(errorMsg)
+    }
+  }
+
   async function atualizarStatusAgendamento(
     id: string,
     status: StatusPaciente,
@@ -157,6 +172,7 @@ export const useAgendamentoStore = defineStore('agendamento', () => {
     getAgendamentosDoDia,
     fetchAgendamentos,
     adicionarAgendamento,
+    atualizarCheckin,
     atualizarStatusAgendamento,
     atualizarStatusFarmacia,
     atualizarHorarioPrevisao,

@@ -16,6 +16,7 @@ export interface FarmaciaTableRow {
   pacienteRegistro: string
   observacoesClinicas: string | undefined
   protocoloNome: string
+  checkin: boolean
   statusTexto: string
   statusBloqueado: boolean
   statusFarmacia: StatusFarmacia
@@ -93,6 +94,7 @@ const onStatusChange = (id: string, event: Event) => {
           <TableHead class="w-[100px]">Horário</TableHead>
           <TableHead class="min-w-[150px]">Paciente</TableHead>
           <TableHead class="min-w-[100px]">Protocolo</TableHead>
+          <TableHead class="w-[80px] text-center">Check-in</TableHead>
           <TableHead class="w-[140px]">Status Paciente</TableHead>
           <TableHead class="w-[220px]">Status Farmácia</TableHead>
           <TableHead class="w-[140px]">Previsão</TableHead>
@@ -164,6 +166,16 @@ const onStatusChange = (id: string, event: Event) => {
               </span>
               <div v-if="row.checklistLabel" class="text-xs font-medium text-gray-500">
                 Prontas: {{ row.checklistLabel }}
+              </div>
+            </TableCell>
+
+            <TableCell class="p-0 align-middle">
+              <div class="flex items-center justify-center w-full">
+                <Checkbox
+                    :checked="row.checkin"
+                    class="cursor-not-allowed opacity-70"
+                    disabled
+                />
               </div>
             </TableCell>
 
