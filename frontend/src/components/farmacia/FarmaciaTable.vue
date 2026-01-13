@@ -4,7 +4,7 @@ import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '@/c
 import {Badge} from '@/components/ui/badge'
 import {Button} from '@/components/ui/button'
 import {Checkbox} from '@/components/ui/checkbox'
-import {AlertTriangle, ChevronDown, ChevronRight, Clock} from 'lucide-vue-next'
+import {AlertTriangle, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Clock} from 'lucide-vue-next'
 import type {StatusFarmacia} from '@/types'
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip";
 
@@ -48,6 +48,18 @@ const emit = defineEmits<{
 
 const expandedSet = computed(() => new Set(props.expandedIds))
 
+const areAllExpanded = computed(() => {
+  return props.rows.length === 0 ? false : props.rows.every(row => expandedSet.value.has(row.id))
+})
+
+const toggleAll = () => {
+  if (areAllExpanded.value) {
+    emit('update:expandedIds', [])
+  } else {
+    emit('update:expandedIds', props.rows.map(r => r.id))
+  }
+}
+
 const toggleExpand = (id: string) => {
   const next = new Set(props.expandedIds)
   if (next.has(id)) next.delete(id)
@@ -66,7 +78,18 @@ const onStatusChange = (id: string, event: Event) => {
     <Table>
       <TableHeader>
         <TableRow class="hover:bg-transparent">
-          <TableHead class="w-[50px]"></TableHead>
+          <TableHead class="w-[50px] p-2 text-center">
+            <Button
+                :title="areAllExpanded ? 'Recolher todos' : 'Expandir todos'"
+                class="h-8 w-8 text-gray-400 hover:text-gray-900"
+                size="icon"
+                variant="ghost"
+                @click="toggleAll"
+            >
+              <ChevronsDownUp v-if="areAllExpanded" class="h-4 w-4"/>
+              <ChevronsUpDown v-else class="h-4 w-4"/>
+            </Button>
+          </TableHead>
           <TableHead class="w-[100px]">Horário</TableHead>
           <TableHead class="min-w-[150px]">Paciente</TableHead>
           <TableHead class="min-w-[100px]">Protocolo</TableHead>
