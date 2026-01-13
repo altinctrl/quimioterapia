@@ -104,6 +104,7 @@ const viewRows = computed<FarmaciaTableRow[]>(() => {
       pacienteRegistro: ag.paciente?.registro || '',
       observacoesClinicas: ag.paciente?.observacoesClinicas,
       protocoloNome: ag.prescricao?.protocolo || protocolo?.nome || '-',
+      checkin: ag.checkin,
       statusTexto: ag.status ? ag.status.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : '',
       statusBloqueado: bloqueado,
       statusFarmacia: statusFarmacia,

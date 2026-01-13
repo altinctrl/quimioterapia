@@ -132,6 +132,7 @@ class AgendamentoBase(BaseModel):
     turno: str
     horario_inicio: str
     horario_fim: str
+    checkin: bool = False
     status: str
     encaixe: bool = False
     observacoes: Optional[str] = None
@@ -158,6 +159,7 @@ class AgendamentoUpdate(BaseModel):
     turno: Optional[str] = None
     horario_inicio: Optional[str] = None
     horario_fim: Optional[str] = None
+    checkin: Optional[bool] = None
     status: Optional[str] = None
     encaixe: Optional[bool] = None
     observacoes: Optional[str] = None

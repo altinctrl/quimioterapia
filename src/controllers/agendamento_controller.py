@@ -77,6 +77,31 @@ async def atualizar_agendamento(provider: AgendamentoProviderInterface, agendame
             )
         del update_data['tipo']
 
+    novo_status = update_data.get('status', agendamento.status)
+    novo_checkin = update_data.get('checkin', agendamento.checkin)
+
+    status_permitidos_sem_checkin = [
+        'agendado',
+        'aguardando-consulta',
+        'aguardando-exame',
+        'aguardando-medicamento',
+        'internado',
+        'suspenso',
+        'remarcado'
+    ]
+
+    if not novo_checkin and novo_status not in status_permitidos_sem_checkin:
+        if 'checkin' in update_data and update_data['checkin'] is False:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Não é possível remover o Check-in enquanto o paciente estiver com status '{novo_status}'."
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"O status '{novo_status}' exige que o paciente tenha realizado o Check-in."
+            )
+
     if 'detalhes' in update_data:
         novos_detalhes = update_data['detalhes']
         detalhes_atuais = dict(agendamento.detalhes) if agendamento.detalhes else {}

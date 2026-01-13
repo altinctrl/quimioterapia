@@ -263,16 +263,19 @@ async def setup_app(aghu_pacientes):
 
                 if data_ciclo < date.today():
                     status_ag = "concluido"
+                    checkin_status = True
                     status_presc = "concluida"
                     status_farm = "enviada"
                 elif data_ciclo == date.today():
                     status_ag = random.choice(["agendado", "em-infusao"])
+                    checkin_status = True if status_ag == "em-infusao" else random.choice([True, False])
                     status_presc = "ativa"
                     status_farm = "pendente" if status_ag == "agendado" else "enviada"
                 else:
                     status_ag = "agendado"
                     status_presc = "pendente"
                     status_farm = "pendente"
+                    checkin_status = False
 
                 presc = Prescricao(
                     id=str(uuid.uuid4()),
@@ -309,6 +312,7 @@ async def setup_app(aghu_pacientes):
                     tipo="infusao",
                     data=data_ciclo,
                     turno=turno, horario_inicio=h_inicio, horario_fim=h_fim,
+                    checkin=checkin_status,
                     status=status_ag,
                     tags=list(set(tags_agendamento)),
                     observacoes="Agendamento automático via seed.",

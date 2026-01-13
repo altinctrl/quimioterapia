@@ -17,18 +17,15 @@ export type Turno = 'manha' | 'tarde' | 'noite';
 
 export type StatusPaciente =
   | 'agendado'
-  | 'em-triagem'
   | 'aguardando-consulta'
   | 'aguardando-exame'
   | 'aguardando-medicamento'
-  | 'em-infusao'
-  | 'pos-qt'
-  | 'intercorrencia'
   | 'internado'
   | 'suspenso'
-  | 'ausente'
   | 'remarcado'
-  | 'obito'
+  | 'em-triagem'
+  | 'em-infusao'
+  | 'intercorrencia'
   | 'concluido';
 
 export type StatusFarmacia = | 'pendente' | 'em-preparacao' | 'pronta' | 'enviada';
@@ -153,6 +150,7 @@ export interface Agendamento {
   turno: Turno;
   horarioInicio: string;
   horarioFim: string;
+  checkin: boolean;
   status: StatusPaciente;
   encaixe: boolean;
   observacoes?: string;

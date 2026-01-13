@@ -9,6 +9,7 @@ import {AlertTriangle, ChevronDown, Clock, Tag} from 'lucide-vue-next'
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/components/ui/tooltip'
 import {type Agendamento, isInfusao} from '@/types'
 import {formatarDuracao, getBadgeGrupo, getCorGrupo, getDuracaoAgendamento, getGrupoInfusao} from '@/utils/agendaUtils'
+import {Checkbox} from "@/components/ui/checkbox";
 
 defineProps<{
   agendamentos: Agendamento[]
@@ -17,8 +18,19 @@ defineProps<{
 const emit = defineEmits<{
   (e: 'abrir-tags', agendamento: any): void
   (e: 'abrir-remarcar', agendamento: Agendamento): void
+  (e: 'alterar-checkin', agendamento: Agendamento, checkin: boolean): void
   (e: 'alterar-status', agendamento: Agendamento, novoStatus: string): void
 }>()
+
+const statusPermitidosSemCheckin = [
+  'agendado',
+  'aguardando-consulta',
+  'aguardando-exame',
+  'aguardando-medicamento',
+  'internado',
+  'suspenso',
+  'remarcado'
+]
 
 const router = useRouter()
 const appStore = useAppStore()
@@ -46,6 +58,13 @@ const handleAlterarStatusPaciente = (agendamento: Agendamento, event: Event) => 
 const opcoesStatusPaciente = computed(() => {
   return appStore.statusConfig.filter(s => s.tipo === 'paciente')
 })
+
+const getOpcoesStatus = (ag: Agendamento) => {
+  if (ag.checkin) {
+    return opcoesStatusPaciente.value
+  }
+  return opcoesStatusPaciente.value.filter(op => statusPermitidosSemCheckin.includes(op.id))
+}
 
 const getStatusDotColor = (statusId: string) => {
   const config = appStore.getStatusConfig(statusId)
@@ -76,6 +95,7 @@ const getObservacoesClinicas = (ag: Agendamento) => {
           <TableHead class="pl-5 w-[100px]">Horário</TableHead>
           <TableHead class="min-w-[150px]">Paciente</TableHead>
           <TableHead class="min-w-[100px]">Protocolo</TableHead>
+          <TableHead class="w-[80px] text-center">Check-in</TableHead>
           <TableHead class="min-w-[240px]">Status Paciente</TableHead>
           <TableHead class="min-w-[140px]">Status Farmácia</TableHead>
           <TableHead class="w-fit">Tags</TableHead>
@@ -161,6 +181,16 @@ const getObservacoesClinicas = (ag: Agendamento) => {
             </div>
           </TableCell>
 
+          <TableCell class="text-center p-0 align-midle">
+            <div class="flex items-center justify-center">
+              <Checkbox
+                  :checked="ag.checkin"
+                  :disabled="ag.status === 'remarcado'"
+                  @update:checked="(val) => emit('alterar-checkin', ag, val as boolean)"
+              />
+            </div>
+          </TableCell>
+
           <TableCell>
             <div class="flex items-center gap-2">
               <div :class="['h-2.5 w-2.5 rounded-full flex-shrink-0', getStatusDotColor(ag.status)]"/>
@@ -176,7 +206,7 @@ const getObservacoesClinicas = (ag: Agendamento) => {
                     @change="(e) => handleAlterarStatusPaciente(ag, e)"
                 >
                   <option
-                      v-for="opcao in opcoesStatusPaciente"
+                      v-for="opcao in getOpcoesStatus(ag)"
                       :key="opcao.id"
                       :value="opcao.id"
                   >
@@ -220,38 +250,43 @@ const getObservacoesClinicas = (ag: Agendamento) => {
           </TableCell>
 
           <TableCell class="pr-4">
-            <div
-                :class="{'opacity-50 pointer-events-none grayscale': ag.status === 'remarcado'}"
-                class="flex items-center gap-1"
-            >
-              <Button
-                  :disabled="ag.status === 'remarcado'"
-                  class="h-7 w-7 shrink-0 text-muted-foreground"
-                  size="icon"
-                  variant="ghost"
-                  @click="$emit('abrir-tags', ag)"
-              >
-                <Tag class="h-3 w-3"/>
-              </Button>
-              <div class="flex flex-col gap-0.5 w-max">
-                <Button
-                    v-for="(tag, i) in (ag.tags || []).slice(0, 2)"
-                    :key="i"
-                    class="text-[11px] px-2 h-6 whitespace-nowrap w-fit hover:shadow-sm"
-                    variant="outline"
-                    @click="$emit('abrir-tags', ag)"
-                >
-                  {{ tag }}
-                </Button>
-              </div>
-              <Button
-                  v-if="(ag.tags || []).length > 2"
-                  class="text-[12px] text-muted-foreground font-bold p-1 px-2"
-                  variant="ghost"
-                  @click="$emit('abrir-tags', ag)"
-              >
-                +{{ ag.tags.length - 2 }}
-              </Button>
+            <div class="flex items-center justify-center w-full">
+              <TooltipProvider>
+                <Tooltip :delay-duration="300">
+                  <TooltipTrigger as-child>
+                    <Button
+                        class="h-7 w-7 rounded-full p-0 relative"
+                        size="icon"
+                        variant="ghost"
+                        @click="$emit('abrir-tags', ag)"
+                    >
+                      <Tag
+                          :class="(ag.tags && ag.tags.length > 0) ? 'text-blue-600' : 'text-gray-300'"
+                          class="transition-colors"
+                      />
+
+                      <span
+                          v-if="ag.tags && ag.tags.length > 0"
+                          class="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-blue-600 text-[9px] font-bold text-white ring-2 ring-white"
+                      >
+                          {{ ag.tags.length }}
+                        </span>
+                    </Button>
+                  </TooltipTrigger>
+
+                  <TooltipContent v-if="ag.tags && ag.tags.length > 0">
+                    <div class="flex flex-col gap-1">
+                      <p class="font-semibold text-xs border-b pb-1 mb-1">Tags</p>
+                      <ul class="list-disc pl-3">
+                        <li v-for="t in ag.tags" :key="t" class="text-xs">{{ t }}</li>
+                      </ul>
+                    </div>
+                  </TooltipContent>
+                  <TooltipContent v-else>
+                    <p class="text-xs">Nenhuma tag</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </TableCell>
         </TableRow>
