@@ -100,9 +100,6 @@ const onStatusChange = (id: string, event: Event) => {
 
             <TableCell>
               <div class="text-md">{{ row.horario }}</div>
-              <div v-if="row.checklistLabel" class="text-xs font-medium text-gray-500">
-                Checklist: {{ row.checklistLabel }}
-              </div>
             </TableCell>
 
             <TableCell>
@@ -142,6 +139,9 @@ const onStatusChange = (id: string, event: Event) => {
               >
                 {{ row.protocoloNome }}
               </span>
+              <div v-if="row.checklistLabel" class="text-xs font-medium text-gray-500">
+                Prontas: {{ row.checklistLabel }}
+              </div>
             </TableCell>
 
             <TableCell>

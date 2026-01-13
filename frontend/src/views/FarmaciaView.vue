@@ -28,6 +28,7 @@ const filtros = ref<FiltrosFarmacia>({
   status: []
 })
 
+const mostrarMetricas = ref(true)
 const expandedIds = ref<string[]>([])
 const checklist = ref<Record<string, Record<string, boolean>>>({})
 
@@ -217,11 +218,14 @@ watch(agendamentosFiltrados, (lista) => {
 
     <FarmaciaHeader
         v-model="dataSelecionada"
+        :mostrar-metricas="mostrarMetricas"
         @dia-anterior="handleDiaAnterior"
         @proximo-dia="handleProximoDia"
+        @toggle-metrics="mostrarMetricas = !mostrarMetricas"
     />
 
     <FarmaciaMetrics
+        v-if="mostrarMetricas"
         :metricas="metricas"
     />
 
