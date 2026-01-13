@@ -173,7 +173,7 @@ const handleToggleCheckItem = async (agId: string, itemKey: string, statusAtual:
 }
 
 const metricas = computed(() => {
-  const infusoes = agendamentosFiltrados.value.filter(isInfusao)
+  const infusoes = appStore.agendamentos.filter(isInfusao)
   const total = infusoes.length
   const pendente = infusoes.filter(a => a.detalhes.infusao.status_farmacia === 'pendente').length
   const emPreparacao = infusoes.filter(a => a.detalhes.infusao.status_farmacia === 'em-preparacao').length
