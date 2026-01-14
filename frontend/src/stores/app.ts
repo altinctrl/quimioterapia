@@ -29,6 +29,7 @@ export const useAppStore = defineStore('app', () => {
   const {
     getPacienteById,
     fetchPacientes,
+    carregarPaciente,
     buscarPacientesDropdown,
     adicionarPaciente,
     atualizarPaciente
@@ -94,6 +95,7 @@ export const useAppStore = defineStore('app', () => {
     fetchConfiguracoes,
     salvarConfiguracoes,
     fetchPacientes,
+    carregarPaciente,
     buscarPacientesDropdown,
     fetchAgendamentos,
     fetchPrescricoes,
