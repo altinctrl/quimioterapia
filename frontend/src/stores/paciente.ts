@@ -38,6 +38,24 @@ export const usePacienteStore = defineStore('paciente', () => {
     }
   }
 
+  async function carregarPaciente(id: string) {
+    let p = getPacienteById(id)
+    if (p) return p
+
+    try {
+      const pacienteEncontrado = (await api.get(`/api/pacientes/${id}`)).data
+
+      if (pacienteEncontrado) {
+        const existe = pacientes.value.some(x => x.id == pacienteEncontrado.id)
+        if (!existe) pacientes.value.push(pacienteEncontrado)
+        return pacienteEncontrado
+      }
+    } catch (e) {
+      console.error("Erro ao carregar paciente.", e)
+      return null
+    }
+  }
+
   async function buscarPacientesDropdown(termo: string) {
     if (!termo || termo.length < 2) {
       resultadosBusca.value = []
@@ -78,6 +96,7 @@ export const usePacienteStore = defineStore('paciente', () => {
     resultadosBusca,
     getPacienteById,
     fetchPacientes,
+    carregarPaciente,
     buscarPacientesDropdown,
     adicionarPaciente,
     atualizarPaciente

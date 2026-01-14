@@ -79,7 +79,7 @@ const ultimoAgendamento = computed(() => {
 const carregarPacienteDaUrl = async () => {
   if (route.query.pacienteId) {
     const pid = route.query.pacienteId as string
-    const p = appStore.getPacienteById(pid)
+    const p = await appStore.carregarPaciente(pid)
     if (p) {
       pacienteSelecionado.value = p
       dadosEditados.value = JSON.parse(JSON.stringify(p))
@@ -107,8 +107,12 @@ watch([page, termoBusca], () => {
   carregarDadosPagina()
 }, {immediate: true})
 
-watch(() => route.query.pacienteId, () => {
-  carregarPacienteDaUrl()
+watch(() => route.query.pacienteId, (newId) => {
+  if (newId) {
+    carregarPacienteDaUrl()
+  } else {
+    pacienteSelecionado.value = null
+  }
 })
 
 const handleSelecionarPaciente = (paciente: Paciente) => {
