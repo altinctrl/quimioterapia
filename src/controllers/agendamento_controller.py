@@ -16,9 +16,10 @@ async def listar_agendamentos(
         agendamento_provider: AgendamentoProviderInterface,
         prescricao_provider: PrescricaoProviderInterface,
         data_inicio: Optional[date],
-        data_fim: Optional[date]
+        data_fim: Optional[date],
+        paciente_id: Optional[str] = None
 ) -> List[AgendamentoResponse]:
-    agendamentos = await agendamento_provider.listar_agendamentos(data_inicio, data_fim)
+    agendamentos = await agendamento_provider.listar_agendamentos(data_inicio, data_fim, paciente_id)
     if not agendamentos: return []
 
     paciente_ids = list(set([a.paciente_id for a in agendamentos if a.paciente_id]))

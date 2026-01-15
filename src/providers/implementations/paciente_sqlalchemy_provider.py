@@ -1,10 +1,11 @@
 from typing import List, Optional
 
-from sqlalchemy import select, or_
+from sqlalchemy import select, or_, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from src.models.paciente import Paciente
+from src.models.prescricao import Prescricao
 from src.providers.interfaces.paciente_provider_interface import PacienteProviderInterface
 
 
@@ -13,8 +14,18 @@ class PacienteSQLAlchemyProvider(PacienteProviderInterface):
         self.session = session
 
     async def listar_pacientes(self, termo: Optional[str] = None, ordenacao: str = None) -> List[Paciente]:
-        query = select(Paciente).options(selectinload(Paciente.contatos_emergencia))
+        subquery_protocolo = (
+            select(Prescricao.protocolo_nome_snapshot)
+            .where(Prescricao.paciente_id == Paciente.id)
+            .order_by(desc(Prescricao.data_prescricao), desc(Prescricao.created_at))
+            .limit(1)
+            .correlate(Paciente)
+            .scalar_subquery()
+        )
 
+        query = select(Paciente, subquery_protocolo.label("ultimo_protocolo_nome")).options(
+            selectinload(Paciente.contatos_emergencia)
+        )
         if termo:
             t = f"%{termo}%"
             query = query.where(or_(Paciente.nome.ilike(t), Paciente.cpf.ilike(t), Paciente.registro.ilike(t)))
@@ -29,7 +40,15 @@ class PacienteSQLAlchemyProvider(PacienteProviderInterface):
             query = query.order_by(Paciente.created_at.desc())
 
         result = await self.session.execute(query)
-        return result.scalars().all()
+
+        pacientes = []
+        for row in result.all():
+            paciente = row[0]
+            nome_protocolo = row[1]
+            paciente.protocolo_ultima_prescricao = nome_protocolo
+            pacientes.append(paciente)
+
+        return pacientes
 
     async def obter_paciente_por_codigo(self, codigo: str) -> Optional[Paciente]:
         query = select(Paciente).where(Paciente.id == codigo).options(selectinload(Paciente.contatos_emergencia))

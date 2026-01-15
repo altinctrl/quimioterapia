@@ -11,14 +11,21 @@ export const useAgendamentoStore = defineStore('agendamento', () => {
     return agendamentos.value.filter(a => a.data === data)
   }
 
-  async function fetchAgendamentos(inicio?: string, fim?: string) {
+  async function fetchAgendamentos(inicio?: string, fim?: string, pacienteId?: string) {
     try {
       const params: any = {}
       if (inicio) params.data_inicio = inicio
       if (fim) params.data_fim = fim
+      if (pacienteId) params.paciente_id = pacienteId
 
       const res = await api.get('/api/agendamentos', {params})
-      agendamentos.value = res.data
+
+      if (pacienteId) {
+        return res.data;
+      } else {
+        agendamentos.value = res.data;
+      }
+
     } catch (e) {
       console.error(e)
     }

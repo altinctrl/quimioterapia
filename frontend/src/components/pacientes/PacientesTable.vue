@@ -1,7 +1,6 @@
 <script lang="ts" setup>
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '@/components/ui/table'
 import {Badge} from '@/components/ui/badge'
-import {useAppStore} from '@/stores/app'
 import type {Paciente} from '@/types'
 
 const props = defineProps<{
@@ -13,8 +12,6 @@ const emit = defineEmits<{
   (e: 'select', paciente: Paciente): void
 }>()
 
-const appStore = useAppStore()
-
 const calcularIdade = (dataNasc: string | Date | undefined) => {
   if (!dataNasc) return 0
   const hoje = new Date()
@@ -25,16 +22,6 @@ const calcularIdade = (dataNasc: string | Date | undefined) => {
     idade--
   }
   return idade
-}
-
-const getProtocoloLista = (pid: string) => {
-  const lista = appStore.getPrescricoesPorPaciente(pid)
-  if (!lista.length) return '-'
-  const ultima = lista.sort((a, b) => new Date(b.dataPrescricao).getTime() - new Date(a.dataPrescricao).getTime())[0]
-  if (ultima.protocoloId) {
-    return appStore.protocolos.find(p => p.id === ultima.protocoloId)?.nome || '-'
-  }
-  return ultima.protocolo || '-'
 }
 </script>
 
@@ -72,7 +59,7 @@ const getProtocoloLista = (pid: string) => {
           <TableCell>{{ paciente.telefone }}</TableCell>
           <TableCell>
             <Badge class="font-normal" variant="outline">
-              {{ getProtocoloLista(paciente.id) }}
+              {{ paciente.protocoloUltimaPrescricao || '-'}}
             </Badge>
           </TableCell>
         </TableRow>

@@ -67,6 +67,15 @@ const ultimoAgendamento = computed(() => {
   return agendamentos[0] || null
 })
 
+let timeoutBusca: number
+const handleBuscaInput = () => {
+  clearTimeout(timeoutBusca)
+  timeoutBusca = setTimeout(() => {
+    page.value = 1
+    carregarDadosPagina()
+  }, 500)
+}
+
 const resetFiltros = () => {
   filtros.value = {
     ordenacao: 'recentes',
@@ -82,6 +91,7 @@ watch(() => filtros.value.perPage, () => {
   page.value = 1
   carregarDadosPagina()
 })
+watch(page, () => carregarDadosPagina())
 
 const carregarPacienteDaUrl = async () => {
   if (route.query.pacienteId) {
@@ -92,7 +102,7 @@ const carregarPacienteDaUrl = async () => {
       dadosEditados.value = JSON.parse(JSON.stringify(p))
       await Promise.all([
         appStore.fetchPrescricoes(pid),
-        appStore.fetchAgendamentos()
+        appStore.fetchAgendamentos(undefined, undefined, pid)
       ])
     }
   } else {
@@ -118,10 +128,6 @@ onMounted(() => {
   carregarPacienteDaUrl()
   carregarDadosPagina()
 })
-
-watch([page, termoBusca], () => {
-  carregarDadosPagina()
-}, {immediate: true})
 
 watch(() => route.query.pacienteId, (newId) => {
   if (newId) {
@@ -215,6 +221,7 @@ const prescricoesFiltradas = computed(() =>
               <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400"/>
               <Input
                   v-model="termoBusca"
+                  @input="handleBuscaInput"
                   class="pl-10"
                   placeholder="Buscar por nome, CPF ou prontuário..."
               />
