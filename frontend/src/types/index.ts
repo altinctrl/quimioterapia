@@ -51,6 +51,7 @@ export interface Paciente {
   peso?: number;
   altura?: number;
   contatosEmergencia?: ContatoEmergencia[];
+  protocoloUltimaPrescricao?: string;
   observacoesClinicas?: string;
   protocoloId?: string;
 }

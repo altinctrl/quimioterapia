@@ -7,7 +7,7 @@ from src.models.agendamento import Agendamento
 
 class AgendamentoProviderInterface(ABC):
     @abstractmethod
-    async def listar_agendamentos(self, data_inicio: Optional[date] = None, data_fim: Optional[date] = None) -> List[
+    async def listar_agendamentos(self, data_inicio: Optional[date] = None, data_fim: Optional[date] = None, paciente_id: Optional[str] = None) -> List[
         Agendamento]:
         pass
 

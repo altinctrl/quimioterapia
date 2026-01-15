@@ -17,6 +17,7 @@ router = APIRouter(prefix="/api/agendamentos", tags=["Agendamentos"], dependenci
 async def listar_agendamentos(
         data_inicio: Optional[date] = Query(None),
         data_fim: Optional[date] = Query(None),
+        paciente_id: Optional[str] = Query(None),
         agendamento_provider: AgendamentoProviderInterface = Depends(get_agendamento_provider),
         prescricao_provider: PrescricaoProviderInterface = Depends(get_prescricao_provider)
 ):
@@ -24,7 +25,8 @@ async def listar_agendamentos(
         agendamento_provider,
         prescricao_provider,
         data_inicio,
-        data_fim
+        data_fim,
+        paciente_id
     )
 
 

@@ -53,6 +53,7 @@ class PacienteUpdate(BaseModel):
 class PacienteResponse(PacienteBase):
     id: str
     contatos_emergencia: List[ContatoEmergenciaResponse] = []
+    protocolo_ultima_prescricao: Optional[str] = None
 
 
 class PacientePagination(BaseModel):

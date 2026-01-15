@@ -13,13 +13,15 @@ class AgendamentoSQLAlchemyProvider(AgendamentoProviderInterface):
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def listar_agendamentos(self, data_inicio: Optional[date] = None, data_fim: Optional[date] = None) -> List[Agendamento]:
+    async def listar_agendamentos(self, data_inicio: Optional[date] = None, data_fim: Optional[date] = None, paciente_id: Optional[str] = None) -> List[Agendamento]:
         query = select(Agendamento).options(selectinload(Agendamento.paciente), selectinload(Agendamento.criado_por))
 
         if data_inicio:
             query = query.where(Agendamento.data >= data_inicio)
         if data_fim:
             query = query.where(Agendamento.data <= data_fim)
+        if paciente_id:
+            query = query.where(Agendamento.paciente_id == paciente_id)
 
         query = query.order_by(Agendamento.data, Agendamento.horario_inicio)
 
