@@ -5,7 +5,7 @@ import {useAppStore} from '@/stores/app'
 import {useAuthStore} from '@/stores/auth'
 import type {Paciente} from '@/types'
 
-import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card'
+import {Card, CardContent} from '@/components/ui/card'
 import {Button} from '@/components/ui/button'
 import {Input} from '@/components/ui/input'
 import {ArrowLeft, Edit, FileText, Save, Search, UserPlus, X} from 'lucide-vue-next'
@@ -18,15 +18,20 @@ import PacienteImportModal from '@/components/pacientes/PacienteImportModal.vue'
 import ProntuarioHeader from '@/components/pacientes/ProntuarioHeader.vue'
 import ProntuarioForm from '@/components/pacientes/ProntuarioForm.vue'
 import ProntuarioHistorico from '@/components/pacientes/ProntuarioHistorico.vue'
+import PacientesControls, {type FiltrosPacientes} from '@/components/pacientes/PacientesControls.vue'
 
 const router = useRouter()
 const route = useRoute()
 const appStore = useAppStore()
 const authStore = useAuthStore()
 
+const filtros = ref<FiltrosPacientes>({
+  ordenacao: 'recentes',
+  perPage: 20
+})
 const page = ref(1)
-const perPage = ref(10)
 const termoBusca = ref('')
+const loading = ref(false)
 const dialogNovoPaciente = ref(false)
 
 const pacienteSelecionado = ref<Paciente | null>(null)
@@ -39,21 +44,7 @@ const agendamentoSelecionado = ref<any>(null)
 const prescricaoSelecionada = ref<any>(null)
 
 const podeEditar = computed(() => authStore.user?.role !== 'farmacia')
-
-const pacientesFiltrados = computed(() => {
-  if (!termoBusca.value || termoBusca.value.length < 2) return appStore.pacientes
-  const termo = termoBusca.value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-  return appStore.pacientes.filter((paciente) => {
-    const nomeNormalizado = paciente.nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    const cpfLimpo = paciente.cpf?.replace(/[.\-]/g, '') || ''
-    const termoBuscaLimpo = termo.replace(/[.\-]/g, '')
-    return (
-        nomeNormalizado.includes(termo) ||
-        paciente.registro.toLowerCase().includes(termo) ||
-        cpfLimpo.includes(termoBuscaLimpo)
-    )
-  })
-})
+const totalPages = computed(() => Math.ceil(appStore.totalPacientes / filtros.value.perPage) || 1)
 
 const protocoloAtual = computed(() => {
   if (!pacienteSelecionado.value) return null
@@ -76,6 +67,22 @@ const ultimoAgendamento = computed(() => {
   return agendamentos[0] || null
 })
 
+const resetFiltros = () => {
+  filtros.value = {
+    ordenacao: 'recentes',
+    perPage: 20
+  }
+  termoBusca.value = ''
+  page.value = 1
+  carregarDadosPagina()
+}
+
+watch(() => filtros.value.ordenacao, () => carregarDadosPagina())
+watch(() => filtros.value.perPage, () => {
+  page.value = 1
+  carregarDadosPagina()
+})
+
 const carregarPacienteDaUrl = async () => {
   if (route.query.pacienteId) {
     const pid = route.query.pacienteId as string
@@ -94,13 +101,22 @@ const carregarPacienteDaUrl = async () => {
 }
 
 const carregarDadosPagina = async () => {
-  await appStore.fetchPacientes(page.value, perPage.value, termoBusca.value)
-  const promises = appStore.pacientes.map(p => appStore.fetchPrescricoes(p.id))
-  await Promise.all(promises)
+  loading.value = true
+  try {
+    await appStore.fetchPacientes(
+        page.value,
+        filtros.value.perPage,
+        termoBusca.value,
+        filtros.value.ordenacao
+    )
+  } finally {
+    loading.value = false
+  }
 }
 
 onMounted(() => {
   carregarPacienteDaUrl()
+  carregarDadosPagina()
 })
 
 watch([page, termoBusca], () => {
@@ -112,6 +128,12 @@ watch(() => route.query.pacienteId, (newId) => {
     carregarPacienteDaUrl()
   } else {
     pacienteSelecionado.value = null
+
+    if (page.value !== 1) {
+      page.value = 1
+    } else {
+      carregarDadosPagina()
+    }
   }
 })
 
@@ -214,17 +236,19 @@ const prescricoesFiltradas = computed(() =>
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>
-            {{ termoBusca ? `${pacientesFiltrados.length} paciente(s) encontrado(s)` : 'Todos os Pacientes' }}
-          </CardTitle>
-        </CardHeader>
+        <PacientesControls
+            v-model="filtros"
+            v-model:page="page"
+            :totalPacientes="appStore.totalPacientes"
+            :totalPages="totalPages"
+            class="px-6 pt-6 pb-2"
+            @reset="resetFiltros"
+        />
+
         <CardContent>
           <PacientesTable
-              v-model:page="page"
-              :pacientes="pacientesFiltrados"
-              :per-page="perPage"
-              :total="appStore.totalPacientes"
+              :loading="loading"
+              :pacientes="appStore.pacientes"
               @select="handleSelecionarPaciente"
           />
         </CardContent>

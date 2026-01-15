@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Text, Date, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, Text, Date, ForeignKey, DateTime, func
 from sqlalchemy.orm import relationship
 
 from src.resources.database import Base
@@ -8,6 +8,7 @@ class Paciente(Base):
     __tablename__ = "pacientes"
 
     id = Column(String, primary_key=True)
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
     nome = Column(String, nullable=False)
     cpf = Column(String, unique=True, index=True)
     registro = Column(String, unique=True, index=True)

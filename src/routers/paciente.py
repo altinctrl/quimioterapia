@@ -21,8 +21,9 @@ async def buscar_paciente_aghu(termo: str = Query(..., min_length=3),
 @router.get("", response_model=PacientePagination)
 async def listar_pacientes(termo: Optional[str] = Query(None), page: int = Query(1, ge=1),
                            size: int = Query(10, ge=1, le=100),
+                           ordenacao: str = Query('recentes'),
                            provider: PacienteProviderInterface = Depends(get_paciente_provider)):
-    return await paciente_controller.listar_pacientes(provider, termo, page, size)
+    return await paciente_controller.listar_pacientes(provider, termo, page, size, ordenacao)
 
 
 @router.get("/{paciente_id}", response_model=PacienteResponse)
