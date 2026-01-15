@@ -6,7 +6,7 @@ from src.models.paciente import Paciente
 
 class PacienteProviderInterface(ABC):
     @abstractmethod
-    async def listar_pacientes(self, termo: Optional[str] = None) -> List[Paciente]:
+    async def listar_pacientes(self, termo: Optional[str] = None, ordenacao: str = None) -> List[Paciente]:
         pass
 
     @abstractmethod

@@ -12,12 +12,21 @@ class PacienteSQLAlchemyProvider(PacienteProviderInterface):
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def listar_pacientes(self, termo: Optional[str] = None) -> List[Paciente]:
+    async def listar_pacientes(self, termo: Optional[str] = None, ordenacao: str = None) -> List[Paciente]:
         query = select(Paciente).options(selectinload(Paciente.contatos_emergencia))
 
         if termo:
             t = f"%{termo}%"
             query = query.where(or_(Paciente.nome.ilike(t), Paciente.cpf.ilike(t), Paciente.registro.ilike(t)))
+
+        if ordenacao and ordenacao == 'nome_asc':
+            query = query.order_by(Paciente.nome.asc())
+        elif ordenacao and ordenacao == 'nome_desc':
+            query = query.order_by(Paciente.registro.desc())
+        elif ordenacao and ordenacao == 'registro':
+            query = query.order_by(Paciente.registro.asc())
+        else:
+            query = query.order_by(Paciente.created_at.desc())
 
         result = await self.session.execute(query)
         return result.scalars().all()

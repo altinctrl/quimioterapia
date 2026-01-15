@@ -1,21 +1,15 @@
 <script lang="ts" setup>
-import {computed} from 'vue'
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '@/components/ui/table'
 import {Badge} from '@/components/ui/badge'
-import {Button} from '@/components/ui/button'
 import {useAppStore} from '@/stores/app'
 import type {Paciente} from '@/types'
 
 const props = defineProps<{
   pacientes: Paciente[]
-  total: number
-  page: number
-  perPage: number
   loading?: boolean
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:page', page: number): void
   (e: 'select', paciente: Paciente): void
 }>()
 
@@ -42,15 +36,13 @@ const getProtocoloLista = (pid: string) => {
   }
   return ultima.protocolo || '-'
 }
-
-const totalPages = computed(() => Math.ceil(props.total / props.perPage) || 1)
 </script>
 
 <template>
   <div class="rounded-md border">
     <Table>
       <TableHeader>
-        <TableRow>
+        <TableRow class="hover:bg-transparent">
           <TableHead class="pl-4">Nome</TableHead>
           <TableHead>Prontuário</TableHead>
           <TableHead>CPF</TableHead>
@@ -86,35 +78,5 @@ const totalPages = computed(() => Math.ceil(props.total / props.perPage) || 1)
         </TableRow>
       </TableBody>
     </Table>
-  </div>
-
-  <div class="relative flex items-center justify-center pt-4 mt-4 border-t">
-    <div class="absolute left-0 text-sm text-gray-500">
-      Total de Pacientes: <strong>{{ total }}</strong>
-    </div>
-
-    <div class="flex items-center gap-2">
-      <Button
-          :disabled="page === 1"
-          size="lg"
-          variant="outline"
-          @click="emit('update:page', page - 1)"
-      >
-        Anterior
-      </Button>
-
-      <span class="text-sm font-medium mx-2">
-        Página {{ page }} de {{ totalPages }}
-      </span>
-
-      <Button
-          :disabled="page >= totalPages"
-          size="lg"
-          variant="outline"
-          @click="emit('update:page', page + 1)"
-      >
-        Próxima
-      </Button>
-    </div>
   </div>
 </template>

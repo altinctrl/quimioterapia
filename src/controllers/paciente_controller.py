@@ -8,9 +8,14 @@ from src.providers.interfaces.paciente_provider_interface import PacienteProvide
 from src.schemas.paciente import PacienteCreate, PacienteUpdate, PacienteResponse, PacientePagination
 
 
-async def listar_pacientes(provider: PacienteProviderInterface, termo: str = None, page: int = 1,
-        size: int = 10) -> PacientePagination:
-    todos_pacientes = await provider.listar_pacientes(termo)
+async def listar_pacientes(
+    provider: PacienteProviderInterface,
+    termo: str = None,
+    page: int = 1,
+    size: int = 10,
+    ordenacao: str = 'recentes'
+) -> PacientePagination:
+    todos_pacientes = await provider.listar_pacientes(termo, ordenacao)
 
     total = len(todos_pacientes)
     total_pages = ceil(total / size)

@@ -24,9 +24,9 @@ export const usePacienteStore = defineStore('paciente', () => {
     return p
   }
 
-  async function fetchPacientes(page = 1, size = 10, termo = '') {
+  async function fetchPacientes(page = 1, size = 10, termo = '', ordenacao = 'recentes') {
     try {
-      const params: any = {page, size}
+      const params: any = {page, size, ordenacao}
       if (termo) params.termo = termo
 
       const res = await api.get('/api/pacientes', {params})
