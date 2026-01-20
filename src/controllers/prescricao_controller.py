@@ -9,67 +9,105 @@ from fastapi.responses import StreamingResponse
 from jinja2 import Environment, FileSystemLoader
 from weasyprint import HTML
 
-from src.models.prescricao import Prescricao, ItemPrescricao
-from src.providers.interfaces.paciente_provider_interface import PacienteProviderInterface
+from src.models.prescricao import Prescricao
+from src.providers.interfaces.equipe_provider_interface import EquipeProviderInterface
 from src.providers.interfaces.prescricao_provider_interface import PrescricaoProviderInterface
-from src.schemas.prescricao import PrescricaoCreate, PrescricaoResponse
+from src.schemas.prescricao import PrescricaoCreate, PrescricaoResponse, MedicoSnapshot
 
 
-async def listar_prescricoes(provider: PrescricaoProviderInterface, paciente_id: str) -> List[PrescricaoResponse]:
-    prescricoes = await provider.listar_por_paciente(paciente_id)
-    response = []
-    for p in prescricoes:
-        resp = PrescricaoResponse.model_validate(p)
-        resp.protocolo = p.protocolo_nome_snapshot
-
-        qt_items = [i for i in p.itens if i.tipo == 'qt']
-        pre_items = [i for i in p.itens if i.tipo == 'pre']
-        pos_items = [i for i in p.itens if i.tipo == 'pos']
-
-        response_dict = resp.model_dump()
-        response_dict['qt'] = qt_items
-        response_dict['medicamentos'] = pre_items
-        response_dict['pos_medicacoes'] = pos_items
-
-        response.append(PrescricaoResponse(**response_dict))
-    return response
+async def listar_prescricoes_por_paciente(
+        provider: PrescricaoProviderInterface,
+        paciente_id: str,
+) -> List[PrescricaoResponse]:
+    lista = await provider.listar_por_paciente(paciente_id)
+    return [PrescricaoResponse.model_validate(p) for p in lista]
 
 
-async def criar_prescricao(provider: PrescricaoProviderInterface, dados: PrescricaoCreate) -> PrescricaoResponse:
-    novo_id = str(uuid.uuid4())
-    prescricao_dict = dados.model_dump(exclude={"medicamentos", "qt", "pos_medicacoes", "hora_assinatura"})
-
-    prescricao = Prescricao(**prescricao_dict, id=novo_id)
-
-    itens_map = {"qt": dados.qt, "pre": dados.medicamentos, "pos": dados.pos_medicacoes}
-
-    for tipo, lista in itens_map.items():
-        for item in lista:
-            novo_item = ItemPrescricao(**item.model_dump(), tipo=tipo)
-            prescricao.itens.append(novo_item)
-
-    criado = await provider.criar_prescricao(prescricao)
-
-    resp = PrescricaoResponse.model_validate(criado)
-    resp_dict = resp.model_dump()
-    resp_dict['qt'] = [i for i in criado.itens if i.tipo == 'qt']
-    resp_dict['medicamentos'] = [i for i in criado.itens if i.tipo == 'pre']
-    resp_dict['pos_medicacoes'] = [i for i in criado.itens if i.tipo == 'pos']
-
-    return PrescricaoResponse(**resp_dict)
-
-
-async def gerar_pdf_prescricao(prescricao_id: str, prescricao_provider: PrescricaoProviderInterface,
-        paciente_provider: PacienteProviderInterface):
-    prescricao = await prescricao_provider.obter_prescricao(prescricao_id)
+async def buscar_prescricao(
+        provider: PrescricaoProviderInterface,
+        prescricao_id: str,
+) -> PrescricaoResponse:
+    prescricao = await provider.obter_prescricao(prescricao_id)
     if not prescricao:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Prescrição não encontrada")
+    return PrescricaoResponse.model_validate(prescricao)
 
-    paciente = await paciente_provider.obter_paciente_por_codigo(prescricao.paciente_id)
 
-    qt_items = [i for i in prescricao.itens if i.tipo == 'qt']
-    pre_items = [i for i in prescricao.itens if i.tipo == 'pre']
-    pos_items = [i for i in prescricao.itens if i.tipo == 'pos']
+async def buscar_prescricao_multi(
+        provider: PrescricaoProviderInterface,
+        prescricao_ids: List[str],
+) -> List[PrescricaoResponse]:
+    lista = await provider.obter_prescricao_multi(prescricao_ids)
+    return [PrescricaoResponse.model_validate(p) for p in lista]
+
+
+async def criar_prescricao(
+        prescricao_provider: PrescricaoProviderInterface,
+        equipe_provider: EquipeProviderInterface,
+        dados: PrescricaoCreate,
+) -> PrescricaoResponse:
+    try:
+        medico = await equipe_provider.buscar_profissional_por_username(dados.medico_id)
+        medico_snapshot = MedicoSnapshot(nome=medico.nome, crm_uf=medico.registro)
+    except:
+        medico_snapshot = MedicoSnapshot(nome="Médico não identificado", crm_uf="") # TODO: Remover
+
+    blocos_processados = []
+    for bloco in dados.blocos:
+        bloco_dict = bloco.model_dump()
+        for item in bloco_dict['itens']:
+            if not item.get('id_item'):
+                item['id_item'] = str(uuid.uuid4())
+        blocos_processados.append(bloco_dict)
+
+    documento_json = {
+        "data_emissao": datetime.now().isoformat(),
+        "paciente": dados.dados_paciente.model_dump(),
+        "medico": medico_snapshot.model_dump(),
+        "protocolo": dados.protocolo.model_dump(),
+        "blocos": blocos_processados,
+        "observacoes": dados.observacoes_clinicas
+    }
+
+    nova_prescricao = Prescricao(
+        id=str(uuid.uuid4()),
+        paciente_id=dados.paciente_id,
+        medico_id=dados.medico_id,
+        status="pendente",
+        data_emissao=datetime.now(),
+        conteudo=documento_json
+    )
+
+    criado = await prescricao_provider.criar_prescricao(nova_prescricao)
+
+    return PrescricaoResponse.model_validate(criado)
+
+
+async def gerar_pdf_prescricao(
+        prescricao_id: str,
+        prescricao_provider: PrescricaoProviderInterface,
+):
+    prescricao_db = await prescricao_provider.obter_prescricao(prescricao_id)
+    if not prescricao_db:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Prescrição não encontrada")
+
+    dados_prescricao = prescricao_db.conteudo
+
+    mapa_categorias = {
+        'pre_med': 'Pré-Medicação',
+        'qt': 'Terapia',
+        'pos_med_hospitalar': 'Pós-Medicação (Hospitalar)',
+        'pos_med_domiciliar': 'Pós-Medicação (Domiciliar)',
+        'infusor': 'Instalação de Infusor'
+    }
+
+    for bloco in dados_prescricao['blocos']:
+        cat_codigo = bloco.get('categoria')
+        bloco['categoria_label'] = mapa_categorias.get(cat_codigo, cat_codigo.upper())
+
+        for item in bloco['itens']:
+            un = item.get('unidade', '')
+            item['unidade_formatada'] = un.split('/')[0] if '/' in un else 'mg' if 'AUC' in un else un
 
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     templates_dir = os.path.join(base_dir, 'templates')
@@ -77,10 +115,20 @@ async def gerar_pdf_prescricao(prescricao_id: str, prescricao_provider: Prescric
     env = Environment(loader=FileSystemLoader(templates_dir))
     template = env.get_template('prescricao_pdf.html')
 
-    html_content = template.render(prescricao=prescricao, paciente=paciente, qt_items=qt_items, pre_items=pre_items,
-        pos_items=pos_items, agora=datetime.now().strftime("%d/%m/%Y %H:%M"))
+    data_emissao_dt = datetime.fromisoformat(dados_prescricao['data_emissao'])
+    data_formatada = data_emissao_dt.strftime("%d/%m/%Y")
+    hora_geracao = datetime.now().strftime("%d/%m/%Y às %H:%M")
+
+    html_content = template.render(
+        prescricao=dados_prescricao,
+        data_formatada=data_formatada,
+        data_hora_geracao=hora_geracao
+    )
 
     pdf_file = HTML(string=html_content).write_pdf()
 
-    return StreamingResponse(io.BytesIO(pdf_file), media_type="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename=prescricao_{prescricao_id}.pdf"})
+    return StreamingResponse(
+        io.BytesIO(pdf_file),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"inline; filename=prescricao_{prescricao_id}.pdf"}
+    )

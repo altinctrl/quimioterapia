@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import {computed, nextTick, ref, watch} from 'vue'
 import {Button} from '@/components/ui/button'
 import {Input} from '@/components/ui/input'
 import {Label} from '@/components/ui/label'
@@ -6,259 +7,379 @@ import {Textarea} from '@/components/ui/textarea'
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select'
 import {Checkbox} from '@/components/ui/checkbox'
 import {Separator} from '@/components/ui/separator'
-import {Plus, Trash2} from 'lucide-vue-next'
-import type {ItemProtocolo} from '@/types'
+import {ChevronLeft, ChevronRight, Copy, Info, Layers, Plus, Trash2} from 'lucide-vue-next'
+import {diasSemanaOptions} from '@/utils/protocoloConstants.ts'
+import ProtocolosBlocoMedicamentos from './ProtocolosBlocoMedicamentos.vue'
+import {CategoriaBlocoEnum, FaseEnum} from "@/types";
 
 const props = defineProps<{
   modelValue: any
 }>()
 
-const emit = defineEmits<{
-  (e: 'update:modelValue', value: any): void
-}>()
+const activeTemplateIndex = ref(0)
+const tabsContainerRef = ref<HTMLElement | null>(null)
 
-const diasSemanaOptions = [
-  {value: 1, label: 'Segunda'},
-  {value: 2, label: 'Terça'},
-  {value: 3, label: 'Quarta'},
-  {value: 4, label: 'Quinta'},
-  {value: 5, label: 'Sexta'}
-]
+watch(() => props.modelValue.templatesCiclo.length, (newLen) => {
+  if (activeTemplateIndex.value >= newLen) {
+    activeTemplateIndex.value = Math.max(0, newLen - 1)
+  }
+})
 
-const unidadesOptions = ['mg/m²', 'mg/kg', 'mg', 'g', 'mcg', 'UI', 'AUC', 'ml']
+const currentTemplate = computed(() => {
+  if (!props.modelValue.templatesCiclo || props.modelValue.templatesCiclo.length === 0) {
+    props.modelValue.templatesCiclo = [{
+      idTemplate: 'Padrão',
+      aplicavelAosCiclos: '',
+      blocos: []
+    }]
+  }
+  return props.modelValue.templatesCiclo[activeTemplateIndex.value]
+})
 
-const addItem = (lista: 'pre' | 'qt' | 'pos') => {
-  const novoItem: ItemProtocolo = {nome: '', dosePadrao: '', unidadePadrao: 'mg/m²', viaPadrao: 'IV'}
-  if (lista === 'pre') props.modelValue.preMedicacoes.push(novoItem)
-  else if (lista === 'qt') props.modelValue.medicamentos.push(novoItem)
-  else props.modelValue.posMedicacoes.push(novoItem)
+const getUniqueName = (baseName: string, isCopy = false, excludeIndex = -1) => {
+  const existingNames = props.modelValue.templatesCiclo
+      .filter((_: any, idx: number) => idx !== excludeIndex)
+      .map((t: any) => t.idTemplate)
+
+  let candidate = baseName
+  if (isCopy && existingNames.includes(candidate)) {
+    candidate = `${baseName} (Cópia)`
+  }
+
+  let counter = 1
+  const baseForCounter = isCopy ? `${baseName} (Cópia` : baseName.replace(/\s\d+$/, '')
+
+  while (existingNames.includes(candidate)) {
+    if (isCopy) {
+      counter++
+      candidate = `${baseName} (Cópia ${counter})`
+    } else {
+      candidate = `${baseForCounter} ${counter}`
+      counter++
+    }
+  }
+  return candidate
 }
 
-const removeItem = (lista: 'pre' | 'qt' | 'pos', index: number) => {
-  if (lista === 'pre') props.modelValue.preMedicacoes.splice(index, 1)
-  else if (lista === 'qt') props.modelValue.medicamentos.splice(index, 1)
-  else props.modelValue.posMedicacoes.splice(index, 1)
+const handleNameBlur = () => {
+  if (!currentTemplate.value) return
+  const currentName = currentTemplate.value.idTemplate || 'Sem Nome'
+  const uniqueName = getUniqueName(currentName, false, activeTemplateIndex.value)
+  if (uniqueName !== currentName) {
+    currentTemplate.value.idTemplate = uniqueName
+  }
+}
+
+const addTemplate = () => {
+  const newName = getUniqueName('Variante', false)
+
+  props.modelValue.templatesCiclo.push({
+    idTemplate: newName,
+    aplicavelAosCiclos: '',
+    blocos: []
+  })
+
+  const newIndex = props.modelValue.templatesCiclo.length - 1
+  activeTemplateIndex.value = newIndex
+  scrollToTab(newIndex)
+}
+
+const duplicateTemplate = () => {
+  const original = currentTemplate.value
+  const newName = getUniqueName(original.idTemplate, true)
+
+  const clone = JSON.parse(JSON.stringify(original))
+  clone.idTemplate = newName
+
+  props.modelValue.templatesCiclo.push(clone)
+
+  const newIndex = props.modelValue.templatesCiclo.length - 1
+  activeTemplateIndex.value = newIndex
+  scrollToTab(newIndex)
+}
+
+const removeTemplate = () => {
+  if (props.modelValue.templatesCiclo.length <= 1) return
+  props.modelValue.templatesCiclo.splice(activeTemplateIndex.value, 1)
+}
+
+const scrollTabs = (direction: 'left' | 'right') => {
+  if (!tabsContainerRef.value) return
+  const amount = 200
+  tabsContainerRef.value.scrollBy({
+    left: direction === 'left' ? -amount : amount,
+    behavior: 'smooth'
+  })
+}
+
+const scrollToTab = (index: number) => {
+  nextTick(() => {
+    if (!tabsContainerRef.value) return
+    tabsContainerRef.value.scrollTo({
+      left: tabsContainerRef.value.scrollWidth,
+      behavior: 'smooth'
+    })
+  })
+}
+
+const handleFaseChange = (value: string) => {
+  if (value === 'none') {
+    props.modelValue.fase = null
+  } else {
+    props.modelValue.fase = value
+  }
+}
+
+const createEmptyBloco = (ordem: number) => ({
+  ordem,
+  categoria: CategoriaBlocoEnum.QT,
+  itens: []
+})
+
+const addBloco = () => {
+  const template = currentTemplate.value
+  const novaOrdem = (template.blocos.length || 0) + 1
+  template.blocos.push(createEmptyBloco(novaOrdem))
+}
+
+const removeBloco = (index: number) => {
+  currentTemplate.value.blocos.splice(index, 1)
+  reorderBlocos()
+}
+
+const moveBloco = (index: number, direction: 'up' | 'down') => {
+  const blocos = currentTemplate.value.blocos
+  if (direction === 'up' && index > 0) {
+    [blocos[index], blocos[index - 1]] = [blocos[index - 1], blocos[index]]
+  } else if (direction === 'down' && index < blocos.length - 1) {
+    [blocos[index], blocos[index + 1]] = [blocos[index + 1], blocos[index]]
+  }
+  reorderBlocos()
+}
+
+const reorderBlocos = () => {
+  currentTemplate.value.blocos.forEach((b: any, idx: number) => {
+    b.ordem = idx + 1
+  })
 }
 
 const toggleDia = (dia: number, isChecked: boolean) => {
   let current = props.modelValue.diasSemanaPermitidos || []
-
   if (isChecked) {
-    if (!current.includes(dia)) {
-      current.push(dia)
-    }
+    if (!current.includes(dia)) current.push(dia)
   } else {
     current = current.filter((d: number) => d !== dia)
   }
-
   props.modelValue.diasSemanaPermitidos = current.sort((a: number, b: number) => a - b)
 }
 </script>
 
 <template>
   <div class="space-y-6 py-4">
-    <div class="grid grid-cols-2 gap-4">
-      <div class="col-span-2">
-        <Label>Nome</Label>
-        <Input v-model="modelValue.nome" placeholder="Ex: FOLFOX"/>
+    <div class="grid grid-cols-12 gap-4">
+      <div class="col-span-12">
+        <Label>Nome do Protocolo</Label>
+        <Input v-model="modelValue.nome"/>
       </div>
 
-      <div class="col-span-2">
-        <Label>Descrição</Label>
-        <Input v-model="modelValue.descricao"/>
-      </div>
-
-      <div>
+      <div class="col-span-12 md:col-span-12">
         <Label>Indicação</Label>
-        <Input v-model="modelValue.indicacao" placeholder="Ex: CA Colorretal"/>
-      </div>
-
-      <div>
-        <Label>Duração (min)</Label>
-        <Input v-model="modelValue.duracao" type="number"/>
-        <p class="text-[10px] text-gray-500 mt-1">
-          Grupo inferido:
-          <span v-if="modelValue.duracao < 120" class="text-green-600 font-medium">Rápido</span>
-          <span v-else-if="modelValue.duracao <= 240" class="text-blue-600 font-medium">Médio</span>
-          <span v-else class="text-purple-600 font-medium">Longo</span>
-        </p>
-      </div>
-
-      <div>
-        <Label>Frequência</Label>
-        <Input v-model="modelValue.frequencia" placeholder="Ex: 14 dias"/>
-      </div>
-
-      <div>
-        <Label>Número de Ciclos</Label>
-        <Input v-model="modelValue.numeroCiclos" type="number"/>
+        <Input v-model="modelValue.indicacao"/>
       </div>
 
       <div class="col-span-2">
+        <Label>Duração do Ciclo</Label>
+        <Input v-model="modelValue.duracaoCicloDias" type="number"/>
+      </div>
+      <div class="col-span-2">
+        <Label>Total de Ciclos</Label>
+        <Input v-model="modelValue.totalCiclos" placeholder="Indefinido = 0" type="number"/>
+      </div>
+      <div class="col-span-3">
+        <Label>Tempo de Administração</Label>
+        <Input v-model="modelValue.tempoTotalMinutos" type="number"/>
+      </div>
+
+      <div class="col-span-3">
+        <Label>Fase do Tratamento</Label>
+        <Select
+            :model-value="modelValue.fase || 'none'"
+            @update:model-value="handleFaseChange"
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Selecione"/>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Selecione</SelectItem>
+            <SelectItem v-for="f in FaseEnum" :key="f" :value="f">{{ f }}</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div class="col-span-2">
+        <Label>Linha</Label>
+        <Input v-model="modelValue.linha" type="number"/>
+      </div>
+
+      <div class="col-span-12 border rounded-lg p-3 bg-gray-50">
         <Label class="mb-2 block">Dias da Semana Permitidos</Label>
-        <div class="col-span-2 border rounded-lg p-3 bg-gray-50">
-          <div class="flex flex-wrap gap-4">
-            <div v-for="dia in diasSemanaOptions" :key="dia.value" class="flex items-center space-x-2">
-              <Checkbox
-                  :id="`dia-${dia.value}`"
-                  :checked="modelValue.diasSemanaPermitidos?.includes(dia.value)"
-                  @update:checked="(val) => toggleDia(dia.value, val)"
-              />
-              <Label :for="`dia-${dia.value}`" class="cursor-pointer">{{ dia.label }}</Label>
-            </div>
+        <div class="flex flex-wrap gap-4">
+          <div v-for="dia in diasSemanaOptions" :key="dia.value" class="flex items-center space-x-2">
+            <Checkbox
+                :id="`dia-${dia.value}`"
+                :checked="modelValue.diasSemanaPermitidos?.includes(dia.value)"
+                @update:checked="(val) => toggleDia(dia.value, val as boolean)"
+            />
+            <Label :for="`dia-${dia.value}`" class="cursor-pointer">{{ dia.label }}</Label>
           </div>
-          <p class="text-xs text-gray-500 mt-2">Deixe vazio para permitir todos os dias.</p>
         </div>
       </div>
     </div>
 
     <Separator/>
 
-    <div class="space-y-6">
+    <div>
+      <div class="flex flex-col gap-1 mb-4">
+        <h3 class="text-lg font-medium flex items-center gap-2">
+          <Layers class="h-5 w-5 text-gray-600"/>
+          Templates de Ciclo & Medicação
+        </h3>
+        <p class="text-sm text-gray-500 flex items-center gap-1">
+          <Info class="h-4 w-4"/>
+          Defina variantes do protocolo (ex: "Padrão", "Ajuste Renal") e a quais ciclos se aplicam.
+        </p>
+      </div>
 
-      <div>
-        <div class="flex items-center justify-between mb-2">
-          <Label>Pré-Medicação</Label>
-          <Button size="sm" variant="outline" @click="addItem('pre')">
-            <Plus class="h-3 w-3 mr-1"/>
-            Adicionar
+      <div class="bg-gray-50 p-1 rounded-lg border flex items-center gap-1 mb-4 w-full">
+
+        <Button
+            class="h-8 w-8 shrink-0 text-gray-500 hover:text-gray-900"
+            size="icon"
+            variant="ghost"
+            @click="scrollTabs('left')"
+        >
+          <ChevronLeft class="h-4 w-4"/>
+        </Button>
+
+        <div
+            ref="tabsContainerRef"
+            class="flex items-center gap-2 overflow-x-auto flex-1 px-1 w-0"
+            style="scrollbar-width: thin; -ms-overflow-style: -ms-autohiding-scrollbar;"
+        >
+          <Button
+              v-for="(template, idx) in modelValue.templatesCiclo"
+              :key="idx"
+              :variant="activeTemplateIndex === idx ? 'default' : 'outline'"
+              class="h-8 text-sm whitespace-nowrap flex-shrink-0"
+              @click="activeTemplateIndex = idx"
+          >
+            {{ template.idTemplate || `Template ${idx + 1}` }}
           </Button>
         </div>
-        <div v-if="modelValue.preMedicacoes.length === 0"
-             class="text-sm text-gray-400 italic bg-gray-50 p-2 rounded text-center border border-blue-100">
-          Nenhum item
-        </div>
-        <div v-else class="space-y-2 bg-blue-50/50 p-4 rounded-lg border border-blue-100">
-          <div v-for="(item, idx) in modelValue.preMedicacoes" :key="idx" class="flex gap-2 items-center">
-            <Input v-model="item.nome" class="flex-grow" placeholder="Nome"/>
-            <Input v-model="item.dosePadrao" class="w-20 bg-white" placeholder="Dose"/>
 
-            <div class="w-24">
-              <Select v-model="item.unidadePadrao">
-                <SelectTrigger class="bg-white">
-                  <SelectValue/>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem v-for="u in unidadesOptions" :key="u" :value="u">{{ u }}</SelectItem>
-                </SelectContent>
-              </Select>
+        <Button
+            class="h-8 w-8 shrink-0 text-gray-500 hover:text-gray-900"
+            size="icon"
+            variant="ghost"
+            @click="scrollTabs('right')"
+        >
+          <ChevronRight class="h-4 w-4"/>
+        </Button>
+
+        <div class="w-px h-5 bg-gray-300 mx-1 shrink-0"></div>
+
+        <Button
+            class="h-8 w-8 shrink-0 hover:bg-gray-200 text-blue-600"
+            size="icon"
+            title="Novo Template"
+            variant="ghost"
+            @click="addTemplate"
+        >
+          <Plus class="h-4 w-4"/>
+        </Button>
+      </div>
+
+      <div class="border rounded-lg p-4 bg-white space-y-4 shadow-sm relative">
+
+        <div class="flex justify-between items-start gap-4 pb-4 border-b">
+          <div class="grid grid-cols-12 gap-4 flex-1">
+            <div class="col-span-12 md:col-span-8">
+              <Label class="text-xs uppercase text-gray-500 font-bold">Nome do Template / Variante</Label>
+              <Input
+                  v-model="currentTemplate.idTemplate"
+                  placeholder="Ex: Padrão, D1 e D8, etc"
+                  @blur="handleNameBlur"
+              />
             </div>
-            <Select v-model="item.viaPadrao">
-              <SelectTrigger class="w-24">
-                <SelectValue placeholder="Via"/>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="IV">IV</SelectItem>
-                <SelectItem value="VO">VO</SelectItem>
-                <SelectItem value="SC">SC</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button class="text-red-500" size="icon" variant="ghost" @click="removeItem('pre', idx)">
+            <div class="col-span-12 md:col-span-4">
+              <Label class="text-xs uppercase text-gray-500 font-bold">Aplicável aos Ciclos</Label>
+              <Input v-model="currentTemplate.aplicavelAosCiclos" placeholder="Ex: 1, 3, 5 ou vazio (todos)"/>
+            </div>
+          </div>
+
+          <div class="flex gap-2 mt-5">
+            <Button size="icon" title="Duplicar Template" variant="outline" @click="duplicateTemplate">
+              <Copy class="h-4 w-4 text-blue-600"/>
+            </Button>
+            <Button
+                :disabled="modelValue.templatesCiclo.length <= 1"
+                class="hover:bg-red-50 hover:text-red-600 border-red-100"
+                size="icon"
+                title="Remover Template"
+                variant="outline"
+                @click="removeTemplate"
+            >
               <Trash2 class="h-4 w-4"/>
             </Button>
           </div>
         </div>
-      </div>
 
-      <div>
-        <div class="flex items-center justify-between mb-2">
-          <Label>Quimioterapia</Label>
-          <Button size="sm" variant="outline" @click="addItem('qt')">
-            <Plus class="h-3 w-3 mr-1"/>
-            Adicionar
+        <div class="flex flex-col gap-1 mt-2">
+          <h3 class="text-lg font-medium">Blocos de Medicação</h3>
+          <p class="text-sm text-gray-500 flex items-center gap-1">
+            <Info class="h-4 w-4"/>
+            A ordem numérica define a sequência. Itens dentro do mesmo bloco são simultâneos (Via Y).
+          </p>
+        </div>
+
+        <div class="space-y-4 pt-2">
+          <div v-if="currentTemplate.blocos.length === 0"
+               class="text-center py-8 text-gray-400 border-2 border-dashed rounded-lg bg-gray-50/50">
+            Nenhum bloco de medicação configurado para este template.
+          </div>
+
+          <ProtocolosBlocoMedicamentos
+              v-for="(bloco, bIndex) in currentTemplate.blocos"
+              :key="bIndex"
+              :bloco="bloco"
+              :index="bIndex"
+              :isFirst="bIndex === 0"
+              :isLast="bIndex === currentTemplate.blocos.length - 1"
+              @remove="removeBloco(bIndex)"
+              @move-up="moveBloco(bIndex, 'up')"
+              @move-down="moveBloco(bIndex, 'down')"
+          />
+        </div>
+
+        <div class="flex justify-center pt-2">
+          <Button class="w-full border-dashed py-6" variant="outline" @click="addBloco">
+            <Plus class="h-5 w-5 mr-2"/>
+            Adicionar Novo Bloco ao Template "{{ currentTemplate.idTemplate }}"
           </Button>
         </div>
-        <div v-if="modelValue.medicamentos.length === 0"
-             class="text-sm text-gray-400 italic bg-gray-50 p-2 rounded text-center border border-blue-100">
-          Nenhum item
-        </div>
-        <div v-else class="space-y-2 bg-blue-50/50 p-4 rounded-lg border border-blue-100">
-          <div v-for="(item, idx) in modelValue.medicamentos" :key="idx" class="flex gap-2 items-center">
-            <Input v-model="item.nome" class="flex-grow bg-white" placeholder="Nome do Medicamento"/>
-            <Input v-model="item.dosePadrao" class="w-20 bg-white" placeholder="Dose"/>
-
-            <div class="w-24">
-              <Select v-model="item.unidadePadrao">
-                <SelectTrigger class="bg-white">
-                  <SelectValue/>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem v-for="u in unidadesOptions" :key="u" :value="u">{{ u }}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Select v-model="item.viaPadrao">
-              <SelectTrigger class="w-24 bg-white">
-                <SelectValue/>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="IV">IV</SelectItem>
-                <SelectItem value="SC">SC</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button class="text-red-500" size="icon" variant="ghost" @click="removeItem('qt', idx)">
-              <Trash2 class="h-4 w-4"/>
-            </Button>
-          </div>
-        </div>
       </div>
-
-      <div>
-        <div class="flex items-center justify-between mb-2">
-          <Label>Pós-Medicação</Label>
-          <Button size="sm" variant="outline" @click="addItem('pos')">
-            <Plus class="h-3 w-3 mr-1"/>
-            Adicionar
-          </Button>
-        </div>
-        <div v-if="modelValue.posMedicacoes.length === 0"
-             class="text-sm text-gray-400 italic bg-gray-50 p-2 rounded text-center border border-blue-100">
-          Nenhum item
-        </div>
-        <div v-else class="space-y-2 bg-blue-50/50 p-4 rounded-lg border border-blue-100">
-          <div v-for="(item, idx) in modelValue.posMedicacoes" :key="idx" class="flex gap-2 items-center">
-            <Input v-model="item.nome" class="flex-grow" placeholder="Nome"/>
-            <Input v-model="item.dosePadrao" class="w-20 bg-white" placeholder="Dose"/>
-
-            <div class="w-24">
-              <Select v-model="item.unidadePadrao">
-                <SelectTrigger class="bg-white">
-                  <SelectValue/>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem v-for="u in unidadesOptions" :key="u" :value="u">{{ u }}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Select v-model="item.viaPadrao">
-              <SelectTrigger class="w-24">
-                <SelectValue/>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="IV">IV</SelectItem>
-                <SelectItem value="SC">SC</SelectItem>
-                <SelectItem value="VO">VO</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button class="text-red-500" size="icon" variant="ghost" @click="removeItem('pos', idx)">
-              <Trash2 class="h-4 w-4"/>
-            </Button>
-          </div>
-        </div>
-      </div>
-
     </div>
 
     <Separator class="my-4"/>
 
     <div class="grid grid-cols-1 gap-4">
       <div>
-        <Label>Observações</Label>
+        <Label>Observações Gerais</Label>
         <Textarea v-model="modelValue.observacoes" rows="2"/>
       </div>
       <div>
         <Label>Precauções</Label>
-        <Textarea v-model="modelValue.precaucoes" rows="2"/>
+        <Textarea v-model="modelValue.precaucoes" class="border-red-100 bg-red-50/20" rows="2"/>
       </div>
       <div class="flex items-center space-x-2">
         <Checkbox id="ativo" :checked="modelValue.ativo" @update:checked="modelValue.ativo = $event"/>

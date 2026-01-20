@@ -12,7 +12,7 @@ class Profissional(Base):
     username = Column(String, primary_key=True, index=True)
     nome = Column(String, nullable=False)
     cargo = Column(String, nullable=False)
-    coren = Column(String, nullable=True)
+    registro = Column(String, nullable=True)
     ativo = Column(Boolean, default=True)
 
     escalas = relationship("EscalaPlantao", back_populates="profissional")

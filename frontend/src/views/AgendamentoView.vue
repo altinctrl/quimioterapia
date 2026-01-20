@@ -1,20 +1,27 @@
 <script lang="ts" setup>
-import {computed, ref, watch} from 'vue'
+import {computed, onMounted, ref, watch} from 'vue'
 import {useRouter} from 'vue-router'
 import {useAppStore} from '@/stores/app'
 import {Button} from '@/components/ui/button'
 import {ArrowLeft} from 'lucide-vue-next'
 import {toast} from 'vue-sonner'
-import type {GrupoInfusao, Paciente, Turno} from '@/types'
+import type {GrupoInfusao, Paciente, TipoAgendamento, TipoConsultaEnum, TipoProcedimentoEnum, Turno} from '@/types'
 
 import AgendamentoBusca from '@/components/agendamento/AgendamentoBusca.vue'
 import AgendamentoCalendario from '@/components/agendamento/AgendamentoCalendario.vue'
 import AgendamentoResumo from '@/components/agendamento/AgendamentoResumo.vue'
-import AgendamentoForm from '@/components/agendamento/AgendamentoForm.vue'
+import AgendamentoForm, {PrescricaoComLabel} from '@/components/agendamento/AgendamentoForm.vue'
 import AgendamentoConfirmacaoModal from '@/components/agendamento/AgendamentoConfirmacaoModal.vue'
 
 const router = useRouter()
 const appStore = useAppStore()
+
+onMounted(async () => {
+  await Promise.all([
+    appStore.fetchConfiguracoes(),
+    appStore.fetchProtocolos()
+  ])
+})
 
 const buscaPaciente = ref('')
 const pacienteSelecionado = ref<Paciente | null>(null)
@@ -24,9 +31,15 @@ const mesSelecionado = ref(String(new Date().getMonth() + 1))
 const anoSelecionado = ref(String(new Date().getFullYear()))
 const dataSelecionada = ref('')
 
+const tipoAgendamento = ref<TipoAgendamento>('infusao')
+const tipoConsulta = ref<TipoConsultaEnum | ''>('')
+const tipoProcedimento = ref<TipoProcedimentoEnum | ''>('')
+
 const horarioInicio = ref('')
-const diaCiclo = ref('D1')
+const diaCiclo = ref<number | null>(null)
+const encaixe = ref(false)
 const observacoes = ref('')
+const prescricaoSelecionadaId = ref('')
 
 const confirmacaoOpen = ref(false)
 const listaAvisos = ref<string[]>([])
@@ -36,18 +49,78 @@ let timeoutBusca: ReturnType<typeof setTimeout>
 watch(buscaPaciente, (novoTermo) => {
   clearTimeout(timeoutBusca)
   timeoutBusca = setTimeout(() => {
-    appStore.buscarPacientesDropdown(novoTermo)
-    mostrarResultados.value = true
+    if (novoTermo.length >= 3) {
+      appStore.buscarPacientesDropdown(novoTermo)
+      mostrarResultados.value = true
+    }
   }, 300)
 })
 
-const protocolo = computed(() => {
-  if (!pacienteSelecionado.value) return null
-  return appStore.getProtocoloPeloHistorico(pacienteSelecionado.value.id)
+watch(pacienteSelecionado, async (novoPaciente) => {
+  if (novoPaciente) {
+    await Promise.all([
+      appStore.fetchPrescricoes(novoPaciente.id),
+      appStore.fetchAgendamentos(undefined, undefined, novoPaciente.id)
+    ])
+  }
+})
+
+const prescricoesDisponiveis = computed(() => {
+  if (!pacienteSelecionado.value) return []
+  return appStore.prescricoes.filter(p =>
+      p.pacienteId === pacienteSelecionado.value?.id &&
+      ['pendente', 'em-curso'].includes(p.status)
+  )
+})
+
+const prescricaoAtual = computed(() => {
+  return prescricoesDisponiveis.value.find(p => p.id === prescricaoSelecionadaId.value)
+})
+
+const diasPermitidosCiclo = computed(() => {
+  if (!prescricaoAtual.value) return []
+  const diasTeoricos = new Set<number>()
+
+  prescricaoAtual.value.conteudo.blocos.forEach(bloco => {
+    bloco.itens.forEach(item => {
+      item.diasDoCiclo.forEach(d => diasTeoricos.add(d))
+    })
+  })
+
+  const diasJaAgendados = appStore.agendamentos
+      .filter(ag =>
+          ag.tipo === 'infusao' &&
+          ag.detalhes?.infusao?.prescricaoId === prescricaoAtual.value?.id &&
+          ag.status !== 'remarcado' &&
+          ag.status !== 'suspenso'
+      )
+      .map(ag => ag.detalhes?.infusao?.diaCiclo)
+
+  diasJaAgendados.forEach(d => diasTeoricos.delete(d || 0))
+
+  return Array.from(diasTeoricos).sort((a, b) => a - b)
+})
+
+watch(prescricaoSelecionadaId, () => {
+  if (diasPermitidosCiclo.value.length > 0) {
+    diaCiclo.value = diasPermitidosCiclo.value[0]
+  } else {
+    diaCiclo.value = null
+  }
 })
 
 const grupoInfusaoAtual = computed((): GrupoInfusao => {
-  return protocolo.value?.grupoInfusao || 'medio'
+  if (tipoAgendamento.value !== 'infusao' || !prescricaoAtual.value) return 'medio'
+
+  const protoNome = prescricaoAtual.value.conteudo.protocolo.nome
+  const protocoloFull = appStore.protocolos.find(p => p.nome === protoNome)
+
+  if (protocoloFull && protocoloFull.tempoTotalMinutos) {
+    if (protocoloFull.tempoTotalMinutos < 120) return 'rapido'
+    if (protocoloFull.tempoTotalMinutos <= 240) return 'medio'
+    return 'longo'
+  }
+  return 'medio'
 })
 
 const ultimoAgendamento = computed(() => {
@@ -58,17 +131,24 @@ const ultimoAgendamento = computed(() => {
   return agendamentos[0] || null
 })
 
+const prescricoesFormatadas = computed((): PrescricaoComLabel[] => {
+  return prescricoesDisponiveis.value.map(p => ({
+    ...p,
+    labelFormatado: `${p.conteudo.protocolo.nome} (Ciclo ${p.conteudo.protocolo.cicloAtual}) - ${new Date(p.dataEmissao).toLocaleDateString('pt-BR')}`
+  }))
+})
+
 const handleSelecionarPaciente = (p: Paciente) => {
   pacienteSelecionado.value = p
   buscaPaciente.value = p.nome
   mostrarResultados.value = false
-  if (ultimoAgendamento.value) {
-    const diaAnterior = ultimoAgendamento.value.detalhes?.infusao?.dia_ciclo || 'D0'
-    const lastDayNum = parseInt(diaAnterior.replace(/\D/g, '') || '0')
-    diaCiclo.value = `D${lastDayNum + 7}`
-  }
+
   dataSelecionada.value = ''
   horarioInicio.value = ''
+  prescricaoSelecionadaId.value = ''
+  tipoAgendamento.value = 'infusao'
+  tipoConsulta.value = ''
+  tipoProcedimento.value = ''
   listaAvisos.value = []
 }
 
@@ -79,15 +159,17 @@ const handleSelecionarData = (data: string) => {
 }
 
 const getVagasInfo = (data: string) => {
+  if (tipoAgendamento.value !== 'infusao') {
+    return {count: 99, full: false}
+  }
+
   const grupo = grupoInfusaoAtual.value
   const limiteGrupo = appStore.parametros.gruposInfusao[grupo]?.vagas || 4
   const agendamentosNoDia = appStore.getAgendamentosDoDia(data)
 
   const countNoGrupo = agendamentosNoDia.reduce((acc, ag) => {
-    const p = appStore.getPacienteById(ag.pacienteId)
-    const prot = appStore.getProtocoloById(p?.protocoloId || '')
-    const g = prot?.grupoInfusao || 'medio'
-    return g === grupo ? acc + 1 : acc
+    if (ag.tipo !== 'infusao') return acc
+    return acc + 1
   }, 0)
 
   const vagasRestantes = limiteGrupo - countNoGrupo
@@ -102,34 +184,53 @@ const preValidarAgendamento = () => {
     return
   }
 
+  if (tipoAgendamento.value === 'infusao') {
+    if (!prescricaoSelecionadaId.value) {
+      toast.error('Selecione uma prescrição')
+      return
+    }
+    if (!diaCiclo.value) {
+      toast.error('Selecione o dia do ciclo')
+      return
+    }
+  } else if (tipoAgendamento.value === 'consulta') {
+    if (!tipoConsulta.value) {
+      toast.error('Selecione o tipo de consulta')
+      return
+    }
+  } else if (tipoAgendamento.value === 'procedimento') {
+    if (!tipoProcedimento.value) {
+      toast.error('Selecione o tipo de procedimento')
+      return
+    }
+  }
+
   const agendamentosDia = appStore.getAgendamentosDoDia(dataSelecionada.value)
   if (agendamentosDia.some(a => a.pacienteId === pacienteSelecionado.value?.id)) {
     listaAvisos.value.push(`O paciente já possui um agendamento para esta data (${new Date(dataSelecionada.value).toLocaleDateString('pt-BR')}).`)
   }
 
-  const vagasInfo = getVagasInfo(dataSelecionada.value)
-  if (vagasInfo.full) {
-    listaAvisos.value.push(`A capacidade para o grupo "${grupoInfusaoAtual.value}" está esgotada neste dia.`)
+  if (tipoAgendamento.value === 'infusao') {
+    const vagasInfo = getVagasInfo(dataSelecionada.value)
+    if (vagasInfo.full) {
+      listaAvisos.value.push(`A capacidade para o grupo "${grupoInfusaoAtual.value}" está esgotada neste dia.`)
+    }
   }
 
   const abertura = appStore.parametros.horarioAbertura
   const fechamento = appStore.parametros.horarioFechamento
-
   const [hIni, mIni] = horarioInicio.value.split(':').map(Number)
   const inicioMin = hIni * 60 + mIni
-
   const [hAbe, mAbe] = abertura.split(':').map(Number)
   const aberturaMin = hAbe * 60 + mAbe
-
   const [hFec, mFec] = fechamento.split(':').map(Number)
   const fechamentoMin = hFec * 60 + mFec
 
   if (inicioMin < aberturaMin) {
-    listaAvisos.value.push(`O horário de início (${horarioInicio.value}) é anterior à abertura da clínica (${abertura}).`)
+    listaAvisos.value.push(`O horário (${horarioInicio.value}) é anterior à abertura (${abertura}).`)
   }
-
   if (inicioMin > fechamentoMin) {
-    listaAvisos.value.push(`O horário de início (${horarioInicio.value}) é após o fechamento da clínica (${fechamento}).`)
+    listaAvisos.value.push(`O horário (${horarioInicio.value}) é após o fechamento (${fechamento}).`)
   }
 
   if (listaAvisos.value.length > 0) {
@@ -144,26 +245,46 @@ const realizarAgendamento = async () => {
 
   const [hIni] = horarioInicio.value.split(':').map(Number)
   const turnoInferido: Turno = hIni < 13 ? 'manha' : 'tarde'
-  const cicloAnterior = ultimoAgendamento.value?.detalhes?.infusao?.ciclo_atual || 1
+
+  let detalhes = {}
+
+  if (tipoAgendamento.value === 'infusao' && prescricaoAtual.value) {
+    detalhes = {
+      infusao: {
+        prescricao_id: prescricaoAtual.value.id,
+        protocolo: prescricaoAtual.value.conteudo.protocolo.nome,
+        status_farmacia: 'pendente',
+        ciclo_atual: prescricaoAtual.value.conteudo.protocolo.cicloAtual,
+        dia_ciclo: diaCiclo.value
+      }
+    }
+  } else if (tipoAgendamento.value === 'consulta') {
+    detalhes = {
+      consulta: {
+        tipo_consulta: tipoConsulta.value
+      }
+    }
+  } else {
+    detalhes = {
+      procedimento: {
+        tipo_procedimento: tipoProcedimento.value
+      }
+    }
+  }
 
   try {
     await appStore.adicionarAgendamento({
       pacienteId: pacienteSelecionado.value!.id,
-      tipo: 'infusao',
+      tipo: tipoAgendamento.value,
       data: dataSelecionada.value,
       turno: turnoInferido,
       horarioInicio: horarioInicio.value,
-      horarioFim: '00:00',
+      horarioFim: '00:00', // TODO: Calcular baseado na duração estimada ou tipo de agendamento
       status: 'agendado',
-      encaixe: listaAvisos.value.length > 0,
+      encaixe: encaixe.value,
       observacoes: observacoes.value,
-      detalhes: {
-        infusao: {
-          status_farmacia: 'pendente',
-          ciclo_atual: ultimoAgendamento.value ? cicloAnterior : 1,
-          dia_ciclo: diaCiclo.value
-        }
-      }
+      detalhes: detalhes,
+      prescricao: tipoAgendamento.value === 'infusao' ? prescricaoAtual.value : undefined
     })
 
     toast.success('Agendamento realizado com sucesso!')
@@ -186,7 +307,6 @@ const realizarAgendamento = async () => {
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div class="lg:col-span-2 space-y-6">
-
         <AgendamentoBusca
             v-model:busca="buscaPaciente"
             v-model:mostrar-resultados="mostrarResultados"
@@ -208,18 +328,23 @@ const realizarAgendamento = async () => {
         <AgendamentoResumo
             v-if="pacienteSelecionado"
             :paciente="pacienteSelecionado"
-            :protocolo="protocolo"
             :ultimo-agendamento="ultimoAgendamento"
         />
 
         <AgendamentoForm
             v-if="dataSelecionada"
             v-model:dia-ciclo="diaCiclo"
+            v-model:encaixe="encaixe"
             v-model:horario="horarioInicio"
             v-model:observacoes="observacoes"
+            v-model:prescricao-selecionada-id="prescricaoSelecionadaId"
+            v-model:tipo="tipoAgendamento"
+            v-model:tipo-consulta="tipoConsulta"
+            v-model:tipo-procedimento="tipoProcedimento"
+            :dias-permitidos="diasPermitidosCiclo"
             :horario-abertura="appStore.parametros.horarioAbertura"
             :horario-fechamento="appStore.parametros.horarioFechamento"
-            :ultimo-agendamento="ultimoAgendamento"
+            :prescricoes-disponiveis="prescricoesFormatadas"
             @confirmar="preValidarAgendamento"
         />
       </div>

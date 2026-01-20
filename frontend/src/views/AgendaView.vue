@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {computed, ref, watch} from 'vue'
+import {computed, onMounted, ref, watch} from 'vue'
 import {useRouter} from 'vue-router'
 import {useAppStore} from '@/stores/app'
 import {Card, CardContent} from '@/components/ui/card'
@@ -10,34 +10,35 @@ import AgendaRemarcarModal from '@/components/agenda/AgendaRemarcarModal.vue'
 import StatusChangeModal from '@/components/agenda/AgendaStatusChangeModal.vue'
 import TagsModal from '@/components/modals/TagsModal.vue'
 import AgendaControls, {type FiltrosAgenda} from '@/components/agenda/AgendaControls.vue'
-import {getDuracaoAgendamento, getGrupoInfusao} from '@/utils/agendaUtils'
-import {StatusPaciente} from "@/types";
+import {getDuracaoAgendamento, getGrupoInfusao, somarDias} from '@/utils/agendaUtils'
+import {type Agendamento, AgendamentoStatusEnum, FarmaciaStatusEnum, statusPermitidosSemCheckin} from "@/types";
 import {getDataLocal} from '@/lib/utils.ts';
 import {toast} from "vue-sonner";
+import AgendamentoDetalhesModal from "@/components/modals/AgendamentoDetalhesModal.vue";
+import PrescricaoHistoricoModal from "@/components/modals/PrescricaoHistoricoModal.vue";
 
 const router = useRouter()
 const appStore = useAppStore()
 
-const statusPermitidosSemCheckin = [
-  'agendado',
-  'aguardando-consulta',
-  'aguardando-exame',
-  'aguardando-medicamento',
-  'internado',
-  'suspenso',
-  'remarcado'
-]
+onMounted(async () => {
+  await Promise.all([
+    appStore.fetchConfiguracoes(),
+    appStore.fetchProtocolos()
+  ])
+})
 
 const dataSelecionada = ref(getDataLocal())
 
+const detalhesModalOpen = ref(false)
+const agendamentoSelecionado = ref<Agendamento | null>(null)
+const prescricaoModalOpen = ref(false)
+const prescricaoParaVisualizar = ref<any>(null)
 const tagsModalOpen = ref(false)
 const tagsModalData = ref<{ id: string; tags: string[] } | null>(null)
-
 const remarcarModalOpen = ref(false)
-const agendamentoParaRemarcar = ref<any>(null)
-
+const agendamentoParaRemarcar = ref<Agendamento | null>(null)
 const statusModalOpen = ref(false)
-const statusPendingData = ref<{ id: string; novoStatus: string; pacienteNome: string } | null>(null)
+const statusPendingData = ref<{ id: string; novoStatus: AgendamentoStatusEnum; pacienteNome: string } | null>(null)
 
 const agendamentosDoDia = computed(() => {
   return appStore.getAgendamentosDoDia(dataSelecionada.value)
@@ -65,25 +66,25 @@ const resetFiltros = () => {
 const agendamentosProcessados = computed(() => {
   let lista = appStore.getAgendamentosDoDia(dataSelecionada.value)
 
-  if (filtros.value.esconderRemarcados) lista = lista.filter(a => a.status !== 'remarcado')
+  if (filtros.value.esconderRemarcados) lista = lista.filter(a => a.status !== AgendamentoStatusEnum.REMARCADO)
   if (filtros.value.turno !== 'todos') lista = lista.filter(a => a.turno === filtros.value.turno)
   if (filtros.value.statusFarmacia.length > 0) {
     lista = lista.filter(a => {
-      const status = a.detalhes?.infusao?.status_farmacia
+      const status = a.detalhes?.infusao?.statusFarmacia
       return status && filtros.value.statusFarmacia.includes(status)
     })
   }
   if (filtros.value.gruposInfusao.length > 0) {
     lista = lista.filter(a => {
-      const duracao = getDuracaoAgendamento(a, appStore)
+      const duracao = getDuracaoAgendamento(a)
       const grupo = getGrupoInfusao(duracao)
       return filtros.value.gruposInfusao.includes(grupo)
     })
   }
 
   return lista.sort((a, b) => {
-    const durA = getDuracaoAgendamento(a, appStore)
-    const durB = getDuracaoAgendamento(b, appStore)
+    const durA = getDuracaoAgendamento(a)
+    const durB = getDuracaoAgendamento(b)
 
     switch (filtros.value.ordenacao) {
       case 'grupo_asc':
@@ -123,7 +124,7 @@ const metricas = computed(() => {
   let longo = 0
   const getStatusFarmacia = (a: any) => a.detalhes?.infusao?.status_farmacia
   list.forEach(a => {
-    const minutos = getDuracaoAgendamento(a, appStore)
+    const minutos = getDuracaoAgendamento(a)
     const grupo = getGrupoInfusao(minutos)
     if (grupo === 'rapido') rapido++
     else if (grupo === 'medio') medio++
@@ -134,41 +135,48 @@ const metricas = computed(() => {
     total: list.length,
     manha: list.filter(a => a.turno === 'manha').length,
     tarde: list.filter(a => a.turno === 'tarde').length,
-    emAndamento: list.filter(a => ['em-infusao', 'aguardando-medicamento'].includes(a.status)).length,
-    concluidos: list.filter(a => a.status === 'concluido').length,
+    emAndamento: list.filter(a => [AgendamentoStatusEnum.EM_INFUSAO, AgendamentoStatusEnum.AGUARDANDO_MEDICAMENTO].includes(a.status)).length,
+    concluidos: list.filter(a => a.status === AgendamentoStatusEnum.CONCLUIDO).length,
     encaixes: list.filter(a => a.encaixe).length,
-    suspensos: list.filter(a => a.status === 'suspenso').length,
+    suspensos: list.filter(a => a.status === AgendamentoStatusEnum.SUSPENSO).length,
     rapido,
     medio,
     longo,
-    intercorrencias: list.filter(a => a.status === 'intercorrencia').length,
-    farmaciaPendentes: list.filter(a => getStatusFarmacia(a) === 'pendente').length,
-    farmaciaPreparando: list.filter(a => getStatusFarmacia(a) === 'em-preparacao').length,
-    farmaciaProntas: list.filter(a => getStatusFarmacia(a) === 'pronta').length
+    intercorrencias: list.filter(a => a.status === AgendamentoStatusEnum.INTERCORRENCIA).length,
+    farmaciaPendentes: list.filter(a => getStatusFarmacia(a) === FarmaciaStatusEnum.PENDENTE).length,
+    farmaciaPreparando: list.filter(a => getStatusFarmacia(a) === FarmaciaStatusEnum.EM_PREPARACAO).length,
+    farmaciaProntas: list.filter(a => getStatusFarmacia(a) === FarmaciaStatusEnum.PRONTA).length
   }
 })
 
 const handleDiaAnterior = () => {
-  const d = new Date(dataSelecionada.value)
-  d.setDate(d.getDate() - 1)
-  dataSelecionada.value = d.toISOString().split('T')[0]
+  dataSelecionada.value = somarDias(dataSelecionada.value, -1)
 }
 
 const handleProximoDia = () => {
-  const d = new Date(dataSelecionada.value)
-  d.setDate(d.getDate() + 1)
-  dataSelecionada.value = d.toISOString().split('T')[0]
+  dataSelecionada.value = somarDias(dataSelecionada.value, 1)
 }
 
 watch(dataSelecionada, async (novaData) => {
   await appStore.fetchAgendamentos(novaData, novaData)
-  const pacientesIds = [...new Set(appStore.agendamentos.map(a => a.pacienteId))]
-  if (pacientesIds.length > 0) {
-    await Promise.all(pacientesIds.map(id => appStore.fetchPrescricoes(id)))
-  }
 }, {immediate: true})
 
-const handleAbrirTags = (agendamento: any) => {
+const handleVerDetalhes = (ag: Agendamento) => {
+  agendamentoSelecionado.value = ag
+  detalhesModalOpen.value = true
+}
+
+const handleAbrirPrescricao = (agendamento: Agendamento) => {
+  if (detalhesModalOpen.value) detalhesModalOpen.value = false
+  if (agendamento.prescricao) {
+    prescricaoParaVisualizar.value = agendamento.prescricao
+    prescricaoModalOpen.value = true
+  } else {
+    toast.error("Nenhuma prescrição vinculada a este agendamento.")
+  }
+}
+
+const handleAbrirTags = (agendamento: Agendamento) => {
   tagsModalData.value = {id: agendamento.id, tags: agendamento.tags || []}
   tagsModalOpen.value = true
 }
@@ -189,31 +197,31 @@ const handleAlterarCheckin = async (agendamento: any, novoCheckin: boolean) => {
   await appStore.atualizarCheckin(agendamento.id, novoCheckin)
 }
 
-const handleAlterarStatus = (agendamento: any, novoStatus: string) => {
-  if (['suspenso', 'intercorrencia'].includes(novoStatus)) {
+const handleAlterarStatus = (agendamento: Agendamento, novoStatus: string) => {
+  if ([AgendamentoStatusEnum.SUSPENSO, AgendamentoStatusEnum.INTERCORRENCIA].includes(novoStatus as AgendamentoStatusEnum)) {
     statusPendingData.value = {
       id: agendamento.id,
-      novoStatus,
+      novoStatus: novoStatus as AgendamentoStatusEnum,
       pacienteNome: agendamento.paciente?.nome || 'Paciente'
     }
     statusModalOpen.value = true
   } else {
-    appStore.atualizarStatusAgendamento(agendamento.id, novoStatus as StatusPaciente)
+    appStore.atualizarStatusAgendamento(agendamento.id, novoStatus as AgendamentoStatusEnum)
   }
 }
 
 const confirmarAlteracaoStatus = (detalhes: any) => {
   if (statusPendingData.value && statusPendingData.value.id) {
     appStore.atualizarStatusAgendamento(
-      statusPendingData.value.id,
-      statusPendingData.value.novoStatus as StatusPaciente,
-      detalhes
+        statusPendingData.value.id,
+        statusPendingData.value.novoStatus as AgendamentoStatusEnum,
+        detalhes
     )
     statusPendingData.value = null
   }
 }
 
-const handleAbrirRemarcar = (agendamento: any) => {
+const handleAbrirRemarcar = (agendamento: Agendamento) => {
   agendamentoParaRemarcar.value = agendamento
   remarcarModalOpen.value = true
 }
@@ -228,6 +236,19 @@ const handleRemarcado = () => {
     <div class="flex justify-between items-center">
       <h1 class="text-3xl font-bold tracking-tight text-gray-900">Agenda</h1>
     </div>
+
+    <AgendamentoDetalhesModal
+        v-model:open="detalhesModalOpen"
+        :agendamento="agendamentoSelecionado"
+        :paciente-nome="agendamentoSelecionado?.paciente?.nome"
+        @abrir-prescricao="handleAbrirPrescricao"
+    />
+
+    <PrescricaoHistoricoModal
+        v-if="prescricaoParaVisualizar"
+        v-model:open="prescricaoModalOpen"
+        :prescricao="prescricaoParaVisualizar"
+    />
 
     <TagsModal
         :agendamento-id="tagsModalData?.id || ''"
@@ -246,8 +267,8 @@ const handleRemarcado = () => {
     <StatusChangeModal
         v-if="statusPendingData"
         v-model:open="statusModalOpen"
-        :status-destino="statusPendingData.novoStatus"
         :paciente-nome="statusPendingData.pacienteNome"
+        :status-destino="statusPendingData.novoStatus"
         @confirm="confirmarAlteracaoStatus"
     />
 
@@ -274,6 +295,8 @@ const handleRemarcado = () => {
         <AgendaTable
             :agendamentos="agendamentosProcessados"
             class="border-0 rounded-none shadow-none"
+            @abrir-detalhes="handleVerDetalhes"
+            @abrir-prescricao="handleAbrirPrescricao"
             @abrir-tags="handleAbrirTags"
             @abrir-remarcar="handleAbrirRemarcar"
             @alterar-checkin="handleAlterarCheckin"

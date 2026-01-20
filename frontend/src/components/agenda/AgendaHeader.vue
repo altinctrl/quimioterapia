@@ -3,7 +3,7 @@ import {computed} from 'vue'
 import {Card, CardContent} from '@/components/ui/card'
 import {Button} from '@/components/ui/button'
 import {Input} from '@/components/ui/input'
-import {Calendar as CalendarIcon, ChevronLeft, ChevronRight, Eye, EyeOff, Plus} from 'lucide-vue-next'
+import {ChevronLeft, ChevronRight, Eye, EyeOff, Plus} from 'lucide-vue-next'
 
 const props = defineProps<{
   modelValue: string
@@ -28,19 +28,33 @@ const data = computed({
   <Card>
     <CardContent class="pt-6">
       <div class="flex items-center justify-between">
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2">
           <Button size="icon" variant="outline" @click="$emit('navigate-prev')">
             <ChevronLeft class="h-4 w-4"/>
           </Button>
           <div class="flex items-center gap-2">
-            <CalendarIcon class="h-5 w-5 text-gray-500"/>
             <Input v-model="data" class="w-auto" type="date"/>
           </div>
           <Button size="icon" variant="outline" @click="$emit('navigate-next')">
             <ChevronRight class="h-4 w-4"/>
           </Button>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-3">
+          <div class="text-sm text-gray-600">
+            {{
+              (() => {
+                const [ano, mes, dia] = modelValue.split('-').map(Number);
+                const dataLocal = new Date(ano, mes - 1, dia);
+
+                return dataLocal.toLocaleDateString('pt-BR', {
+                  weekday: 'long',
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric'
+                });
+              })()
+            }}
+          </div>
           <Button
               :title="mostrarMetricas ? 'Esconder Métricas' : 'Mostrar Métricas'"
               variant="outline"

@@ -15,22 +15,100 @@ export type Usuario = User;
 
 export type Turno = 'manha' | 'tarde' | 'noite';
 
-export type StatusPaciente =
-  | 'agendado'
-  | 'aguardando-consulta'
-  | 'aguardando-exame'
-  | 'aguardando-medicamento'
-  | 'internado'
-  | 'suspenso'
-  | 'remarcado'
-  | 'em-triagem'
-  | 'em-infusao'
-  | 'intercorrencia'
-  | 'concluido';
+export enum AgendamentoStatusEnum {
+  AGENDADO = 'agendado',
+  AGUARDANDO_CONSULTA = 'aguardando-consulta',
+  AGUARDANDO_EXAME = 'aguardando-exame',
+  AGUARDANDO_MEDICAMENTO = 'aguardando-medicamento',
+  INTERNADO = 'internado',
+  SUSPENSO = 'suspenso',
+  REMARCADO = 'remarcado',
+  EM_TRIAGEM = 'em-triagem',
+  EM_INFUSAO = 'em-infusao',
+  INTERCORRENCIA = 'intercorrencia',
+  CONCLUIDO = 'concluido'
+}
 
-export type StatusFarmacia = | 'pendente' | 'em-preparacao' | 'pronta' | 'enviada';
+export enum FarmaciaStatusEnum {
+  PENDENTE = 'pendente',
+  EM_PREPARACAO = 'em-preparacao',
+  PRONTA = 'pronta',
+  ENVIADA = 'enviada'
+}
+
+export enum FaseEnum {
+  ADJUVANTE = "Adjuvante",
+  NEOADJUVANTE = "Neoadjuvante",
+  PALIATIVO = "Paliativo",
+  CONTROLE = "Controle",
+  CURATIVO = "Curativo"
+}
+
+export enum CategoriaBlocoEnum {
+  PRE_MED = "pre_med",
+  QT = "qt",
+  POS_MED_HOSPITALAR = "pos_med_hospitalar",
+  POS_MED_DOMICILIAR = "pos_med_domiciliar",
+  INFUSOR = "infusor"
+}
+
+export enum UnidadeDoseEnum {
+  MG = "mg",
+  MG_M2 = "mg/m2",
+  MG_KG = "mg/kg",
+  MCG_KG = "mcg/kg",
+  AUC = "AUC",
+  UI = "UI",
+  G = "g"
+}
+
+export enum ViaAdministracaoEnum {
+  IV = "IV",
+  VO = "VO",
+  SC = "SC",
+  IT = "IT",
+  IM = "IM"
+}
+
+export enum PrescricaoStatusEnum {
+  PENDENTE = 'pendente',
+  EM_CURSO = 'em-curso',
+  CONCLUIDA = 'concluida',
+  SUSPENSA = 'suspensa',
+  CANCELADA = 'cancelada'
+}
+
+export enum TipoProcedimentoEnum {
+  RETIRADA_INFUSOR = 'retirada_infusor',
+  PARACENTESE_ALIVIO = 'paracentese_alivio',
+  MANUTENCAO_CTI = 'manutencao_cti',
+  RETIRADA_PONTOS = 'retirada_pontos',
+  TROCA_BOLSA = 'troca_bolsa',
+  CURATIVO = 'curativo',
+  MEDICACAO = 'medicacao'
+}
+
+export enum TipoConsultaEnum {
+  TRIAGEM = 'triagem',
+  NAVEGACAO = 'navegacao'
+}
 
 export type GrupoInfusao = 'rapido' | 'medio' | 'longo';
+
+export const opcoesProcedimento = [
+  {value: TipoProcedimentoEnum.RETIRADA_INFUSOR, label: 'Retirada de Infusor'},
+  {value: TipoProcedimentoEnum.PARACENTESE_ALIVIO, label: 'Paracentese de Alívio'},
+  {value: TipoProcedimentoEnum.MANUTENCAO_CTI, label: 'Manutenção CTI'},
+  {value: TipoProcedimentoEnum.RETIRADA_PONTOS, label: 'Retirada de Pontos'},
+  {value: TipoProcedimentoEnum.TROCA_BOLSA, label: 'Troca de Bolsa'},
+  {value: TipoProcedimentoEnum.CURATIVO, label: 'Curativo'},
+  {value: TipoProcedimentoEnum.MEDICACAO, label: 'Medicação'}
+]
+
+export const opcoesConsulta = [
+  {value: TipoConsultaEnum.TRIAGEM, label: 'Triagem'},
+  {value: TipoConsultaEnum.NAVEGACAO, label: 'Navegação'}
+]
 
 export interface ContatoEmergencia {
   id?: number;
@@ -45,94 +123,159 @@ export interface Paciente {
   cpf: string;
   registro: string;
   dataNascimento: string;
+  sexo: string;
   idade?: number;
   telefone?: string;
   email?: string;
   peso?: number;
   altura?: number;
   contatosEmergencia?: ContatoEmergencia[];
-  protocoloUltimaPrescricao?: string;
   observacoesClinicas?: string;
-  protocoloId?: string;
+  protocoloUltimaPrescricao?: string;
 }
 
-export interface ItemProtocolo {
-  id?: number;
-  nome: string;
-  dosePadrao?: string;
-  unidadePadrao?: string;
-  viaPadrao?: string;
-  tipo?: 'pre' | 'qt' | 'pos';
+export interface ConfiguracaoDiluicao {
+  opcoesPermitidas?: string[];
+  selecionada?: string;
+}
+
+export interface DetalhesMedicamento {
+  medicamento: string;
+  doseReferencia: number;
+  unidade: UnidadeDoseEnum;
+  doseMaxima?: number;
+  via: ViaAdministracaoEnum;
+  tempoMinutos: number;
+  configuracaoDiluicao?: ConfiguracaoDiluicao;
+  diasDoCiclo: number[];
+  notasEspecificas?: string;
+}
+
+export interface MedicamentoUnico {
+  tipo: 'medicamento_unico';
+  dados: DetalhesMedicamento;
+}
+
+export interface GrupoAlternativas {
+  tipo: 'grupo_alternativas';
+  labelGrupo: string;
+  opcoes: DetalhesMedicamento[];
+}
+
+export type ItemBloco = MedicamentoUnico | GrupoAlternativas;
+
+export interface Bloco {
+  ordem: number;
+  categoria: CategoriaBlocoEnum;
+  itens: ItemBloco[];
+}
+
+export interface TemplateCiclo {
+  idTemplate: string;
+  aplicavelAosCiclos?: string;
+  blocos: Bloco[];
 }
 
 export interface Protocolo {
   id: string;
   nome: string;
-  descricao?: string;
   indicacao?: string;
-  duracao: number;
-  frequencia: string;
-  numeroCiclos: number;
-  grupoInfusao: GrupoInfusao;
-  medicamentos: ItemProtocolo[];
-  preMedicacoes: ItemProtocolo[];
-  posMedicacoes: ItemProtocolo[];
+  tempoTotalMinutos: number;
+  duracaoCicloDias: number;
+  totalCiclos?: number;
+  fase?: FaseEnum;
+  linha?: number;
   observacoes?: string;
   precaucoes?: string;
   ativo: boolean;
   diasSemanaPermitidos?: number[];
+  templatesCiclo: TemplateCiclo[];
   createdAt?: string;
 }
 
-export interface ItemPrescricao {
-  id?: number;
+export interface MedicoSnapshot {
   nome: string;
-  dose?: string;
-  unidade?: string;
-  via?: string;
-  tempoInfusao?: number;
-  veiculo?: string;
-  volumeVeiculo?: string;
+  crmUf: string;
+}
+
+export interface PacienteSnapshot {
+  nome: string;
+  prontuario: string;
+  nascimento: string;
+  sexo: string;
+  peso: number;
+  altura: number;
+  sc: number;
+  creatinina?: number;
+}
+
+export interface ProtocoloRef {
+  nome: string;
+  cicloAtual: number;
+}
+
+export interface ItemPrescricaoConteudo {
+  idItem: string;
+  medicamento: string;
+  doseReferencia: string;
+  unidade: UnidadeDoseEnum;
+  doseMaxima?: number;
+  doseTeorica?: number;
+  percentualAjuste: number;
+  doseFinal: number;
+  via: ViaAdministracaoEnum;
+  tempoMinutos: number;
+  diluicaoFinal?: string;
+  diasDoCiclo: number[];
+  notasEspecificas?: string;
+}
+
+export interface BlocoPrescricao {
+  ordem: number;
+  categoria: CategoriaBlocoEnum;
+  itens: ItemPrescricaoConteudo[];
+}
+
+export interface ConteudoPrescricao {
+  dataEmissao: string;
+  paciente: PacienteSnapshot;
+  medico: MedicoSnapshot;
+  protocolo: ProtocoloRef;
+  blocos: BlocoPrescricao[];
   observacoes?: string;
-  ordem?: number;
-  tipo: 'pre' | 'qt' | 'pos';
 }
 
 export interface PrescricaoMedica {
   id: string;
   pacienteId: string;
-  medicoNome: string;
-  protocolo?: string;
-  protocoloId?: string;
-  dataPrescricao: string;
-  cicloAtual: number;
-  ciclosTotal: number;
-  medicamentos: ItemPrescricao[];
-  qt: ItemPrescricao[];
-  posMedicacoes: ItemPrescricao[];
-  observacoes?: string;
-  status: 'ativa' | 'pausada' | 'concluida' | 'cancelada';
-  peso?: number;
-  altura?: number;
-  superficieCorporea?: number;
-  diagnostico?: string;
+  medicoId: string;
+  dataEmissao: string;
+  status: PrescricaoStatusEnum;
+  conteudo: ConteudoPrescricao;
 }
 
 export type TipoAgendamento = 'infusao' | 'procedimento' | 'consulta';
 
 export interface DetalhesInfusao {
-  status_farmacia: StatusFarmacia;
-  tempo_estimado_preparo?: number;
-  horario_previsao_entrega?: string;
-  ciclo_atual?: number;
-  dia_ciclo?: string;
-  checklist_farmacia?: Record<string, boolean>;
+  prescricaoId: string;
+  statusFarmacia: FarmaciaStatusEnum;
+  tempoEstimadoPreparo?: number;
+  horarioPrevisaoEntrega?: string;
+  cicloAtual: number;
+  diaCiclo: number;
+  itensPreparados?: string[];
 }
 
 export interface DetalhesAgendamento {
   infusao?: DetalhesInfusao;
-  procedimento?: any;
-  consulta?: any;
+  procedimento?: {
+    tipoProcedimento: TipoProcedimentoEnum;
+    observacoes?: string;
+  };
+  consulta?: {
+    tipoConsulta: TipoConsultaEnum;
+    observacoes?: string;
+  };
   remarcacao?: any;
 }
 
@@ -152,7 +295,7 @@ export interface Agendamento {
   horarioInicio: string;
   horarioFim: string;
   checkin: boolean;
-  status: StatusPaciente;
+  status: AgendamentoStatusEnum;
   encaixe: boolean;
   observacoes?: string;
   tags?: string[];
@@ -197,10 +340,10 @@ export interface ConfigStatus {
 }
 
 export interface Profissional {
-  username: string
-  nome: string
+  username: string;
+  nome: string;
   cargo: string
-  coren?: string
+  registro?: string
   ativo: boolean
 }
 
@@ -222,3 +365,13 @@ export interface AusenciaProfissional {
   observacao?: string
   profissional?: Profissional
 }
+
+export const statusPermitidosSemCheckin = [
+  AgendamentoStatusEnum.AGENDADO,
+  AgendamentoStatusEnum.AGUARDANDO_CONSULTA,
+  AgendamentoStatusEnum.AGUARDANDO_EXAME,
+  AgendamentoStatusEnum.AGUARDANDO_MEDICAMENTO,
+  AgendamentoStatusEnum.INTERNADO,
+  AgendamentoStatusEnum.SUSPENSO,
+  AgendamentoStatusEnum.REMARCADO
+]

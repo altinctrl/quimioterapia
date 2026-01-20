@@ -13,8 +13,7 @@ class PrescricaoSQLAlchemyProvider(PrescricaoProviderInterface):
         self.session = session
 
     async def listar_por_paciente(self, paciente_id: str) -> List[Prescricao]:
-        query = select(Prescricao).where(Prescricao.paciente_id == paciente_id).options(
-            selectinload(Prescricao.itens)).order_by(Prescricao.data_prescricao.desc())
+        query = select(Prescricao).where(Prescricao.paciente_id == paciente_id).order_by(Prescricao.data_emissao.desc())
 
         result = await self.session.execute(query)
         return result.scalars().all()
@@ -25,18 +24,26 @@ class PrescricaoSQLAlchemyProvider(PrescricaoProviderInterface):
 
         query = select(Prescricao).where(
             Prescricao.paciente_id.in_(paciente_ids)
-        ).options(selectinload(Prescricao.itens))
+        )
 
-        query = query.order_by(Prescricao.data_prescricao.desc())
+        query = query.order_by(Prescricao.data_emissao.desc())
 
         result = await self.session.execute(query)
         return result.scalars().all()
 
     async def obter_prescricao(self, prescricao_id: str) -> Optional[Prescricao]:
-        query = select(Prescricao).where(Prescricao.id == prescricao_id).options(selectinload(Prescricao.itens))
+        query = select(Prescricao).where(Prescricao.id == prescricao_id)
 
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
+
+    async def obter_prescricao_multi(self, prescricao_ids: List[str]) -> List[Prescricao]:
+        if not prescricao_ids:
+            return []
+
+        query = select(Prescricao).where(Prescricao.id.in_(prescricao_ids))
+        result = await self.session.execute(query)
+        return result.scalars().all()
 
     async def criar_prescricao(self, prescricao: Prescricao) -> Prescricao:
         self.session.add(prescricao)

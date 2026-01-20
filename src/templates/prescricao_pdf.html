@@ -2,212 +2,467 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Receituário Médico</title>
+    <title>Prescrição Médica</title>
     <style>
         @page {
             size: A4;
-            margin: 2cm;
+            margin: 1cm;
+            @bottom-center {
+                content: "Página " counter(page) " de " counter(pages);
+                font-size: 9px;
+                color: #888;
+            }
         }
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: sans-serif;
-            color: #333;
-            font-size: 12px;
-            line-height: 1.4;
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            color: #1f2937;
+            font-size: 10px;
+            line-height: 1.3;
         }
-        .header {
+
+        .text-center {
             text-align: center;
-            border-bottom: 2px solid #000;
-            padding-bottom: 10px;
-            margin-bottom: 20px;
         }
-        .logo {
-            font-size: 18px;
+
+        .text-right {
+            text-align: right;
+        }
+
+        .font-bold {
             font-weight: bold;
+        }
+
+        .uppercase {
             text-transform: uppercase;
         }
-        .sub-header {
-            font-size: 14px;
-            margin-bottom: 5px;
+
+        .text-xs {
+            font-size: 9px;
         }
+
+        .text-sm {
+            font-size: 10px;
+        }
+
+        .text-muted {
+            color: #6b7280;
+        }
+
+        .text-danger {
+            color: #dc2626;
+        }
+
+        .text-warning {
+            color: #d97706;
+        }
+
+        .header {
+            border-bottom: 2px solid #111;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .hospital-name {
+            font-size: 14px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+
         .doc-title {
+            margin-top: 10px;
             font-size: 16px;
             font-weight: bold;
-            margin-top: 10px;
+            background-color: #f3f4f6;
+            padding: 5px;
+            border-radius: 4px;
+            text-align: center;
         }
-        .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            margin-bottom: 20px;
-            border: 1px solid #ccc;
+
+        .card {
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
             padding: 10px;
-            background-color: #fafafa;
-        }
-        .info-item {
-            margin-bottom: 4px;
-        }
-        .section-title {
-            font-size: 13px;
-            font-weight: bold;
-            background-color: #f0f0f0;
-            padding: 6px;
-            margin-top: 20px;
             margin-bottom: 10px;
-            border-left: 5px solid #333;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 10px;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        th {
-            background-color: #e9e9e9;
-            font-weight: bold;
-            font-size: 11px;
-            text-transform: uppercase;
-        }
-        .obs-box {
-            font-size: 12px;
-            padding: 10px;
-            border: 1px solid #ddd;
-            min-height: 40px;
             background-color: #fff;
         }
-        .footer {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
+
+        .label {
+            display: block;
+            font-size: 8px;
+            text-transform: uppercase;
+            color: #6b7280;
+            font-weight: bold;
+            margin-bottom: 1px;
+        }
+
+        .value {
+            font-size: 11px;
+            font-weight: 500;
+            color: #111;
+            display: block;
+        }
+
+        .grid-info {
+            display: table;
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 10px 0;
+            margin: -5px; /* Compensa o spacing */
+        }
+
+        .grid-col {
+            display: table-cell;
+            vertical-align: top;
+            padding-bottom: 5px;
+        }
+
+        .protocolo-obs {
+            background-color: #eff6ff;
+            border: 1px solid #dbeafe;
+            color: #1e40af;
+            padding: 8px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            font-size: 9px;
+        }
+
+        .protocolo-precaucao {
+            background-color: #fffbeb;
+            border: 1px solid #fef3c7;
+            color: #92400e;
+            padding: 8px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            font-size: 9px;
+        }
+
+        .sequence-warning {
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            background-color: #f9fafb;
+        }
+
+        .sequence-text {
+            font-size: 9px;
+            color: #374151;
+        }
+
+        .bloco-wrapper {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 12px;
+            page-break-inside: avoid; /* Evita quebrar o bloco no meio */
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .bloco-header {
+            padding: 6px 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .bloco-badge {
+            display: inline-block;
+            background-color: #111827;
+            color: #fff;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
             text-align: center;
+            line-height: 16px;
+            font-size: 9px;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .bloco-title {
             font-size: 10px;
-            color: #666;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
-        .signature-box {
-            margin-top: 60px;
+
+        .item-row {
+            padding: 10px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .item-row:last-child {
+            border-bottom: none;
+        }
+
+        .med-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        .med-name {
+            font-size: 11px;
+            font-weight: bold;
+            color: #111;
+        }
+
+        .days-badge {
+            background-color: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 8px;
+            font-weight: bold;
+            color: #374151;
+        }
+
+        .calc-grid {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 6px;
+        }
+
+        .calc-cell {
+            padding-right: 15px;
+            vertical-align: bottom;
+        }
+
+        .calc-box {
+            background-color: #f9fafb;
+            border: 1px dashed #d1d5db;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            text-align: left;
+            min-width: 60px;
+        }
+
+        .final-dose-box {
+            background-color: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #166534;
+            font-weight: bold;
+            font-size: 11px;
+        }
+
+        .diluicao-row {
+            margin-top: 5px;
+            padding-top: 5px;
+            border-top: 1px dashed #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            font-size: 9px;
+            color: #4b5563;
+        }
+
+        .signature-section {
+            margin-top: 30px;
+            page-break-inside: avoid;
             text-align: center;
         }
+
         .signature-line {
             border-top: 1px solid #000;
-            width: 60%;
-            margin: 0 auto 10px auto;
+            width: 200px;
+            margin: 0 auto 5px auto;
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="logo">Hospital das Clínicas</div>
-        <div class="sub-header">Serviço de Quimioterapia</div>
-        <div class="doc-title">RECEITUÁRIO MÉDICO</div>
+
+<div class="header text-center">
+    <div class="hospital-name">HOSPITAL DAS CLÍNICAS UFPE</div>
+    <div class="text-xs uppercase" style="margin-top: 2px;">Clínica de Oncologia</div>
+    <div class="doc-title">PRESCRIÇÃO MÉDICA</div>
+</div>
+
+<div class="card">
+    <div class="grid-info" style="margin-bottom: 5px;">
+        <div class="grid-col" style="width: 50%;">
+            <span class="label">Paciente</span>
+            <span class="value">{{ prescricao.paciente.nome }}</span>
+
+            <div style="margin-top: 4px;">
+                <span class="label">Prontuário</span>
+                <span class="value">{{ prescricao.paciente.registro or '-'}}</span>
+            </div>
+        </div>
+
+        <div class="grid-col" style="width: 15%;">
+            <span class="label">Nascimento</span>
+            <span class="value">
+                {{ prescricao.paciente.nascimento.split('-')[2] }}/{{ prescricao.paciente.nascimento.split('-')[1] }}/{{ prescricao.paciente.nascimento.split('-')[0] }}
+                {% if prescricao.paciente.idade %} ({{ prescricao.paciente.idade }} anos) {% endif %}
+            </span>
+
+            <div style="margin-top: 4px;">
+                <span class="label">Sexo</span>
+                <span class="value">{{ prescricao.paciente.sexo }}</span>
+            </div>
+        </div>
+        <div class="grid-col" style="width: 15%;">
+            <span class="label">Peso</span>
+            <span class="value">{{ prescricao.paciente.peso }} kg</span>
+
+            <div style="margin-top: 4px;">
+                <span class="label">Altura</span>
+                <span class="value">{{ prescricao.paciente.altura | int }} cm</span>
+            </div>
+        </div>
+        <div class="grid-col" style="width: 20%;">
+            <span class="label">Superfície Corpórea</span>
+            <span class="value">{{ prescricao.paciente.sc }} m²</span>
+
+            <div style="margin-top: 4px;">
+                <span class="label">Creatinina</span>
+                <span class="value">{{ prescricao.paciente.creatinina or '-' }} mg/dL</span>
+            </div>
+        </div>
     </div>
 
-    <div class="info-grid">
-        <div class="info-item"><strong>Paciente:</strong> {{ paciente.nome }}</div>
-        <div class="info-item"><strong>Registro:</strong> {{ paciente.registro }}</div>
-        <div class="info-item"><strong>Data Nasc:</strong> {{ paciente.data_nascimento }}</div>
-        <div class="info-item"><strong>Diagnóstico:</strong> {{ prescricao.diagnostico }}</div>
-        <div class="info-item"><strong>Protocolo:</strong> {{ prescricao.protocolo_nome_snapshot }}</div>
-        <div class="info-item"><strong>Ciclo:</strong> {{ prescricao.ciclo_atual }} / {{ prescricao.ciclos_total }}</div>
-        <div class="info-item"><strong>Peso:</strong> {{ prescricao.peso }} kg</div>
-        <div class="info-item"><strong>Altura:</strong> {{ prescricao.altura }} cm</div>
-        <div class="info-item"><strong>SC:</strong> {{ prescricao.superficie_corporea }} m²</div>
-        <div class="info-item"><strong>Data:</strong> {{ prescricao.data_prescricao.strftime('%d/%m/%Y') }}</div>
+    <div style="margin-top: 5px; border-top: 1px solid #eee; padding-top: 5px;">
+        <span class="label">Hipótese Diagnóstica</span>
+        <span class="value" style="font-weight: normal;">{{ prescricao.paciente.diagnostico or 'Não informado' }}</span>
+    </div>
+</div>
+
+<div class="card">
+    <div class="grid-info">
+        <div class="grid-col">
+            <span class="label">Protocolo</span>
+            <span class="value">{{ prescricao.protocolo.nome }}</span>
+        </div>
+        <div class="grid-col">
+            <span class="label">Ciclo Atual</span>
+            <span class="value">Ciclo {{ prescricao.protocolo.ciclo_atual }}</span>
+        </div>
+        <div class="grid-col text-right">
+            <span class="label">Data de Prescrição</span>
+            <span class="value">{{ data_formatada }}</span>
+        </div>
     </div>
 
-    {% if pre_items %}
-    <div class="section-title">PRÉ-QUIMIOTERAPIA</div>
-    <table>
-        <thead>
+    {% if prescricao.protocolo.observacoes %}
+    <div class="protocolo-obs" style="margin-top: 8px;">
+        <strong>Observações do Protocolo:</strong> {{ prescricao.protocolo.observacoes }}
+    </div>
+    {% endif %}
+
+    {% if prescricao.protocolo.precaucoes %}
+    <div class="protocolo-precaucao">
+        <strong>Precauções:</strong> {{ prescricao.protocolo.precaucoes }}
+    </div>
+    {% endif %}
+</div>
+
+<div class="sequence-warning">
+    <div class="sequence-text">
+        <strong>ATENÇÃO:</strong> Os blocos abaixo representam a <strong>sequência</strong> exata de administração.
+        Itens dentro do mesmo bloco são administrados <strong>concomitantemente</strong> (via Y).
+    </div>
+</div>
+
+{% for bloco in prescricao.blocos %}
+{% set is_qt = (bloco.categoria == 'qt') %}
+<div class="bloco-wrapper {{ 'bloco-qt' if is_qt else 'bloco-pre' }}">
+    <div class="bloco-header {{ 'header-qt' if is_qt else 'header-pre' }}">
+        <div>
+            <span class="bloco-badge">{{ bloco.ordem }}</span>
+            <span class="bloco-title">{{ bloco.categoria_label }}</span>
+        </div>
+    </div>
+
+    {% for item in bloco.itens %}
+    <div class="item-row">
+        <div class="med-header">
+            <div>
+                <span class="med-name">{{ item.medicamento }}</span>
+                <span class="text-xs text-muted" style="margin-left: 5px;">({{ item.via }})</span>
+            </div>
+            {% if item.dias_do_ciclo %}
+            <span class="days-badge">Dias: {{ item.dias_do_ciclo|join(', ') }}</span>
+            {% endif %}
+        </div>
+
+        <div style="margin-bottom: 5px; font-size: 9px; color: #555;">
+            Referência: <strong>{{ item.dose_referencia }} {{ item.unidade }}</strong>
+            {% if item.dose_maxima %}
+            <span class="text-danger" style="margin-left: 5px;">(Máximo: {{ item.dose_maxima }} {{ item.unidade_formatada }})</span>
+            {% endif %}
+        </div>
+
+        <table class="calc-grid">
             <tr>
-                <th width="30%">Medicamento</th>
-                <th width="15%">Dose</th>
-                <th width="10%">Via</th>
-                <th>Diluição / Observações</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in pre_items %}
-            <tr>
-                <td>{{ item.nome }}</td>
-                <td>{{ item.dose }} {{ item.unidade }}</td>
-                <td>{{ item.via }}</td>
-                <td>
-                    {% if item.veiculo %}{{ item.veiculo }} {{ item.volume_veiculo }}{% endif %}
-                    {% if item.observacoes %} - {{ item.observacoes }}{% endif %}
+                <td class="calc-cell">
+                    <span class="label">Dose Teórica</span>
+                    <div class="calc-box">{{ item.dose_teorica }}
+                        <span style="font-weight:normal; font-size:8px">{{ item.unidade_formatada }}</span>
+                    </div>
+                </td>
+                <td style="width: 20px; text-align: center; color: #999; vertical-align: middle; padding-top: 15px; padding-right: 15px;">
+                    x
+                </td>
+                <td class="calc-cell">
+                    <span class="label">Ajuste</span>
+                    <div class="calc-box">{{ item.percentual_ajuste }}%</div>
+                </td>
+                <td style="width: 20px; text-align: center; color: #999; vertical-align: middle; padding-top: 15px; padding-right: 15px;">
+                    =
+                </td>
+                <td class="calc-cell">
+                    <span class="label" style="color: #166534;">DOSE FINAL</span>
+                    <div class="calc-box final-dose-box">{{ item.dose_final }} {{ item.unidade_formatada }}</div>
+                </td>
+                <td class="calc-cell" style="padding-right: 0;">
+                    <span class="label">Tempo</span>
+                    <div class="calc-box">{{ item.tempo_minutos or '0' }} min</div>
                 </td>
             </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% endif %}
+        </table>
 
-    {% if qt_items %}
-    <div class="section-title">QUIMIOTERAPIA</div>
-    <table>
-        <thead>
-            <tr>
-                <th width="30%">Medicamento</th>
-                <th width="15%">Dose</th>
-                <th width="10%">Via</th>
-                <th width="15%">Tempo</th>
-                <th>Diluição</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in qt_items %}
-            <tr>
-                <td>{{ item.nome }}</td>
-                <td>{{ item.dose }} {{ item.unidade }}</td>
-                <td>{{ item.via }}</td>
-                <td>{% if item.tempo_infusao %}{{ item.tempo_infusao }} min{% else %}-{% endif %}</td>
-                <td>{{ item.veiculo }} {{ item.volume_veiculo }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% endif %}
+        <div class="diluicao-row">
+            <div style="flex: 1;">
+                <strong>Diluição:</strong> {{ item.diluicao_final or 'Não definida' }}
+            </div>
+            {% if item.notas_especificas %}
+            <div style="flex: 1; text-align: right; color: #d97706; font-style: italic;">
+                Nota: {{ item.notas_especificas }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
 
-    {% if pos_items %}
-    <div class="section-title">PÓS-QUIMIOTERAPIA</div>
-    <table>
-        <thead>
-            <tr>
-                <th width="30%">Medicamento</th>
-                <th width="15%">Dose</th>
-                <th width="10%">Via</th>
-                <th>Observações</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in pos_items %}
-            <tr>
-                <td>{{ item.nome }}</td>
-                <td>{{ item.dose }} {{ item.unidade }}</td>
-                <td>{{ item.via }}</td>
-                <td>{{ item.observacoes }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    {% if not bloco.itens %}
+    <div style="padding: 10px; text-align: center; color: #999; font-style: italic; font-size: 9px;">
+        Nenhum item neste bloco.
+    </div>
     {% endif %}
+</div>
+{% endfor %}
 
-    <div class="section-title">OBSERVAÇÕES MÉDICAS</div>
-    <div class="obs-box">
+<div class="card" style="margin-top: 15px; min-height: 40px;">
+    <span class="label">Observações Clínicas / Médicas</span>
+    <div style="font-size: 10px; margin-top: 5px;">
         {{ prescricao.observacoes or "Sem observações adicionais." }}
     </div>
+</div>
 
-    <div class="signature-box">
-        <div class="signature-line"></div>
-        <p><strong>{{ prescricao.medico_nome }}</strong></p>
-        <p style="font-size: 10px; color: #666;">Documento gerado eletronicamente em {{ agora }}</p>
+<div class="signature-section">
+    <div class="signature-line"></div>
+    <div style="font-weight: bold; font-size: 11px; text-transform: uppercase;">{{ prescricao.medico.nome }}</div>
+    <div style="color: #555; font-size: 10px;">{{ prescricao.medico.crm_uf or 'CRM não informado' }}</div>
+    <div style="font-size: 8px; color: #999; margin-top: 10px;">
+        Documento gerado eletronicamente em {{ data_hora_geracao }}
     </div>
+</div>
 
-    <div class="footer">
-        Página 1 de 1 - Sistema de Quimioterapia HC
-    </div>
 </body>
 </html>

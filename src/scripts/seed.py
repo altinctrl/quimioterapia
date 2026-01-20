@@ -1,7 +1,7 @@
 import asyncio
 import random
 import uuid
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 
 from faker import Faker
 from sqlalchemy import text
@@ -11,9 +11,16 @@ from src.models.aghu import AghuPaciente
 from src.models.configuracao import Configuracao
 from src.models.equipe import Profissional, EscalaPlantao, AusenciaProfissional
 from src.models.paciente import Paciente, ContatoEmergencia
-from src.models.prescricao import Prescricao, ItemPrescricao
-from src.models.protocolo import Protocolo, ItemProtocolo
+from src.models.prescricao import Prescricao
+from src.models.protocolo import Protocolo
 from src.resources.database import app_engine, aghu_engine, AppSessionLocal, AghuSessionLocal, Base
+from src.schemas.agendamento import AgendamentoCreate, DetalhesAgendamento, TipoAgendamento, AgendamentoStatusEnum, \
+    FarmaciaStatusEnum
+from src.schemas.equipe import MotivoAusenciaEnum
+from src.schemas.prescricao import ProtocoloRef, PacienteSnapshot, BlocoPrescricao, ItemPrescricao, \
+    PrescricaoStatusEnum, MedicoSnapshot
+from src.schemas.protocolo import ProtocoloCreate, TemplateCiclo, UnidadeDoseEnum
+from src.scripts.const_protocolos_teste import PROTOCOLOS_DATA
 
 fake = Faker('pt_BR')
 
@@ -23,86 +30,108 @@ TAGS_CONFIG = [
 ]
 
 CARGOS = ["Enfermeiro", "Técnico de Enfermagem", "Farmacêutico", "Médico", "Administrador"]
-
 FUNCOES = ["Gestão", "Salão QT", "Triagem/Marcação", "Consulta de Enfermagem", "Apoio"]
-
-PROTOCOLOS_DATA = [
-    {
-        "nome": "PEMETREXEDE + CISPLATINA",
-        "duracao": 240, "grupo": "longo", "dias": [1], "freq": 21, "indicacao": "Ca Pulmão",
-        "meds": [
-            {"nome": "Pemetrexede", "dose": "500", "un": "mg/m²", "tipo": "qt"},
-            {"nome": "Cisplatina", "dose": "75", "un": "mg/m²", "tipo": "qt"},
-            {"nome": "Dexametasona", "dose": "4", "un": "mg", "tipo": "pre"},
-            {"nome": "Ondansetrona", "dose": "8", "un": "mg", "tipo": "pre"},
-        ]
-    },
-    {
-        "nome": "VELCADE (BORTEZOMIBE)",
-        "duracao": 30, "grupo": "rapido", "dias": [3], "freq": 7, "indicacao": "Mieloma Múltiplo",
-        "meds": [
-            {"nome": "Bortezomibe", "dose": "1.3", "un": "mg/m²", "tipo": "qt", "via": "SC"},
-            {"nome": "Dexametasona", "dose": "20", "un": "mg", "tipo": "pre"},
-        ]
-    },
-    {
-        "nome": "RITUXIMABE MONOTERAPIA",
-        "duracao": 300, "grupo": "longo", "dias": [5], "freq": 21, "indicacao": "Linfoma não-Hodgkin",
-        "meds": [
-            {"nome": "Rituximabe", "dose": "375", "un": "mg/m²", "tipo": "qt"},
-            {"nome": "Dipirona", "dose": "1", "un": "g", "tipo": "pre"},
-            {"nome": "Hidrocortisona", "dose": "100", "un": "mg", "tipo": "pre"},
-        ]
-    },
-    {
-        "nome": "FOLFOX 6",
-        "duracao": 240, "grupo": "medio", "dias": [1, 2, 3], "freq": 14, "indicacao": "Ca Colorretal",
-        "meds": [
-            {"nome": "Oxaliplatina", "dose": "85", "un": "mg/m²", "tipo": "qt"},
-            {"nome": "Leucovorina", "dose": "400", "un": "mg/m²", "tipo": "qt"},
-            {"nome": "Fluorouracil (Bolus)", "dose": "400", "un": "mg/m²", "tipo": "qt"},
-            {"nome": "Fluorouracil (Infusão)", "dose": "2400", "un": "mg/m²", "tipo": "qt", "via": "Bomba 46h"},
-        ]
-    },
-    {
-        "nome": "AC-T (DOXORRUBICINA + CICLOFOSFAMIDA)",
-        "duracao": 120, "grupo": "medio", "dias": [1, 2, 3, 4, 5], "freq": 21, "indicacao": "Ca Mama",
-        "meds": [
-            {"nome": "Doxorrubicina", "dose": "60", "un": "mg/m²", "tipo": "qt"},
-            {"nome": "Ciclofosfamida", "dose": "600", "un": "mg/m²", "tipo": "qt"},
-            {"nome": "Ondansetrona", "dose": "16", "un": "mg", "tipo": "pre"},
-        ]
-    }
-]
-
-STATUS_AGENDAMENTO_OPCOES = ['agendado', 'confirmado', 'em-infusao', 'concluido', 'cancelado']
-MEDICOS_LISTA = ["Dr. Silva", "Dra. Santos", "Dr. Oliveira", "Dra. Costa", "Dr. Pereira"]
+MEDICOS_USERNAMES = ["med.carlos", "med.fernanda", "med.roberto"]
 
 
-def encontrar_data_valida(data_base: date, dias_permitidos: list[int]) -> date:
-    if not dias_permitidos:
-        return data_base
+def calcular_bsa(peso, altura_cm):
+    if not peso or not altura_cm: return 1.7
+    altura_m = altura_cm / 100
+    return 0.007184 * (peso ** 0.425) * (altura_m ** 0.725)
+
+
+def encontrar_data_valida(data_base: date, dias_permitidos: list[int] = None) -> date:
     candidata = data_base
-    for _ in range(14):
-        dia_semana = candidata.weekday() + 1
-        if dia_semana in dias_permitidos:
+    permitidos = dias_permitidos if dias_permitidos else [1, 2, 3, 4, 5]
+
+    for _ in range(31):
+        if candidata.weekday() in permitidos:
             return candidata
         candidata += timedelta(days=1)
-    return data_base
+
+    return candidata
 
 
-def gerar_horario(turno: str) -> tuple[str, str]:
-    if turno == "manha":
-        h = random.randint(7, 10)
-        m = random.choice(["00", "15", "30", "45"])
-        inicio = f"{h:02d}:{m}"
-        fim = f"{h + 3:02d}:{m}"
-    else:
-        h = random.randint(13, 16)
-        m = random.choice(["00", "15", "30", "45"])
-        inicio = f"{h:02d}:{m}"
-        fim = f"{h + 3:02d}:{m}"
-    return inicio, fim
+def gerar_horario(turno: str, duracao_minutos: int) -> tuple[str, str]:
+    h_inicio = random.randint(8, 12) if turno == "manha" else random.randint(13, 17)
+    m_inicio = random.choice([0, 15, 30, 45])
+    dt_inicio = datetime.combine(date.today(), datetime.min.time()).replace(hour=h_inicio, minute=m_inicio)
+    dt_fim = dt_inicio + timedelta(minutes=duracao_minutos)
+
+    return dt_inicio.strftime("%H:%M"), dt_fim.strftime("%H:%M")
+
+
+def criar_prescricao_payload(protocolo_model: Protocolo, paciente: Paciente, medico_obj: Profissional, ciclo: int):
+    bsa = calcular_bsa(paciente.peso, paciente.altura)
+    templates = [TemplateCiclo(**t) for t in protocolo_model.templates_ciclo]
+    template = templates[0]
+
+    blocos_prescricao = []
+
+    for bloco in template.blocos:
+        itens_presc = []
+        for item_bloco in bloco.itens:
+            if item_bloco.tipo == 'medicamento_unico':
+                dados = item_bloco.dados
+
+                dose_calc = dados.dose_referencia
+                if dados.unidade == UnidadeDoseEnum.MG_M2:
+                    dose_calc = dados.dose_referencia * bsa
+                elif dados.unidade == UnidadeDoseEnum.MG_KG:
+                    dose_calc = dados.dose_referencia * paciente.peso
+
+                item_p = ItemPrescricao(
+                    id_item=str(uuid.uuid4()),
+                    medicamento=dados.medicamento,
+                    dose_referencia=str(dados.dose_referencia),
+                    unidade=dados.unidade,
+                    percentual_ajuste=100.0,
+                    dose_final=round(dose_calc, 2),
+                    via=dados.via,
+                    tempo_minutos=dados.tempo_minutos,
+                    dias_do_ciclo=dados.dias_do_ciclo,
+                    notas_especificas=dados.notas_especificas
+                )
+                itens_presc.append(item_p)
+
+        if itens_presc:
+            bloco_p = BlocoPrescricao(
+                ordem=bloco.ordem,
+                categoria=bloco.categoria,
+                itens=itens_presc
+            )
+            blocos_prescricao.append(bloco_p)
+
+    paciente_snapshot = PacienteSnapshot(
+        nome=paciente.nome,
+        prontuario=paciente.registro,
+        nascimento=paciente.data_nascimento,
+        sexo=paciente.sexo,
+        peso=paciente.peso,
+        altura=paciente.altura,
+        sc=round(bsa, 2)
+    )
+
+    medico_snapshot = MedicoSnapshot(
+        nome=medico_obj.nome,
+        crm_uf=medico_obj.registro if medico_obj.registro else "CRM-UF 00000"
+    )
+
+    protocolo_ref = ProtocoloRef(
+        nome=protocolo_model.nome,
+        ciclo_atual=ciclo
+    )
+
+    documento_json = {
+        "data_emissao": datetime.now().isoformat(),
+        "paciente": paciente_snapshot.model_dump(mode='json'),
+        "medico": medico_snapshot.model_dump(mode='json'),
+        "protocolo": protocolo_ref.model_dump(mode='json'),
+        "blocos": [b.model_dump(mode='json') for b in blocos_prescricao],
+        "observacoes": "Gerado via seed com validação Pydantic."
+    }
+
+    return documento_json
 
 
 async def setup_aghu():
@@ -170,19 +199,32 @@ async def setup_app(aghu_pacientes):
                 "longo": {"vagas": 4, "duracao": "> 4h"}
             },
             tags=TAGS_CONFIG,
-            cargos= CARGOS,
+            cargos=CARGOS,
             funcoes=FUNCOES
         )
         session.add(conf)
 
         print("Criando profissionais e equipe...")
         profissionais = [
-            Profissional(username="usuario_teste", nome="Louro José", cargo="Administrador", ativo=True),
-            Profissional(username="enf.ana", nome="Ana Maria", cargo="Enfermeiro", coren="12345-ENF", ativo=True),
-            Profissional(username="tec.joao", nome="João Silva", cargo="Técnico de Enfermagem", coren="54321-TEC", ativo=True),
-            Profissional(username="med.carlos", nome="Dr. Carlos", cargo="Médico", ativo=True),
+            Profissional(username="admin", nome="Louro José", cargo="Administrador", ativo=True),
+            Profissional(username="enf.ana", nome="Ana Maria", cargo="Enfermeiro", registro="123456-ENF/UF",
+                         ativo=True),
+            Profissional(username="tec.joao", nome="João Silva", cargo="Técnico de Enfermagem", registro="987654-TE/UF",
+                         ativo=True),
         ]
+        medicos_objs = []
+        for m in MEDICOS_USERNAMES:
+            p = Profissional(
+                username=m,
+                nome=f"Dr(a). {m.split('.')[1].title()}",
+                cargo="Médico",
+                registro=f"CRM-UF {random.randint(10000, 99999)}",
+                ativo=True)
+            profissionais.append(p)
+            medicos_objs.append(p)
+
         session.add_all(profissionais)
+        await session.commit()
 
         hoje = date.today()
         escalas = [
@@ -195,7 +237,7 @@ async def setup_app(aghu_pacientes):
             profissional_id="enf.ana",
             data_inicio=hoje + timedelta(days=5),
             data_fim=hoje + timedelta(days=20),
-            motivo="Férias"
+            motivo=MotivoAusenciaEnum.LTS
         )
         session.add(ausencia)
         await session.commit()
@@ -203,27 +245,29 @@ async def setup_app(aghu_pacientes):
         print("Criando protocolos...")
         protocolos_objs = []
         for p_data in PROTOCOLOS_DATA:
-            p = Protocolo(
-                id=str(uuid.uuid4()),
-                nome=p_data['nome'],
-                duracao=p_data['duracao'],
-                grupo_infusao=p_data['grupo'],
-                indicacao=p_data['indicacao'],
-                frequencia=f"{p_data['freq']} dias",
-                numero_ciclos=random.choice([4, 6, 8, 12]),
-                dias_semana_permitidos=p_data['dias'],
-                ativo=True,
-                descricao=f"Protocolo padrão para {p_data['indicacao']}"
-            )
-            for m in p_data['meds']:
-                item = ItemProtocolo(
-                    tipo=m['tipo'], nome=m['nome'], dose_padrao=m['dose'],
-                    unidade_padrao=m['un'], via_padrao=m.get('via', 'IV')
-                )
-                p.itens.append(item)
-            session.add(p)
-            protocolos_objs.append(p)
+            try:
+                proto_validator = ProtocoloCreate(**p_data)
+            except Exception as e:
+                print(f"ERRO DE VALIDAÇÃO NO PROTOCOLO {p_data['nome']}: {e}")
+                raise e
 
+            protocolo = Protocolo(
+                id=str(uuid.uuid4()),
+                nome=proto_validator.nome,
+                indicacao=proto_validator.indicacao,
+                fase=proto_validator.fase,
+                linha=proto_validator.linha,
+                total_ciclos=proto_validator.total_ciclos,
+                duracao_ciclo_dias=proto_validator.duracao_ciclo_dias,
+                tempo_total_minutos=proto_validator.tempo_total_minutos,
+                dias_semana_permitidos=proto_validator.dias_semana_permitidos,
+                ativo=proto_validator.ativo,
+                observacoes=proto_validator.observacoes,
+                precaucoes=proto_validator.precaucoes,
+                templates_ciclo=proto_validator.model_dump(include={'templates_ciclo'}, mode='json')['templates_ciclo']
+            )
+            session.add(protocolo)
+            protocolos_objs.append(protocolo)
         await session.commit()
 
         print("Migrando pacientes e gerando histórico...")
@@ -236,6 +280,7 @@ async def setup_app(aghu_pacientes):
                 cpf=p_aghu.cpf,
                 registro=str(p_aghu.codigo),
                 data_nascimento=p_aghu.dt_nascimento,
+                sexo=p_aghu.sexo,
                 telefone=fake.cellphone_number(),
                 email=fake.email(),
                 peso=round(random.uniform(50.0, 100.0), 1),
@@ -246,90 +291,123 @@ async def setup_app(aghu_pacientes):
             p_app.contatos_emergencia.append(
                 ContatoEmergencia(nome=fake.name(), telefone=fake.cellphone_number(), parentesco="Familiar")
             )
+            session.add(p_app)
 
             protocolo = random.choice(protocolos_objs)
-            ciclo_atual = random.randint(1, protocolo.numero_ciclos)
-            freq_dias = int(protocolo.frequencia.split()[0])
+            medico = random.choice(medicos_objs)
+            ciclo_atual = random.randint(1, protocolo.total_ciclos)
+            dias_por_ciclo = protocolo.duracao_ciclo_dias
 
-            dias_corridos = (ciclo_atual - 1) * freq_dias
+            dias_corridos = (ciclo_atual - 1) * dias_por_ciclo
             offset_aleatorio = random.randint(-5, 5)
             data_inicio_estimada = date.today() - timedelta(days=dias_corridos) + timedelta(days=offset_aleatorio)
-            data_inicio_real = encontrar_data_valida(data_inicio_estimada, protocolo.dias_semana_permitidos)
+            data_inicio_tratamento = encontrar_data_valida(data_inicio_estimada, protocolo.dias_semana_permitidos)
 
-            for c in range(1, protocolo.numero_ciclos + 1):
-                delta = (c - 1) * freq_dias
-                data_ciclo = encontrar_data_valida(data_inicio_real + timedelta(days=delta),
-                                                   protocolo.dias_semana_permitidos)
+            for c in range(1, protocolo.total_ciclos + 1):
+                delta_dias_ciclo = (c - 1) * dias_por_ciclo
+                data_ciclo = encontrar_data_valida(
+                    data_inicio_tratamento + timedelta(days=delta_dias_ciclo), protocolo.dias_semana_permitidos)
 
-                if data_ciclo < date.today():
-                    status_ag = "concluido"
-                    checkin_status = True
-                    status_presc = "concluida"
-                    status_farm = "enviada"
-                elif data_ciclo == date.today():
-                    status_ag = random.choice(["agendado", "em-infusao"])
-                    checkin_status = True if status_ag == "em-infusao" else random.choice([True, False])
-                    status_presc = "ativa"
-                    status_farm = "pendente" if status_ag == "agendado" else "enviada"
+                data_fim_ciclo = data_ciclo + timedelta(days=protocolo.duracao_ciclo_dias)
+                if data_fim_ciclo < date.today():
+                    status_presc = PrescricaoStatusEnum.CONCLUIDA
+                elif data_ciclo <= date.today() <= data_fim_ciclo:
+                    status_presc = PrescricaoStatusEnum.EM_CURSO
                 else:
-                    status_ag = "agendado"
-                    status_presc = "pendente"
-                    status_farm = "pendente"
-                    checkin_status = False
+                    status_presc = PrescricaoStatusEnum.PENDENTE
 
+                conteudo_json = criar_prescricao_payload(protocolo, p_app, medico, c)
+                hora_emissao = datetime.now() - timedelta(
+                    days=random.randint(0, 2),
+                    hours=random.randint(0, 5),
+                    minutes=random.randint(0, 59)
+                )
                 presc = Prescricao(
                     id=str(uuid.uuid4()),
                     paciente_id=p_app.id,
-                    protocolo_id=protocolo.id,
-                    protocolo_nome_snapshot=protocolo.nome,
-                    medico_nome=random.choice(MEDICOS_LISTA),
-                    data_prescricao=data_ciclo,
-                    ciclo_atual=c,
-                    ciclos_total=protocolo.numero_ciclos,
-                    peso=p_app.peso,
-                    altura=p_app.altura,
+                    medico_id=medico.username,
+                    data_emissao=datetime.combine(
+                        data_ciclo,
+                        datetime.min.time()) if status_presc == PrescricaoStatusEnum.PENDENTE else hora_emissao,
                     status=status_presc,
-                    diagnostico=protocolo.indicacao,
-                    observacoes="Sem intercorrências" if status_presc == "concluida" else None
+                    conteudo=conteudo_json
                 )
+                session.add(presc)
 
-                for item_proto in protocolo.itens:
-                    presc.itens.append(ItemPrescricao(
-                        tipo=item_proto.tipo, nome=item_proto.nome, dose=item_proto.dose_padrao,
-                        unidade=item_proto.unidade_padrao, via=item_proto.via_padrao
-                    ))
+                dias_infusao = set()
+                for bloco in conteudo_json['blocos']:
+                    for item in bloco['itens']:
+                        for d in item['dias_do_ciclo']:
+                            dias_infusao.add(d)
 
-                turno = random.choice(["manha", "tarde"])
-                h_inicio, h_fim = gerar_horario(turno)
+                for dia_num in sorted(dias_infusao):
+                    data_ag = encontrar_data_valida(data_ciclo + timedelta(days=dia_num - 1),
+                                                    protocolo.dias_semana_permitidos)
 
-                tags_agendamento = []
-                if c == 1: tags_agendamento.append("1ª Vez de Quimio")
-                if random.random() < 0.2: tags_agendamento.append(random.choice(TAGS_CONFIG))
+                    status_ag = AgendamentoStatusEnum.AGENDADO
+                    checkin = False
+                    status_farm = FarmaciaStatusEnum.PENDENTE
 
-                ag = Agendamento(
-                    id=str(uuid.uuid4()),
-                    paciente_id=p_app.id,
-                    tipo="infusao",
-                    data=data_ciclo,
-                    turno=turno, horario_inicio=h_inicio, horario_fim=h_fim,
-                    checkin=checkin_status,
-                    status=status_ag,
-                    tags=list(set(tags_agendamento)),
-                    observacoes="Agendamento automático via seed.",
-                    criado_por_id="usuario_teste",
-                    detalhes={
+                    if data_ag < date.today():
+                        status_ag = AgendamentoStatusEnum.CONCLUIDO
+                        checkin = True
+                        status_farm = FarmaciaStatusEnum.ENVIADA
+                    elif data_ag == date.today():
+                        status_ag = random.choice([
+                            AgendamentoStatusEnum.AGENDADO,
+                            AgendamentoStatusEnum.EM_INFUSAO,
+                            AgendamentoStatusEnum.CONCLUIDO,
+                        ])
+                        checkin = True if status_ag != AgendamentoStatusEnum.AGENDADO else False
+                        status_farm = FarmaciaStatusEnum.PENDENTE if checkin else FarmaciaStatusEnum.ENVIADA
+
+                    inicio, fim = gerar_horario(random.choice(["manha", "tarde"]), protocolo.tempo_total_minutos)
+
+                    tags = []
+                    if c == 1 and dia_num == 1:
+                        tags.append("1ª Vez de Quimio")
+                    if random.random() < 0.1:
+                        tags.append(random.choice(TAGS_CONFIG))
+
+                    detalhes_input = {
                         "infusao": {
+                            "prescricao_id": presc.id,
                             "status_farmacia": status_farm,
                             "ciclo_atual": c,
-                            "dia_ciclo": "D1"
+                            "dia_ciclo": dia_num
                         }
                     }
-                )
 
-                session.add(presc)
-                session.add(ag)
+                    ag_validator = AgendamentoCreate(
+                        paciente_id=p_app.id,
+                        tipo=TipoAgendamento.INFUSAO,
+                        data=data_ag,
+                        turno="manha",
+                        horario_inicio=inicio,
+                        horario_fim=fim,
+                        checkin=checkin,
+                        status=status_ag,
+                        tags=list(set(tags)),
+                        observacoes=f"Ciclo {c} Dia {dia_num} - Seed",
+                        detalhes=DetalhesAgendamento(**detalhes_input)
+                    )
 
-            session.add(p_app)
+                    ag = Agendamento(
+                        id=str(uuid.uuid4()),
+                        criado_por_id="admin",
+                        paciente_id=ag_validator.paciente_id,
+                        tipo=ag_validator.tipo,
+                        data=ag_validator.data,
+                        turno=ag_validator.turno,
+                        horario_inicio=ag_validator.horario_inicio,
+                        horario_fim=ag_validator.horario_fim,
+                        checkin=ag_validator.checkin,
+                        status=ag_validator.status,
+                        tags=ag_validator.tags,
+                        observacoes=ag_validator.observacoes,
+                        detalhes=ag_validator.detalhes.model_dump(mode='json', exclude_none=True)
+                    )
+                    session.add(ag)
 
         await session.commit()
         print("Seed concluído com sucesso!")

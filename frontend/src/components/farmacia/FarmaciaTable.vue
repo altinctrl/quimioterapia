@@ -4,9 +4,9 @@ import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '@/c
 import {Badge} from '@/components/ui/badge'
 import {Button} from '@/components/ui/button'
 import {Checkbox} from '@/components/ui/checkbox'
-import {AlertTriangle, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Clock} from 'lucide-vue-next'
-import type {StatusFarmacia} from '@/types'
-import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip";
+import {ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Clock} from 'lucide-vue-next'
+import {FarmaciaStatusEnum} from '@/types'
+import PacienteCell from '@/components/common/PacienteCell.vue'
 
 export interface FarmaciaTableRow {
   id: string
@@ -19,7 +19,7 @@ export interface FarmaciaTableRow {
   checkin: boolean
   statusTexto: string
   statusBloqueado: boolean
-  statusFarmacia: StatusFarmacia
+  statusFarmacia: FarmaciaStatusEnum
   statusFarmaciaCor: string
   previsaoEntrega: string
   medicamentos: Array<{
@@ -40,11 +40,13 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'alterarStatus', id: string, novoStatus: StatusFarmacia): void
+  (e: 'abrir-detalhes', row: FarmaciaTableRow): void
+  (e: 'abrir-prescricao', row: FarmaciaTableRow): void
+  (e: 'alterarStatus', id: string, novoStatus: FarmaciaStatusEnum): void
   (e: 'alterarHorario', id: string, novoHorario: string): void
   (e: 'update:expandedIds', value: string[]): void
   (e: 'clickPaciente', pacienteId: string): void
-  (e: 'toggleCheckItem', id: string, itemKey: string, statusAtual: StatusFarmacia): void
+  (e: 'toggleCheckItem', id: string, itemKey: string, statusAtual: FarmaciaStatusEnum): void
 }>()
 
 const expandedSet = computed(() => new Set(props.expandedIds))
@@ -69,7 +71,7 @@ const toggleExpand = (id: string) => {
 }
 
 const onStatusChange = (id: string, event: Event) => {
-  const val = (event.target as HTMLSelectElement).value as StatusFarmacia
+  const val = (event.target as HTMLSelectElement).value as FarmaciaStatusEnum
   emit('alterarStatus', id, val)
 }
 </script>
@@ -93,7 +95,7 @@ const onStatusChange = (id: string, event: Event) => {
           </TableHead>
           <TableHead class="w-[100px]">Horário</TableHead>
           <TableHead class="min-w-[150px]">Paciente</TableHead>
-          <TableHead class="min-w-[100px]">Protocolo</TableHead>
+          <TableHead class="min-w-[100px]">Prescrição</TableHead>
           <TableHead class="w-[80px] text-center">Check-in</TableHead>
           <TableHead class="w-[140px]">Status Paciente</TableHead>
           <TableHead class="w-[220px]">Status Farmácia</TableHead>
@@ -124,46 +126,32 @@ const onStatusChange = (id: string, event: Event) => {
             </TableCell>
 
             <TableCell>
-              <div class="text-md">{{ row.horario }}</div>
+              <button
+                  class="text-md hover:text-blue-600 hover:underline"
+                  @click="emit('abrir-detalhes', row)"
+              >
+                {{ row.horario }}
+              </button>
             </TableCell>
 
             <TableCell>
-              <div class="flex items-center gap-1.5">
-                <button
-                    class="text-left font-medium hover:text-blue-600 hover:underline truncate max-w-[180px] text-gray-900"
-                    @click="emit('clickPaciente', row.pacienteId)"
-                >
-                  {{ row.pacienteNome }}
-                </button>
-                <TooltipProvider v-if="row.observacoesClinicas">
-                  <Tooltip :delay-duration="200">
-                    <TooltipTrigger as-child>
-                      <div class="cursor-help flex-shrink-0">
-                        <AlertTriangle class="h-4 w-4 text-amber-500 hover:text-amber-600 transition-colors"/>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent
-                        class="max-w-[300px] p-3 bg-amber-50 border border-amber-200 text-black"
-                        side="right"
-                    >
-                      <p class="font-semibold text-xs mb-1 uppercase tracking-wide">Observações Clínicas</p>
-                      <p class="text-sm leading-relaxed">
-                        {{ row.observacoesClinicas }}
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-              <div class="text-xs text-gray-500">{{ row.pacienteRegistro }}</div>
+              <PacienteCell
+                  :nome="row.pacienteNome"
+                  :observacoesClinicas="row.observacoesClinicas"
+                  :paciente-id="row.pacienteId"
+                  :registro="row.pacienteRegistro"
+                  @click="(id) => emit('clickPaciente', id)"
+              />
             </TableCell>
 
             <TableCell>
-              <span
+              <button
                   :title="row.protocoloNome"
-                  class="text-sm font-medium text-gray-700 block whitespace-normal break-words"
+                  class="text-sm font-medium text-gray-700 block whitespace-normal break-words hover:text-blue-600 hover:underline text-left"
+                  @click.stop="emit('abrir-prescricao', row)"
               >
                 {{ row.protocoloNome }}
-              </span>
+              </button>
               <div v-if="row.checklistLabel" class="text-xs font-medium text-gray-500">
                 Prontas: {{ row.checklistLabel }}
               </div>
@@ -270,7 +258,7 @@ const onStatusChange = (id: string, event: Event) => {
                 </template>
               </div>
             </TableCell>
-            <TableCell class="p-0" colspan="3"></TableCell>
+            <TableCell class="p-0" colspan="4"></TableCell>
           </TableRow>
         </template>
       </TableBody>

@@ -3,7 +3,7 @@ from datetime import date
 from typing import List, Optional
 
 from fastapi import HTTPException, status
-from sqlalchemy.orm.attributes import flag_modified  # Importação necessária
+from sqlalchemy.orm.attributes import flag_modified
 
 from src.models.agendamento import Agendamento
 from src.providers.interfaces.agendamento_provider_interface import AgendamentoProviderInterface
@@ -22,24 +22,24 @@ async def listar_agendamentos(
     agendamentos = await agendamento_provider.listar_agendamentos(data_inicio, data_fim, paciente_id)
     if not agendamentos: return []
 
-    paciente_ids = list(set([a.paciente_id for a in agendamentos if a.paciente_id]))
-    prescricoes = await prescricao_provider.listar_por_paciente_multi(paciente_ids)
-    mapa_prescricoes = {p.paciente_id: p for p in reversed(prescricoes)}
+    prescricao_ids = set()
+    for ag in agendamentos:
+        if ag.tipo == TipoAgendamento.INFUSAO and ag.detalhes:
+            infusao = ag.detalhes.get('infusao')
+            if infusao and 'prescricao_id' in infusao: prescricao_ids.add(infusao['prescricao_id'])
+
+    lista_prescricoes = await prescricao_provider.obter_prescricao_multi(list(prescricao_ids))
+    mapa_prescricoes = {p.id: p for p in lista_prescricoes}
 
     response = []
     for ag in agendamentos:
         ag_resp = AgendamentoResponse.model_validate(ag)
-
-        if ag.paciente_id in mapa_prescricoes:
-            prescricao_obj = mapa_prescricoes[ag.paciente_id]
-            p_resp = PrescricaoResponse.model_validate(prescricao_obj)
-            p_resp.protocolo = prescricao_obj.protocolo_nome_snapshot
-            p_dict = p_resp.model_dump()
-            p_dict['qt'] = [i for i in prescricao_obj.itens if i.tipo == 'qt']
-            p_dict['medicamentos'] = [i for i in prescricao_obj.itens if i.tipo == 'pre']
-            p_dict['pos_medicacoes'] = [i for i in prescricao_obj.itens if i.tipo == 'pos']
-            ag_resp.prescricao = PrescricaoResponse(**p_dict)
-
+        if ag.tipo == 'infusao' and ag.detalhes and 'infusao' in ag.detalhes:
+            p_id = ag.detalhes['infusao'].get('prescricao_id')
+            if p_id and p_id in mapa_prescricoes:
+                prescricao_obj = mapa_prescricoes[p_id]
+                p_resp = PrescricaoResponse.model_validate(prescricao_obj)
+                ag_resp.prescricao = p_resp
         response.append(ag_resp)
 
     return response
@@ -47,9 +47,50 @@ async def listar_agendamentos(
 
 async def criar_agendamento(
         provider: AgendamentoProviderInterface,
+        prescricao_provider: PrescricaoProviderInterface,
         dados: AgendamentoCreate,
         criado_por_id: str
 ) -> AgendamentoResponse:
+    if dados.tipo == TipoAgendamento.INFUSAO:
+        detalhes_inf = dados.detalhes.infusao
+
+        prescricao = await prescricao_provider.obter_prescricao(detalhes_inf.prescricao_id)
+        if not prescricao:
+            raise HTTPException(status_code=400, detail="Prescrição informada não encontrada.")
+
+        if prescricao.paciente_id != dados.paciente_id:
+            raise HTTPException(status_code=400, detail="A prescrição não pertence ao paciente informado.")
+
+        conteudo = prescricao.conteudo
+        dias_validos = set()
+
+        if 'blocos' in conteudo:
+            for bloco in conteudo['blocos']:
+                for item in bloco.get('itens', []):
+                    for dia in item.get('dias_do_ciclo', []):
+                        dias_validos.add(dia)
+
+        if detalhes_inf.dia_ciclo not in dias_validos:
+            dias_str = ", ".join(map(str, sorted(dias_validos)))
+            raise HTTPException(
+                status_code=400,
+                detail=f"Dia do ciclo {detalhes_inf.dia_ciclo} inválido para esta prescrição. Dias válidos com medicação: {dias_str}."
+            )
+
+        agendamentos_existentes = await provider.buscar_por_prescricao_e_dia(
+            detalhes_inf.prescricao_id,
+            detalhes_inf.dia_ciclo
+        )
+
+        conflito = [a for a in agendamentos_existentes if a.status not in ['cancelado', 'suspenso', 'remarcado']]
+
+        if conflito:
+            data_existente = conflito[0].data.strftime('%d/%m/%Y')
+            raise HTTPException(
+                status_code=409,
+                detail=f"Já existe um agendamento ativo para o Dia {detalhes_inf.dia_ciclo} desta prescrição em {data_existente}. Use a remarcação se necessário."
+            )
+
     novo_id = str(uuid.uuid4())
 
     agendamento = Agendamento(

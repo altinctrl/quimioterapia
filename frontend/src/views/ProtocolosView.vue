@@ -1,82 +1,80 @@
 <script lang="ts" setup>
-import {ref} from 'vue'
+import {onMounted, ref} from 'vue'
 import {useRouter} from 'vue-router'
 import {useAppStore} from '@/stores/app'
 import {Button} from '@/components/ui/button'
 import {Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle} from '@/components/ui/dialog'
 import {ArrowLeft, Plus} from 'lucide-vue-next'
 import {toast} from 'vue-sonner'
-import type {ItemProtocolo} from '@/types'
 import ProtocolosLista from '@/components/protocolos/ProtocolosLista.vue'
 import ProtocolosForm from '@/components/protocolos/ProtocolosForm.vue'
 import ProtocolosDetalhes from '@/components/protocolos/ProtocolosDetalhes.vue'
+import {ScrollArea} from "@/components/ui/scroll-area";
 
 const router = useRouter()
 const appStore = useAppStore()
+
+onMounted(() => {
+  appStore.fetchProtocolos()
+})
 
 const dialogOpen = ref(false)
 const detailsOpen = ref(false)
 const editMode = ref(false)
 const selectedProtocolo = ref<any>(null)
 
-const formData = ref({
+const getInitialFormState = () => ({
   nome: '',
-  descricao: '',
   indicacao: '',
-  duracao: 0,
-  frequencia: '',
-  numeroCiclos: 0,
-  medicamentos: [] as ItemProtocolo[],
-  preMedicacoes: [] as ItemProtocolo[],
-  posMedicacoes: [] as ItemProtocolo[],
+  fase: '',
+  linha: null as number | null,
+  tempoTotalMinutos: 0,
+  duracaoCicloDias: 21,
+  totalCiclos: 0,
   observacoes: '',
   precaucoes: '',
   ativo: true,
-  diasSemanaPermitidos: [] as number[]
+  diasSemanaPermitidos: [] as number[],
+  templatesCiclo: [
+    {
+      idTemplate: 'padrao',
+      aplicavelAosCiclos: '',
+      blocos: []
+    }
+  ]
 })
 
-const inferirGrupoInfusao = (duracao: number): 'rapido' | 'medio' | 'longo' => {
-  if (duracao < 120) return 'rapido'
-  if (duracao <= 240) return 'medio'
-  return 'longo'
-}
-
-const resetForm = () => {
-  formData.value = {
-    nome: '', descricao: '', indicacao: '', duracao: 0,
-    frequencia: '', numeroCiclos: 0,
-    medicamentos: [],
-    preMedicacoes: [],
-    posMedicacoes: [],
-    observacoes: '', precaucoes: '', ativo: true,
-    diasSemanaPermitidos: []
-  }
-  selectedProtocolo.value = null
-  editMode.value = false
-}
+const formData = ref(getInitialFormState())
 
 const handleAdd = () => {
-  resetForm()
+  formData.value = getInitialFormState()
+  selectedProtocolo.value = null
+  editMode.value = false
   dialogOpen.value = true
 }
 
 const handleEdit = (p: any) => {
   selectedProtocolo.value = p
-  formData.value = {
-    nome: p.nome,
-    descricao: p.descricao || '',
-    indicacao: p.indicacao,
-    duracao: p.duracao,
-    frequencia: p.frequencia,
-    numeroCiclos: p.numeroCiclos,
-    medicamentos: p.medicamentos ? JSON.parse(JSON.stringify(p.medicamentos)) : [],
-    preMedicacoes: p.preMedicacoes ? JSON.parse(JSON.stringify(p.preMedicacoes)) : [],
-    posMedicacoes: p.posMedicacoes ? JSON.parse(JSON.stringify(p.posMedicacoes)) : [],
-    observacoes: p.observacoes || '',
-    precaucoes: p.precaucoes || '',
-    ativo: p.ativo,
-    diasSemanaPermitidos: Array.isArray(p.diasSemanaPermitidos) ? [...p.diasSemanaPermitidos] : []
+  const clone = JSON.parse(JSON.stringify(p))
+  if (!clone.templatesCiclo || clone.templatesCiclo.length === 0) {
+    clone.templatesCiclo = [{idTemplate: 'padrao', blocos: []}]
   }
+
+  formData.value = {
+    nome: clone.nome,
+    indicacao: clone.indicacao,
+    fase: clone.fase,
+    linha: clone.linha,
+    tempoTotalMinutos: clone.tempoTotalMinutos || clone.duracao || 0,
+    duracaoCicloDias: clone.duracaoCicloDias || 21,
+    totalCiclos: clone.totalCiclos || 0,
+    observacoes: clone.observacoes || '',
+    precaucoes: clone.precaucoes || '',
+    ativo: clone.ativo,
+    diasSemanaPermitidos: Array.isArray(clone.diasSemanaPermitidos) ? [...clone.diasSemanaPermitidos] : [],
+    templatesCiclo: clone.templatesCiclo
+  }
+
   editMode.value = true
   dialogOpen.value = true
 }
@@ -101,10 +99,33 @@ const handleToggleStatus = async (p: any) => {
 }
 
 const handleSubmit = async () => {
-  const grupoInfusao = inferirGrupoInfusao(formData.value.duracao)
-  const data = {...formData.value, grupoInfusao}
-
   try {
+    const data = JSON.parse(JSON.stringify(formData.value))
+    if (!data.fase || data.fase === '' || data.fase === 'none') {
+      data.fase = null
+    }
+
+    if (data.templatesCiclo) {
+      data.templatesCiclo.forEach((template: any) => {
+        if (template.blocos) {
+          template.blocos.forEach((bloco: any) => {
+            if (bloco.itens) {
+              bloco.itens = bloco.itens.map((item: any) => {
+                if (item.tipo === 'medicamento_unico') {
+                  const {labelGrupo, opcoes, ...rest} = item
+                  return rest
+                } else if (item.tipo === 'grupo_alternativas') {
+                  const {dados, ...rest} = item
+                  return rest
+                }
+                return item
+              })
+            }
+          })
+        }
+      })
+    }
+
     if (editMode.value && selectedProtocolo.value) {
       await appStore.atualizarProtocolo(selectedProtocolo.value.id, data)
       toast.success('Protocolo atualizado')
@@ -144,14 +165,18 @@ const handleSubmit = async () => {
     />
 
     <Dialog v-model:open="dialogOpen">
-      <DialogContent class="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{{ editMode ? 'Editar' : 'Novo' }} Protocolo</DialogTitle>
+      <DialogContent class="max-w-4xl max-h-[90vh] flex flex-col p-0 gap-0">
+        <DialogHeader class="p-6 pb-4 border-b">
+          <DialogTitle class="text-xl font-bold text-gray-900 flex items-center gap-3">
+            {{ editMode ? 'Editar' : 'Novo' }} Protocolo
+          </DialogTitle>
         </DialogHeader>
 
-        <ProtocolosForm v-model="formData"/>
+        <ScrollArea class="h-[calc(90vh-140px)] w-full">
+          <ProtocolosForm v-model="formData" class="p-6"/>
+        </ScrollArea>
 
-        <DialogFooter>
+        <DialogFooter class="p-4 border-t bg-gray-50">
           <Button variant="outline" @click="dialogOpen = false">Cancelar</Button>
           <Button @click="handleSubmit">Salvar Protocolo</Button>
         </DialogFooter>

@@ -33,6 +33,17 @@ class AgendamentoSQLAlchemyProvider(AgendamentoProviderInterface):
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
 
+
+    async def buscar_por_prescricao_e_dia(self, prescricao_id: str, dia_ciclo: int) -> List[Agendamento]:
+        query = select(Agendamento).where(
+            Agendamento.detalhes['infusao']['prescricao_id'].astext == prescricao_id,
+            Agendamento.detalhes['infusao']['dia_ciclo'] == dia_ciclo
+        )
+
+        result = await self.session.execute(query)
+        return result.scalars().all()
+
+
     async def criar_agendamento(self, agendamento: Agendamento) -> Agendamento:
         self.session.add(agendamento)
         await self.session.commit()

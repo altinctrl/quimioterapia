@@ -33,14 +33,24 @@ async def listar_agendamentos(
 @router.post("", response_model=AgendamentoResponse)
 async def criar_agendamento(
         dados: AgendamentoCreate,
-        provider: AgendamentoProviderInterface = Depends(get_agendamento_provider),
-        current_user: dict = Depends(auth_handler.get_current_user)):
+        agendamento_provider: AgendamentoProviderInterface = Depends(get_agendamento_provider),
+        prescricao_provider: PrescricaoProviderInterface = Depends(get_prescricao_provider),
+        current_user: dict = Depends(auth_handler.get_current_user)
+):
     user_id = current_user.get("username") or current_user.get("sub")
     if not user_id: raise HTTPException(status_code=400, detail="Usuário não identificado no token.")
-    return await agendamento_controller.criar_agendamento(provider, dados, criado_por_id=user_id)
+
+    return await agendamento_controller.criar_agendamento(
+        agendamento_provider,
+        prescricao_provider,
+        dados,
+        criado_por_id=user_id,
+    )
 
 
 @router.put("/{agendamento_id}", response_model=AgendamentoResponse)
 async def atualizar_agendamento(agendamento_id: str, dados: AgendamentoUpdate,
         provider: AgendamentoProviderInterface = Depends(get_agendamento_provider)):
     return await agendamento_controller.atualizar_agendamento(provider, agendamento_id, dados)
+
+# TODO: Criar endpoint para remarcação, garantindo operação atômica

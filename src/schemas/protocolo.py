@@ -1,75 +1,131 @@
-from typing import List, Optional
+from enum import Enum
+from typing import List, Optional, Union, Literal, Annotated
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
 
-class ItemProtocoloBase(BaseModel):
+class FaseEnum(str, Enum):
+    NA = "NA"
+    ADJUVANTE = "Adjuvante"
+    NEOADJUVANTE = "Neoadjuvante"
+    PALIATIVO = "Paliativo"
+    CONTROLE = "Controle"
+    CURATIVO = "Curativo"
+
+
+class CategoriaBlocoEnum(str, Enum):
+    PRE_MED = "pre_med"
+    QT = "qt"
+    POS_MED_HOSPITALAR = "pos_med_hospitalar"
+    POS_MED_DOMICILIAR = "pos_med_domiciliar"
+    INFUSOR = "infusor"
+
+
+class UnidadeDoseEnum(str, Enum):
+    MG = "mg"
+    MG_M2 = "mg/m2"
+    MG_KG = "mg/kg"
+    MCG_KG = "mcg/kg"
+    AUC = "AUC"
+    UI = "UI"
+    G = "g"
+
+
+class ViaAdministracaoEnum(str, Enum):
+    IV = "IV"
+    VO = "VO"
+    SC = "SC"
+    IT = "IT"
+    IM = "IM"
+
+
+class BaseSchema(BaseModel):
+    model_config = ConfigDict(
+        from_attributes=True,
+        alias_generator=to_camel,
+        populate_by_name=True,
+        use_enum_values=True
+    )
+
+
+class ConfiguracaoDiluicao(BaseSchema):
+    opcoes_permitidas: Optional[List[str]] = None
+    selecionada: Optional[str] = None
+
+
+class DetalhesMedicamento(BaseSchema):
+    medicamento: str
+    dose_referencia: float
+    unidade: UnidadeDoseEnum
+    dose_maxima: Optional[float] = None
+    via: ViaAdministracaoEnum
+    configuracao_diluicao: Optional[ConfiguracaoDiluicao] = None
+    tempo_minutos: int
+    dias_do_ciclo: List[int]
+    notas_especificas: Optional[str] = None
+
+
+class MedicamentoUnico(BaseSchema):
+    tipo: Literal["medicamento_unico"] = "medicamento_unico"
+    dados: DetalhesMedicamento
+
+
+class GrupoAlternativas(BaseSchema):
+    tipo: Literal["grupo_alternativas"] = "grupo_alternativas"
+    label_grupo: str
+    opcoes: List[DetalhesMedicamento]
+
+
+ItemBloco = Union[MedicamentoUnico, GrupoAlternativas]
+
+
+class BlocoMedicacao(BaseSchema):
+    ordem: int
+    categoria: CategoriaBlocoEnum
+    itens: List[Annotated[ItemBloco, Field(discriminator='tipo')]]
+
+
+class TemplateCiclo(BaseSchema):
+    id_template: str
+    aplicavel_aos_ciclos: Optional[str] = None
+    blocos: List[BlocoMedicacao]
+
+
+class ProtocoloBase(BaseSchema):
     nome: str
-    dose_padrao: Optional[str] = None
-    unidade_padrao: Optional[str] = None
-    via_padrao: Optional[str] = None
-
-    model_config = ConfigDict(from_attributes=True, alias_generator=to_camel, populate_by_name=True)
-
-
-class ItemProtocoloCreate(ItemProtocoloBase):
-    pass
-
-
-class ItemProtocoloResponse(ItemProtocoloBase):
-    id: int
-    tipo: str
-
-    model_config = ConfigDict(from_attributes=True, alias_generator=to_camel, populate_by_name=True)
-
-
-class ProtocoloBase(BaseModel):
-    nome: str
-    descricao: Optional[str] = None
+    total_ciclos: Optional[int] = None
+    duracao_ciclo_dias: int = Field(..., ge=1)
+    fase: Optional[FaseEnum] = None
+    linha: Optional[int] = None
     indicacao: Optional[str] = None
-    duracao: int
-    frequencia: Optional[str] = None
-    numero_ciclos: Optional[int] = None
-    grupo_infusao: Optional[str] = None
-    dias_semana_permitidos: Optional[List[int]] = None
-    observacoes: Optional[str] = None
     precaucoes: Optional[str] = None
+    observacoes: Optional[str] = None
+    tempo_total_minutos: int = None
+    dias_semana_permitidos: Optional[List[int]] = None
     ativo: bool = True
-
-    model_config = ConfigDict(from_attributes=True, alias_generator=to_camel, populate_by_name=True)
+    templates_ciclo: List[TemplateCiclo]
 
 
 class ProtocoloCreate(ProtocoloBase):
-    medicamentos: List[ItemProtocoloCreate] = []
-    pre_medicacoes: List[ItemProtocoloCreate] = []
-    pos_medicacoes: List[ItemProtocoloCreate] = []
+    pass
 
 
-class ProtocoloUpdate(BaseModel):
+class ProtocoloUpdate(BaseSchema):
     nome: Optional[str] = None
-    descricao: Optional[str] = None
+    total_ciclos: Optional[int] = None
+    duracao_ciclo_dias: Optional[int] = None
+    fase: Optional[FaseEnum] = None
+    linha: Optional[int] = None
     indicacao: Optional[str] = None
-    duracao: Optional[int] = None
-    frequencia: Optional[str] = None
-    numero_ciclos: Optional[int] = None
-    grupo_infusao: Optional[str] = None
-    dias_semana_permitidos: Optional[List[int]] = None
-    observacoes: Optional[str] = None
     precaucoes: Optional[str] = None
+    observacoes: Optional[str] = None
+    tempo_total_minutos: Optional[int] = None
+    dias_semana_permitidos: Optional[List[int]] = None
     ativo: Optional[bool] = None
-    medicamentos: Optional[List[ItemProtocoloCreate]] = None
-    pre_medicacoes: Optional[List[ItemProtocoloCreate]] = None
-    pos_medicacoes: Optional[List[ItemProtocoloCreate]] = None
-
-    model_config = ConfigDict(from_attributes=True, alias_generator=to_camel, populate_by_name=True)
+    templates_ciclo: Optional[List[TemplateCiclo]] = None
 
 
 class ProtocoloResponse(ProtocoloBase):
     id: str
-    medicamentos: List[ItemProtocoloResponse] = []
-    pre_medicacoes: List[ItemProtocoloResponse] = []
-    pos_medicacoes: List[ItemProtocoloResponse] = []
     created_at: Optional[str] = None
-
-    model_config = ConfigDict(from_attributes=True, alias_generator=to_camel, populate_by_name=True)

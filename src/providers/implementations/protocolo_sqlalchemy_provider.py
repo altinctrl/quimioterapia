@@ -13,7 +13,7 @@ class ProtocoloSQLAlchemyProvider(ProtocoloProviderInterface):
         self.session = session
 
     async def listar_protocolos(self, ativo: Optional[bool] = None) -> List[Protocolo]:
-        query = select(Protocolo).options(selectinload(Protocolo.itens))
+        query = select(Protocolo)
         if ativo is not None:
             query = query.where(Protocolo.ativo == ativo)
 
@@ -21,21 +21,21 @@ class ProtocoloSQLAlchemyProvider(ProtocoloProviderInterface):
         return result.scalars().all()
 
     async def obter_protocolo(self, protocolo_id: str) -> Optional[Protocolo]:
-        query = select(Protocolo).where(Protocolo.id == protocolo_id).options(selectinload(Protocolo.itens))
+        query = select(Protocolo).where(Protocolo.id == protocolo_id)
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
 
     async def criar_protocolo(self, protocolo: Protocolo) -> Protocolo:
         self.session.add(protocolo)
         await self.session.commit()
-        query = select(Protocolo).where(Protocolo.id == protocolo.id).options(selectinload(Protocolo.itens))
+        query = select(Protocolo).where(Protocolo.id == protocolo.id)
         result = await self.session.execute(query)
         return result.scalar_one()
 
     async def atualizar_protocolo(self, protocolo: Protocolo) -> Protocolo:
         self.session.add(protocolo)
         await self.session.commit()
-        query = select(Protocolo).where(Protocolo.id == protocolo.id).options(selectinload(Protocolo.itens))
+        query = select(Protocolo).where(Protocolo.id == protocolo.id)
         result = await self.session.execute(query)
         return result.scalar_one()
 

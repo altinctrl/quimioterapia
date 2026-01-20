@@ -20,7 +20,7 @@ class EquipeSqlAlchemyProvider(EquipeProviderInterface):
             username=profissional.username,
             nome=profissional.nome,
             cargo=profissional.cargo,
-            coren=profissional.coren,
+            registro=profissional.registro,
             ativo=profissional.ativo
         )
         self.session.add(db_profissional)
@@ -48,7 +48,7 @@ class EquipeSqlAlchemyProvider(EquipeProviderInterface):
 
         db_prof.nome = dados.nome
         db_prof.cargo = dados.cargo
-        db_prof.coren = dados.coren
+        db_prof.registro = dados.registro
         db_prof.ativo = dados.ativo
 
         await self.session.commit()

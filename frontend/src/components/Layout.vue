@@ -2,14 +2,12 @@
 import {computed, onMounted, ref, watch} from 'vue'
 import {useRouter} from 'vue-router'
 import {useAuthStore} from '@/stores/auth'
-import {useAppStore} from '@/stores/app'
 import {useMediaQuery} from '@vueuse/core'
 import {Calendar, FileText, LogOut, Menu, Pill, Settings, Stethoscope, Users, X} from 'lucide-vue-next'
 import {Button} from '@/components/ui/button'
 
 const router = useRouter()
 const authStore = useAuthStore()
-const appStore = useAppStore()
 
 const isDesktop = useMediaQuery('(min-width: 1024px)')
 
@@ -17,8 +15,6 @@ const sidebarOpen = ref(true)
 
 onMounted(async () => {
   sidebarOpen.value = window.innerWidth >= 1024
-
-  await appStore.fetchInitialData()
 })
 
 watch(isDesktop, (ehDesktop) => {

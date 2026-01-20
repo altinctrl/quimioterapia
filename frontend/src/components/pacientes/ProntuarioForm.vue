@@ -4,7 +4,8 @@ import {CardContent} from '@/components/ui/card'
 import {Input} from '@/components/ui/input'
 import {Label} from '@/components/ui/label'
 import {Textarea} from '@/components/ui/textarea'
-import {AlertCircle, Phone} from 'lucide-vue-next'
+import {Button} from '@/components/ui/button'
+import {AlertCircle, Phone, Plus, Trash2} from 'lucide-vue-next'
 import type {Paciente} from '@/types'
 
 const props = defineProps<{
@@ -30,6 +31,23 @@ const idadeCalculada = computed(() => {
   if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) idade--
   return `${idade} anos`
 })
+
+const adicionarContato = () => {
+  if (!form.value.contatosEmergencia) {
+    form.value.contatosEmergencia = []
+  }
+  form.value.contatosEmergencia.push({
+    nome: '',
+    parentesco: '',
+    telefone: ''
+  })
+}
+
+const removerContato = (index: number) => {
+  if (form.value.contatosEmergencia) {
+    form.value.contatosEmergencia.splice(index, 1)
+  }
+}
 </script>
 
 <template>
@@ -73,13 +91,24 @@ const idadeCalculada = computed(() => {
                 type="date"
             />
           </div>
-          <div>
-            <Label>Idade</Label>
-            <Input
-                :model-value="idadeCalculada"
-                class="mt-1 bg-gray-50 border-transparent bg-transparent shadow-none px-0 disabled:opacity-100 disabled:cursor-default"
-                disabled
-            />
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <Label>Idade</Label>
+              <Input
+                  :model-value="idadeCalculada"
+                  class="mt-1 bg-gray-50 border-transparent bg-transparent shadow-none px-0 disabled:opacity-100 disabled:cursor-default"
+                  disabled
+              />
+            </div>
+            <div>
+              <Label>Sexo</Label>
+              <Input
+                  v-model="form.sexo"
+                  class="mt-1 bg-gray-50 border-transparent bg-transparent shadow-none px-0 disabled:opacity-100 disabled:cursor-default uppercase"
+                  disabled
+                  title="O sexo não pode ser alterado"
+              />
+            </div>
           </div>
         </div>
         <div class="grid grid-cols-2 gap-4">
@@ -109,15 +138,27 @@ const idadeCalculada = computed(() => {
     </div>
 
     <div>
-      <h3 class="text-gray-900 mb-4 font-medium text-lg border-b pb-2 flex items-center gap-2">
-        <Phone class="h-5 w-5"/>
-        Contatos de Emergência
-      </h3>
+      <div class="flex items-center justify-between border-b pb-2 mb-4">
+        <h3 class="text-gray-900 font-medium text-lg flex items-center gap-2">
+          <Phone class="h-5 w-5"/>
+          Contatos de Emergência
+        </h3>
+        <Button
+            v-if="modoEdicao"
+            class="h-8"
+            size="sm"
+            variant="outline"
+            @click="adicionarContato"
+        >
+          <Plus class="h-4 w-4 mr-2"/>
+          Adicionar
+        </Button>
+      </div>
+
       <div v-if="form.contatosEmergencia && form.contatosEmergencia.length > 0" class="space-y-4">
         <div
-            v-for="(contato, idx) in form.contatosEmergencia"
-            :key="idx"
-            class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 p-4 rounded-lg border"
+            v-for="(contato, idx) in form.contatosEmergencia" :key="idx"
+            class="relative grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_auto] gap-4 bg-gray-50 p-4 rounded-lg border group items-end"
         >
           <div>
             <Label class="text-xs text-gray-500 mb-1 block">Nome</Label>
@@ -149,10 +190,20 @@ const idadeCalculada = computed(() => {
                 class="disabled:opacity-100 disabled:cursor-default transition-all"
             />
           </div>
+          <Button
+              v-if="modoEdicao"
+              class="hover:bg-red-50 hover:text-red-600"
+              size="icon"
+              title="Remover contato"
+              variant="outline"
+              @click="removerContato(idx)"
+          >
+            <Trash2 class="h-4 w-4"/>
+          </Button>
         </div>
       </div>
-      <div v-else class="text-gray-500 text-sm italic py-2">
-        Nenhum contato de emergência cadastrado.
+      <div v-else class="text-gray-500 text-sm italic py-4 text-center bg-gray-50/50 rounded-md border border-dashed">
+        {{ modoEdicao ? 'Aperte "Adicionar" para incluir um contato.' : 'Nenhum contato de emergência cadastrado.' }}
       </div>
     </div>
 

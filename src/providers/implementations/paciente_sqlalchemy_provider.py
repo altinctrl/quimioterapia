@@ -15,9 +15,9 @@ class PacienteSQLAlchemyProvider(PacienteProviderInterface):
 
     async def listar_pacientes(self, termo: Optional[str] = None, ordenacao: str = None) -> List[Paciente]:
         subquery_protocolo = (
-            select(Prescricao.protocolo_nome_snapshot)
+            select(Prescricao.conteudo['protocolo', 'nome'].astext)
             .where(Prescricao.paciente_id == Paciente.id)
-            .order_by(desc(Prescricao.data_prescricao), desc(Prescricao.created_at))
+            .order_by(desc(Prescricao.data_emissao))
             .limit(1)
             .correlate(Paciente)
             .scalar_subquery()

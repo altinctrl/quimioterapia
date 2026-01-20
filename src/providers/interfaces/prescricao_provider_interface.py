@@ -18,5 +18,9 @@ class PrescricaoProviderInterface(ABC):
         pass
 
     @abstractmethod
+    async def obter_prescricao_multi(self, prescricao_ids: List[str]) -> List[Prescricao]:
+        pass
+
+    @abstractmethod
     async def criar_prescricao(self, prescricao: Prescricao) -> Prescricao:
         pass

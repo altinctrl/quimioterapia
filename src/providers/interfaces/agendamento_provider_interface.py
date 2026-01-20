@@ -7,18 +7,36 @@ from src.models.agendamento import Agendamento
 
 class AgendamentoProviderInterface(ABC):
     @abstractmethod
-    async def listar_agendamentos(self, data_inicio: Optional[date] = None, data_fim: Optional[date] = None, paciente_id: Optional[str] = None) -> List[
-        Agendamento]:
+    async def listar_agendamentos(
+            self,
+            data_inicio: Optional[date] = None,
+            data_fim: Optional[date] = None,
+            paciente_id: Optional[str] = None,
+    ) -> List[Agendamento]:
         pass
 
     @abstractmethod
-    async def obter_agendamento(self, agendamento_id: str) -> Optional[Agendamento]:
+    async def obter_agendamento(
+            self, agendamento_id: str,
+    ) -> Optional[Agendamento]:
         pass
 
     @abstractmethod
-    async def criar_agendamento(self, agendamento: Agendamento) -> Agendamento:
+    async def buscar_por_prescricao_e_dia(
+            self,
+            prescricao_id: str,
+            dia_ciclo: int,
+    ) -> List[Agendamento]:
         pass
 
     @abstractmethod
-    async def atualizar_agendamento(self, agendamento: Agendamento) -> Agendamento:
+    async def criar_agendamento(
+            self, agendamento: Agendamento,
+    ) -> Agendamento:
+        pass
+
+    @abstractmethod
+    async def atualizar_agendamento(
+            self, agendamento: Agendamento,
+    ) -> Agendamento:
         pass

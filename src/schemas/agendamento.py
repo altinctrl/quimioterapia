@@ -1,12 +1,42 @@
 import enum
 from datetime import date
-from typing import List, Optional, Dict
+from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, model_validator, Field
 from pydantic.alias_generators import to_camel
 
 from src.schemas.equipe import ProfissionalResponse
 from src.schemas.prescricao import PrescricaoResponse
+
+
+class BaseSchema(BaseModel):
+    model_config = ConfigDict(
+        from_attributes=True,
+        alias_generator=to_camel,
+        populate_by_name=True,
+        use_enum_values=True
+    )
+
+
+class AgendamentoStatusEnum(str, enum.Enum):
+    AGENDADO = 'agendado'
+    AGUARDANDO_CONSULTA = 'aguardando-consulta'
+    AGUARDANDO_EXAME = 'aguardando-exame'
+    AGUARDANDO_MEDICAMENTO = 'aguardando-medicamento'
+    INTERNADO = 'internado'
+    SUSPENSO = 'suspenso'
+    REMARCADO = 'remarcado'
+    EM_TRIAGEM = 'em-triagem'
+    EM_INFUSAO = 'em-infusao'
+    INTERCORRENCIA = 'intercorrencia'
+    CONCLUIDO = 'concluido'
+
+
+class FarmaciaStatusEnum(str, enum.Enum):
+    PENDENTE = 'pendente'
+    EM_PREPARACAO = 'em-preparacao'
+    PRONTA = 'pronta'
+    ENVIADA = 'enviada'
 
 
 class TipoAgendamento(str, enum.Enum):
@@ -45,63 +75,62 @@ class TipoIntercorrencia(str, enum.Enum):
     DERRAMAMENTO = "derramamento"
 
 
-class DetalhesInfusao(BaseModel):
-    status_farmacia: Optional[str] = "pendente"
+class DetalhesInfusao(BaseSchema):
+    prescricao_id: str
+    status_farmacia: Optional[FarmaciaStatusEnum] = FarmaciaStatusEnum.PENDENTE
     tempo_estimado_preparo: Optional[int] = None
     horario_previsao_entrega: Optional[str] = None
-    ciclo_atual: Optional[int] = None
-    dia_ciclo: Optional[str] = None
-    checklist_farmacia: Optional[Dict[str, bool]] = {}
+    ciclo_atual: int
+    dia_ciclo: int
+    itens_preparados: List[str] = []
 
 
-class DetalhesProcedimento(BaseModel):
+class DetalhesProcedimento(BaseSchema):
     tipo_procedimento: TipoProcedimento
 
 
-class DetalhesConsulta(BaseModel):
+class DetalhesConsulta(BaseSchema):
     tipo_consulta: TipoConsulta
 
 
-class DetalhesIntercorrencia(BaseModel):
+class DetalhesIntercorrencia(BaseSchema):
     tipo_intercorrencia: TipoIntercorrencia
     medicamento_intercorrencia: str
     vigihosp: Optional[bool] = None
     observacoes: Optional[str] = None
 
 
-class DetalhesSuspensao(BaseModel):
+class DetalhesSuspensao(BaseSchema):
     motivo_suspensao: MotivoSuspensao
     medicamento_falta: Optional[str] = None
     observacoes: Optional[str] = None
 
 
-class DetalhesCancelamento(BaseModel):
+class DetalhesCancelamento(BaseSchema):
     motivo_cancelamento: str
 
 
-class DetalhesRemarcacao(BaseModel):
+class DetalhesRemarcacao(BaseSchema):
     motivo_remarcacao: str
     nova_data: date
 
 
-class DetalhesInfusaoUpdate(BaseModel):
-    status_farmacia: Optional[str] = None
+class DetalhesInfusaoUpdate(BaseSchema):
+    status_farmacia: Optional[FarmaciaStatusEnum] = None
     tempo_estimado_preparo: Optional[int] = None
     horario_previsao_entrega: Optional[str] = None
-    ciclo_atual: Optional[int] = None
-    dia_ciclo: Optional[str] = None
-    checklist_farmacia: Optional[Dict[str, bool]] = None
+    itens_preparados: Optional[List[str]] = None
 
 
-class DetalhesProcedimentoUpdate(BaseModel):
+class DetalhesProcedimentoUpdate(BaseSchema):
     tipo_procedimento: Optional[TipoProcedimento] = None
 
 
-class DetalhesConsultaUpdate(BaseModel):
+class DetalhesConsultaUpdate(BaseSchema):
     tipo_consulta: Optional[TipoConsulta] = None
 
 
-class DetalhesAgendamento(BaseModel):
+class DetalhesAgendamento(BaseSchema):
     infusao: Optional[DetalhesInfusao] = None
     procedimento: Optional[DetalhesProcedimento] = None
     consulta: Optional[DetalhesConsulta] = None
@@ -110,10 +139,8 @@ class DetalhesAgendamento(BaseModel):
     cancelamento: Optional[DetalhesCancelamento] = None
     remarcacao: Optional[DetalhesRemarcacao] = None
 
-    model_config = ConfigDict(extra='ignore', populate_by_name=True)
 
-
-class DetalhesAgendamentoUpdate(BaseModel):
+class DetalhesAgendamentoUpdate(BaseSchema):
     infusao: Optional[DetalhesInfusaoUpdate] = None
     procedimento: Optional[DetalhesProcedimentoUpdate] = None
     consulta: Optional[DetalhesConsultaUpdate] = None
@@ -122,10 +149,8 @@ class DetalhesAgendamentoUpdate(BaseModel):
     cancelamento: Optional[DetalhesCancelamento] = None
     remarcacao: Optional[DetalhesRemarcacao] = None
 
-    model_config = ConfigDict(extra='ignore', populate_by_name=True)
 
-
-class AgendamentoBase(BaseModel):
+class AgendamentoBase(BaseSchema):
     paciente_id: str
     tipo: TipoAgendamento
     data: date
@@ -133,13 +158,11 @@ class AgendamentoBase(BaseModel):
     horario_inicio: str
     horario_fim: str
     checkin: bool = False
-    status: str
+    status: AgendamentoStatusEnum = AgendamentoStatusEnum.AGENDADO
     encaixe: bool = False
     observacoes: Optional[str] = None
     tags: Optional[List[str]] = []
     detalhes: DetalhesAgendamento = Field(default_factory=DetalhesAgendamento)
-
-    model_config = ConfigDict(from_attributes=True, alias_generator=to_camel, populate_by_name=True)
 
 
 class AgendamentoCreate(AgendamentoBase):
@@ -154,28 +177,24 @@ class AgendamentoCreate(AgendamentoBase):
         return self
 
 
-class AgendamentoUpdate(BaseModel):
+class AgendamentoUpdate(BaseSchema):
     data: Optional[date] = None
     turno: Optional[str] = None
     horario_inicio: Optional[str] = None
     horario_fim: Optional[str] = None
     checkin: Optional[bool] = None
-    status: Optional[str] = None
+    status: Optional[AgendamentoStatusEnum] = None
     encaixe: Optional[bool] = None
     observacoes: Optional[str] = None
     tags: Optional[List[str]] = None
     detalhes: Optional[DetalhesAgendamentoUpdate] = None
 
-    model_config = ConfigDict(from_attributes=True, alias_generator=to_camel, populate_by_name=True)
 
-
-class AgendamentoPaciente(BaseModel):
+class AgendamentoPaciente(BaseSchema):
     id: str
     nome: str
     registro: str
     observacoes_clinicas: Optional[str] = None
-
-    model_config = ConfigDict(from_attributes=True, alias_generator=to_camel, populate_by_name=True)
 
 
 class AgendamentoResponse(AgendamentoBase):
@@ -184,5 +203,3 @@ class AgendamentoResponse(AgendamentoBase):
     criado_por: Optional[ProfissionalResponse] = None
     paciente: Optional[AgendamentoPaciente] = None
     prescricao: Optional[PrescricaoResponse] = None
-
-    model_config = ConfigDict(from_attributes=True, alias_generator=to_camel, populate_by_name=True)
