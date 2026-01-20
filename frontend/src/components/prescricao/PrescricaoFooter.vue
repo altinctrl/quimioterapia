@@ -1,15 +1,14 @@
 <script lang="ts" setup>
 import {useRouter} from 'vue-router'
 import {Button} from '@/components/ui/button'
-import {CheckCircle2, Download, Printer} from 'lucide-vue-next'
+import {CheckCircle2, Download} from 'lucide-vue-next'
 
-const props = defineProps<{
+defineProps<{
   concluida: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'confirmar'): void
-  (e: 'imprimir'): void
   (e: 'baixar'): void
 }>()
 
@@ -28,10 +27,6 @@ const router = useRouter()
     </div>
 
     <div class="flex gap-4">
-      <Button class="gap-2" variant="outline" @click="emit('imprimir')">
-        <Printer class="h-4 w-4"/>
-        Imprimir
-      </Button>
       <Button class="gap-2" variant="outline" @click="emit('baixar')">
         <Download class="h-4 w-4"/>
         Baixar PDF
@@ -43,7 +38,7 @@ const router = useRouter()
   </div>
 
   <div v-else class="space-y-6">
-    <div class="flex items-center justify-end gap-4 pt-4 border-t border-gray-200">
+    <div class="flex items-center justify-end gap-4 pt-4">
       <Button variant="ghost" @click="router.back()">Cancelar</Button>
       <Button class="bg-green-600 hover:bg-green-700 text-white min-w-[200px]" size="lg" @click="emit('confirmar')">
         <CheckCircle2 class="h-5 w-5 mr-2"/>

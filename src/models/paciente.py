@@ -13,9 +13,9 @@ class Paciente(Base):
     cpf = Column(String, unique=True, index=True)
     registro = Column(String, unique=True, index=True)
     data_nascimento = Column(Date, nullable=False)
+    sexo = Column(String, nullable=False)
     telefone = Column(String)
     email = Column(String, nullable=True)
-
     peso = Column(Float, nullable=True)
     altura = Column(Float, nullable=True)
     observacoes_clinicas = Column(Text, nullable=True)

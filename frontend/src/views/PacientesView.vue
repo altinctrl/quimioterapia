@@ -19,6 +19,7 @@ import ProntuarioHeader from '@/components/pacientes/ProntuarioHeader.vue'
 import ProntuarioForm from '@/components/pacientes/ProntuarioForm.vue'
 import ProntuarioHistorico from '@/components/pacientes/ProntuarioHistorico.vue'
 import PacientesControls, {type FiltrosPacientes} from '@/components/pacientes/PacientesControls.vue'
+import {toast} from "vue-sonner";
 
 const router = useRouter()
 const route = useRoute()
@@ -48,22 +49,34 @@ const totalPages = computed(() => Math.ceil(appStore.totalPacientes / filtros.va
 
 const protocoloAtual = computed(() => {
   if (!pacienteSelecionado.value) return null
-  const prescricoes = appStore.prescricoes.filter(p => p.pacienteId === pacienteSelecionado.value?.id)
+
+  const prescricoes = appStore.prescricoes.filter(p => {
+    return p.pacienteId === pacienteSelecionado.value?.id ||
+        p.conteudo?.paciente?.prontuario === pacienteSelecionado.value?.registro
+  })
+
   if (prescricoes.length > 0) {
-    const ultima = prescricoes.sort((a, b) => new Date(b.dataPrescricao).getTime() - new Date(a.dataPrescricao).getTime())[0]
-    if (ultima.protocoloId) {
-      return appStore.protocolos.find(p => p.id === ultima.protocoloId)
+    const ultima = prescricoes.sort((a, b) =>
+        new Date(b.dataEmissao).getTime() - new Date(a.dataEmissao).getTime()
+    )[0]
+
+    if (ultima && ultima.conteudo && ultima.conteudo.protocolo) {
+      return ultima.conteudo.protocolo
     }
-    if (ultima.protocolo) return {nome: ultima.protocolo} as any
   }
   return null
 })
 
 const ultimoAgendamento = computed(() => {
   if (!pacienteSelecionado.value) return null
+
+  const statusIgnorados = ['agendado', 'remarcado']
+
   const agendamentos = appStore.agendamentos
       .filter(a => a.pacienteId === pacienteSelecionado.value?.id)
+      .filter(a => !statusIgnorados.includes(a.status))
       .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())
+
   return agendamentos[0] || null
 })
 
@@ -160,15 +173,22 @@ const handleVoltar = () => {
   }
 }
 
-const handleSalvarEdicao = () => {
+const handleSalvarEdicao = async () => {
   if (pacienteSelecionado.value && pacienteSelecionado.value.id) {
-    const idx = appStore.pacientes.findIndex(p => p.id === pacienteSelecionado.value?.id)
-    if (idx !== -1) {
-      appStore.pacientes[idx] = {...appStore.pacientes[idx], ...dadosEditados.value} as Paciente
-      pacienteSelecionado.value = appStore.pacientes[idx]
+    loading.value = true
+    try {
+      await appStore.atualizarPaciente(pacienteSelecionado.value.id, dadosEditados.value)
+      const pacienteAtualizado = appStore.getPacienteById(pacienteSelecionado.value.id)
+      if (pacienteAtualizado) {
+        pacienteSelecionado.value = pacienteAtualizado
+      }
+      modoEdicao.value = false
+    } catch (error) {
+      console.error("Erro ao salvar edição:", error)
+    } finally {
+      loading.value = false
     }
   }
-  modoEdicao.value = false
 }
 
 const handleCancelarEdicao = () => {
@@ -186,17 +206,50 @@ const handleVerDetalhesPrescricao = (presc: any) => {
   prescricaoDetalhesOpen.value = true
 }
 
-const agendamentosFiltrados = computed(() =>
-    pacienteSelecionado.value ? appStore.agendamentos.filter(a => a.pacienteId === pacienteSelecionado.value?.id) : []
-)
-const prescricoesFiltradas = computed(() =>
-    pacienteSelecionado.value ? appStore.prescricoes.filter(p => p.pacienteId === pacienteSelecionado.value?.id) : []
-)
+const handleVerPrescricaoDoAgendamento = () => {
+  if (agendamentoSelecionado.value?.prescricao) {
+    prescricaoSelecionada.value = agendamentoSelecionado.value.prescricao
+    agendamentoDetalhesOpen.value = false
+    prescricaoDetalhesOpen.value = true
+  } else {
+    toast.error("Prescrição não encontrada nos detalhes do agendamento.")
+  }
+}
+
+const agendamentosFiltrados = computed(() => {
+  if (!pacienteSelecionado.value) return []
+
+  return [...appStore.agendamentos]
+      .filter(a => a.pacienteId === pacienteSelecionado.value?.id)
+      .sort((a, b) => {
+        const dataA = new Date(a.data).getTime()
+        const dataB = new Date(b.data).getTime()
+        if (dataB !== dataA) return dataB - dataA
+
+        return b.horarioInicio.localeCompare(a.horarioInicio)
+      })
+})
+
+const prescricoesFiltradas = computed(() => {
+  if (!pacienteSelecionado.value) return []
+
+  return [...appStore.prescricoes]
+      .filter(p => p.pacienteId === pacienteSelecionado.value?.id)
+      .sort((a, b) => {
+        const dataA = new Date(a.dataEmissao).getTime()
+        const dataB = new Date(b.dataEmissao).getTime()
+        if (dataB !== dataA) return dataB - dataA
+
+        const cicloA = a.conteudo?.protocolo?.cicloAtual || 0
+        const cicloB = b.conteudo?.protocolo?.cicloAtual || 0
+        return cicloB - cicloA
+      })
+})
 
 </script>
 
 <template>
-  <div class="max-w-7xl mx-auto space-y-6">
+  <div class="max-w-5xl mx-auto space-y-6">
     <h1 class="text-3xl font-bold tracking-tight text-gray-900">Pacientes</h1>
 
     <AgendamentoDetalhesModal
@@ -204,6 +257,7 @@ const prescricoesFiltradas = computed(() =>
         :open="agendamentoDetalhesOpen"
         :paciente-nome="pacienteSelecionado?.nome"
         @update:open="agendamentoDetalhesOpen = $event"
+        @abrir-prescricao="handleVerPrescricaoDoAgendamento"
     />
 
     <PrescricaoHistoricoModal
@@ -221,9 +275,9 @@ const prescricoesFiltradas = computed(() =>
               <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400"/>
               <Input
                   v-model="termoBusca"
-                  @input="handleBuscaInput"
                   class="pl-10"
                   placeholder="Buscar por nome, CPF ou prontuário..."
+                  @input="handleBuscaInput"
               />
             </div>
 
@@ -290,13 +344,13 @@ const prescricoesFiltradas = computed(() =>
               Editar
             </Button>
             <div v-else class="flex gap-2">
-              <Button class="flex items-center gap-2" variant="outline" @click="handleCancelarEdicao">
-                <X class="h-4 w-4"/>
-                Cancelar
-              </Button>
               <Button class="flex items-center gap-2" @click="handleSalvarEdicao">
                 <Save class="h-4 w-4"/>
                 Salvar
+              </Button>
+              <Button class="flex items-center gap-2" variant="outline" @click="handleCancelarEdicao">
+                <X class="h-4 w-4"/>
+                Cancelar
               </Button>
             </div>
           </template>
@@ -305,8 +359,8 @@ const prescricoesFiltradas = computed(() =>
 
       <Card>
         <ProntuarioHeader
-            :ciclo-atual="ultimoAgendamento?.cicloAtual"
-            :dia-ciclo="ultimoAgendamento?.diaCiclo"
+            :ciclo-atual="ultimoAgendamento?.detalhes?.infusao?.cicloAtual"
+            :dia-ciclo="ultimoAgendamento?.detalhes?.infusao?.diaCiclo"
             :paciente="pacienteSelecionado"
             :protocolo-nome="protocoloAtual?.nome"
         />

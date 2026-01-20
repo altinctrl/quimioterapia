@@ -2,7 +2,7 @@ import {defineStore} from 'pinia'
 import {ref} from 'vue'
 import api from '@/services/api'
 import {toast} from 'vue-sonner'
-import type {Agendamento, StatusFarmacia, StatusPaciente} from '@/types'
+import {Agendamento, AgendamentoStatusEnum, FarmaciaStatusEnum} from '@/types'
 
 export const useAgendamentoStore = defineStore('agendamento', () => {
   const agendamentos = ref<Agendamento[]>([])
@@ -19,15 +19,20 @@ export const useAgendamentoStore = defineStore('agendamento', () => {
       if (pacienteId) params.paciente_id = pacienteId
 
       const res = await api.get('/api/agendamentos', {params})
+      const dadosRetornados = res.data as Agendamento[]
 
       if (pacienteId) {
-        return res.data;
+        const outros = agendamentos.value.filter(a => a.pacienteId !== pacienteId)
+        agendamentos.value = [...outros, ...dadosRetornados]
+
+        return dadosRetornados
       } else {
-        agendamentos.value = res.data;
+        agendamentos.value = dadosRetornados
       }
 
     } catch (e) {
       console.error(e)
+      toast.error("Erro ao buscar agendamentos")
     }
   }
 
@@ -35,9 +40,13 @@ export const useAgendamentoStore = defineStore('agendamento', () => {
     try {
       const res = await api.post('/api/agendamentos', agendamento)
       agendamentos.value.push(res.data)
-      return res.data
-    } catch (e) {
-      toast.error("Erro ao criar agendamento")
+      return res.data as Agendamento
+    } catch (e: any) {
+      if (e.response?.status === 409) {
+        toast.error(e.response.data.detail || "Conflito de agendamento")
+      } else {
+        toast.error("Erro ao criar agendamento")
+      }
       throw e
     }
   }
@@ -51,15 +60,15 @@ export const useAgendamentoStore = defineStore('agendamento', () => {
         const prescricaoAntiga = agendamentos.value[idx].prescricao
         agendamentos.value[idx] = {...res.data, prescricao: prescricaoAntiga}
       }
-    } catch (e: any) {
-      const errorMsg = e.response?.data?.detail || "Erro ao atualizar check-in"
-      toast.error(errorMsg)
+    } catch (e) {
+      console.error(e)
+      toast.error("Erro ao atualizar check-in")
     }
   }
 
   async function atualizarStatusAgendamento(
     id: string,
-    status: StatusPaciente,
+    status: AgendamentoStatusEnum,
     detalhes?: any
   ) {
     try {
@@ -69,17 +78,26 @@ export const useAgendamentoStore = defineStore('agendamento', () => {
       const res = await api.put(`/api/agendamentos/${id}`, payload)
 
       const idx = agendamentos.value.findIndex(a => a.id === id)
-      if (idx !== -1) agendamentos.value[idx] = res.data
-
-      toast.success(`Status atualizado para: ${status}`)
+      if (idx !== -1) {
+        const prescricaoAntiga = agendamentos.value[idx].prescricao
+        agendamentos.value[idx] = {...res.data, prescricao: prescricaoAntiga}
+      }
+      toast.success(`Status atualizado para ${status}`)
     } catch (e) {
+      console.error(e)
       toast.error("Erro ao atualizar status")
     }
   }
 
-  async function atualizarStatusFarmacia(id: string, status: StatusFarmacia) {
+  async function atualizarStatusFarmacia(id: string, status: FarmaciaStatusEnum) {
     try {
-      const payload = {detalhes: {infusao: {status_farmacia: status}}}
+      const payload = {
+        detalhes: {
+          infusao: {
+            status_farmacia: status
+          }
+        }
+      }
       const res = await api.put(`/api/agendamentos/${id}`, payload)
       const idx = agendamentos.value.findIndex(a => a.id === id)
       if (idx !== -1) {
@@ -87,9 +105,11 @@ export const useAgendamentoStore = defineStore('agendamento', () => {
         agendamentos.value[idx] = {...res.data, prescricao: prescricaoAntiga}
       }
     } catch (e) {
-      toast.error("Erro na atualização")
+      console.error(e)
+      toast.error("Erro ao atualizar status da farmácia")
     }
   }
+
 
   async function atualizarHorarioPrevisao(id: string, horario: string) {
     try {
@@ -111,30 +131,41 @@ export const useAgendamentoStore = defineStore('agendamento', () => {
         }
       }
 
-      await atualizarStatusAgendamento(idOriginal, 'remarcado', detalhesPayload)
+      await atualizarStatusAgendamento(idOriginal, AgendamentoStatusEnum.REMARCADO, detalhesPayload)
 
       const original = agendamentos.value.find(a => a.id === idOriginal)
       if (!original) return
 
-      const detalhesInfusaoOriginal = original.detalhes?.infusao
+      const novosDetalhes = {...original.detalhes};
+
+      if (novosDetalhes.infusao) {
+        const {
+          prescricaoId,
+          cicloAtual,
+          diaCiclo
+        } = novosDetalhes.infusao;
+
+        novosDetalhes.infusao = {
+          statusFarmacia: FarmaciaStatusEnum.PENDENTE,
+          prescricaoId,
+          cicloAtual,
+          diaCiclo
+        };
+      }
 
       const novoAgendamento = {
         pacienteId: original.pacienteId,
-        tipo: original.tipo || 'infusao',
+        tipo: original.tipo,
         data: novaData,
         turno: parseInt(novoHorario.split(':')[0]) < 13 ? 'manha' : 'tarde',
         horarioInicio: novoHorario,
         horarioFim: original.horarioFim,
+        checkin: false,
         status: 'agendado',
-        encaixe: true,
+        encaixe: false,
         observacoes: `Remarcado de ${original.data}. Motivo: ${motivo}`,
-        detalhes: {
-          infusao: {
-            status_farmacia: 'pendente',
-            ciclo_atual: detalhesInfusaoOriginal?.ciclo_atual,
-            dia_ciclo: detalhesInfusaoOriginal?.dia_ciclo
-          }
-        }
+        tags: original.tags,
+        detalhes: novosDetalhes
       }
 
       await adicionarAgendamento(novoAgendamento)
@@ -148,8 +179,10 @@ export const useAgendamentoStore = defineStore('agendamento', () => {
     try {
       const res = await api.put(`/api/agendamentos/${id}`, {tags})
       const idx = agendamentos.value.findIndex(a => a.id === id)
-      if (idx !== -1) agendamentos.value[idx] = res.data
-      toast.success("Tags atualizadas")
+      if (idx !== -1) {
+        const prescricaoAntiga = agendamentos.value[idx].prescricao
+        agendamentos.value[idx] = {...res.data, prescricao: prescricaoAntiga}
+      }
     } catch (e) {
       console.error(e)
       toast.error("Erro ao salvar tags")
@@ -157,9 +190,15 @@ export const useAgendamentoStore = defineStore('agendamento', () => {
     }
   }
 
-  async function salvarChecklistFarmacia(id: string, checklist: Record<string, boolean>) {
+  async function salvarChecklistFarmacia(id: string, itensPreparados: string[]) {
     try {
-      const payload = {detalhes: {infusao: {checklist_farmacia: checklist}}}
+      const payload = {
+        detalhes: {
+          infusao: {
+            itens_preparados: itensPreparados
+          }
+        }
+      }
       const res = await api.put(`/api/agendamentos/${id}`, payload)
 
       const idx = agendamentos.value.findIndex(a => a.id === id)

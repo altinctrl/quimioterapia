@@ -21,11 +21,7 @@ export function formatarDuracao(minutos: number): string {
   return `${m}m`
 }
 
-export function getDuracaoAgendamento(ag: Agendamento, store: any): number {
-  const protocolo = store.getProtocoloPeloHistorico(ag.pacienteId)
-  if (protocolo && protocolo.duracao) {
-    return protocolo.duracao
-  }
+export function getDuracaoAgendamento(ag: Agendamento): number {
   return calcularDuracaoMinutos(ag.horarioInicio, ag.horarioFim)
 }
 

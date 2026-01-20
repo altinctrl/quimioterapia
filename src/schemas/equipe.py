@@ -31,7 +31,7 @@ class ProfissionalBase(BaseModel):
     username: str
     nome: str
     cargo: str
-    coren: Optional[str] = None
+    registro: Optional[str] = None
     ativo: bool = True
 
 

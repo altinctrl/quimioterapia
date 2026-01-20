@@ -1,64 +1,95 @@
-from datetime import date
-from typing import List, Optional
+from datetime import date, datetime
+from enum import Enum
+from typing import List, Optional, Union
 
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
+from src.schemas.protocolo import CategoriaBlocoEnum, UnidadeDoseEnum, ViaAdministracaoEnum
 
-class ItemPrescricaoBase(BaseModel):
+
+class BaseSchema(BaseModel):
+    model_config = ConfigDict(
+        from_attributes=True,
+        alias_generator=to_camel,
+        populate_by_name=True,
+        use_enum_values=True
+    )
+
+
+class PrescricaoStatusEnum(str, Enum):
+    PENDENTE = 'pendente'
+    EM_CURSO = 'em-curso'
+    CONCLUIDA = 'concluida'
+    SUSPENSA = 'suspensa'
+    CANCELADA = 'cancelada'
+
+
+class MedicoSnapshot(BaseSchema):
     nome: str
-    dose: Optional[str] = None
-    unidade: Optional[str] = None
-    via: Optional[str] = None
-    tempo_infusao: Optional[int] = None
-    veiculo: Optional[str] = None
-    volume_veiculo: Optional[str] = None
+    crm_uf: str
+
+
+class PacienteSnapshot(BaseSchema):
+    nome: str
+    prontuario: str
+    nascimento: Union[str, date]
+    sexo: str
+    peso: float
+    altura: float
+    sc: float
+    creatinina: Optional[float] = None
+
+
+class ProtocoloRef(BaseSchema):
+    nome: str
+    ciclo_atual: int
+
+
+class ItemPrescricao(BaseSchema):
+    id_item: str
+    medicamento: str
+    dose_referencia: str
+    unidade: UnidadeDoseEnum
+    dose_maxima: Optional[float] = None
+    dose_teorica: Optional[float] = None
+    percentual_ajuste: float = 100.0
+    dose_final: float
+    via: ViaAdministracaoEnum
+    diluicao_final: Optional[str] = None  # TODO: Validar, obrigatório dependendo da via
+    tempo_minutos: int
+    dias_do_ciclo: List[int]
+    notas_especificas: Optional[str] = None
+
+
+class BlocoPrescricao(BaseSchema):
+    ordem: int
+    categoria: CategoriaBlocoEnum
+    itens: List[ItemPrescricao]
+
+
+class PrescricaoConteudo(BaseSchema):
+    data_emissao: str
+    paciente: PacienteSnapshot
+    medico: MedicoSnapshot
+    protocolo: ProtocoloRef
+    blocos: List[BlocoPrescricao]
     observacoes: Optional[str] = None
-    ordem: int = 0
-
-    model_config = ConfigDict(from_attributes=True, alias_generator=to_camel, populate_by_name=True)
 
 
-class ItemPrescricaoCreate(ItemPrescricaoBase):
-    pass
-
-
-class ItemPrescricaoResponse(ItemPrescricaoBase):
-    id: int
-    tipo: str
-
-    model_config = ConfigDict(from_attributes=True, alias_generator=to_camel, populate_by_name=True)
-
-
-class PrescricaoBase(BaseModel):
+class PrescricaoCreate(BaseSchema):
     paciente_id: str
-    medico_nome: str
-    protocolo_id: Optional[str] = None
-    ciclo_atual: Optional[int] = None
-    ciclos_total: Optional[int] = None
-    peso: Optional[float] = None
-    altura: Optional[float] = None
-    superficie_corporea: Optional[float] = None
-    diagnostico: Optional[str] = None
-    status: str = "ativa"
-    observacoes: Optional[str] = None
-
-    model_config = ConfigDict(from_attributes=True, alias_generator=to_camel, populate_by_name=True)
+    medico_id: str
+    protocolo: ProtocoloRef
+    dados_paciente: PacienteSnapshot
+    observacoes_clinicas: Optional[str] = None
+    blocos: List[BlocoPrescricao]
 
 
-class PrescricaoCreate(PrescricaoBase):
-    medicamentos: List[ItemPrescricaoCreate] = []
-    qt: List[ItemPrescricaoCreate] = []
-    pos_medicacoes: List[ItemPrescricaoCreate] = []
-    protocolo_nome_snapshot: str = None
-
-
-class PrescricaoResponse(PrescricaoBase):
+class PrescricaoResponse(BaseSchema):
     id: str
-    data_prescricao: date
-    protocolo: Optional[str] = None
-    medicamentos: List[ItemPrescricaoResponse] = []
-    qt: List[ItemPrescricaoResponse] = []
-    pos_medicacoes: List[ItemPrescricaoResponse] = []
-
-    model_config = ConfigDict(from_attributes=True, alias_generator=to_camel, populate_by_name=True)
+    paciente_id: str
+    medico_id: str
+    data_emissao: datetime
+    status: PrescricaoStatusEnum  # TODO: Permitir atualizar status no banco de dados
+    conteudo: PrescricaoConteudo

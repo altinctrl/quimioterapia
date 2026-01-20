@@ -11,16 +11,16 @@ export const useProtocoloStore = defineStore('protocolo', () => {
     return protocolos.value.find(p => p.id === id)
   }
 
-  async function fetchProtocolos() {
+  async function fetchProtocolos(ativo: boolean = true) {
     try {
-      const res = await api.get('/api/protocolos', {params: {ativo: true}})
+      const res = await api.get('/api/protocolos', {params: {ativo}})
       protocolos.value = res.data
     } catch (e) {
       console.error(e)
     }
   }
 
-  async function adicionarProtocolo(protocolo: any) {
+  async function adicionarProtocolo(protocolo: Partial<Protocolo>) {
     try {
       const res = await api.post('/api/protocolos', protocolo)
       protocolos.value.push(res.data)
@@ -30,7 +30,7 @@ export const useProtocoloStore = defineStore('protocolo', () => {
     }
   }
 
-  async function atualizarProtocolo(id: string, dados: any) {
+  async function atualizarProtocolo(id: string, dados: Partial<Protocolo>) {
     try {
       const res = await api.put(`/api/protocolos/${id}`, dados)
       const idx = protocolos.value.findIndex(p => p.id === id)

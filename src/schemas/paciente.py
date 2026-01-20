@@ -26,6 +26,7 @@ class PacienteBase(BaseModel):
     cpf: str
     registro: str
     data_nascimento: date
+    sexo: str
     telefone: Optional[str] = None
     email: Optional[str] = None
     peso: Optional[float] = None

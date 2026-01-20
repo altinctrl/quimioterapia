@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {computed, ref, watch} from 'vue'
+import {computed, onMounted, ref, watch} from 'vue'
 import {useAppStore} from '@/stores/app'
 import {useAuthStore} from '@/stores/auth'
 import RelatoriosFiltros from '@/components/relatorios/RelatoriosFiltros.vue'
@@ -10,6 +10,10 @@ import {getDataLocal} from '@/lib/utils.ts';
 
 const appStore = useAppStore()
 const authStore = useAuthStore()
+
+onMounted(() => {
+  appStore.fetchProtocolos()
+})
 
 const filtros = ref({
   tipoRelatorio: authStore.user?.role === 'farmacia' ? 'medicamentos-farmacia' : 'fim-plantao',
@@ -163,7 +167,7 @@ const dadosRelatorio = computed(() => {
     agendamentosBase.forEach(a => {
       if (a.tipo !== 'infusao') return
 
-      const statusFarmacia = a.detalhes?.infusao?.status_farmacia
+      const statusFarmacia = a.detalhes?.infusao?.statusFarmacia
       if (statusFarmacia === 'enviada') totalEnviadas++
 
       if (a.status === 'suspenso' && (a.observacoes?.toLowerCase().includes('ausência') || a.observacoes?.toLowerCase().includes('falta'))) {

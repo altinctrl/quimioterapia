@@ -1,11 +1,9 @@
 import {defineStore, storeToRefs} from 'pinia'
-import {toast} from 'vue-sonner'
 import {usePacienteStore} from './paciente'
 import {useAgendamentoStore} from './agendamento'
 import {useConfiguracaoStore} from './configuracao'
 import {useProtocoloStore} from './protocolo'
 import {usePrescricaoStore} from './prescricao'
-import {getDataLocal} from '@/lib/utils.ts';
 
 export const useAppStore = defineStore('app', () => {
   const pacienteStore = usePacienteStore()
@@ -45,7 +43,6 @@ export const useAppStore = defineStore('app', () => {
 
   const {
     getPrescricoesPorPaciente,
-    getProtocoloPeloHistorico,
     fetchPrescricoes,
     adicionarPrescricao
   } = prescricaoStore
@@ -63,17 +60,6 @@ export const useAppStore = defineStore('app', () => {
     salvarChecklistFarmacia
   } = agendamentoStore
 
-  async function fetchInitialData() {
-    try {
-      await Promise.all([fetchPacientes(), fetchProtocolos(), fetchConfiguracoes()])
-      const hoje = getDataLocal()
-      await fetchAgendamentos(hoje, hoje)
-    } catch (error) {
-      console.error("Erro ao carregar dados iniciais", error)
-      toast.error("Erro de conexão ao carregar dados.")
-    }
-  }
-
   return {
     pacientes,
     totalPacientes,
@@ -89,9 +75,7 @@ export const useAppStore = defineStore('app', () => {
     getStatusConfig,
     getAgendamentosDoDia,
     getPrescricoesPorPaciente,
-    getProtocoloPeloHistorico,
 
-    fetchInitialData,
     fetchConfiguracoes,
     salvarConfiguracoes,
     fetchPacientes,
@@ -109,6 +93,7 @@ export const useAppStore = defineStore('app', () => {
     remarcarAgendamento,
     atualizarTagsAgendamento,
     salvarChecklistFarmacia,
+    fetchProtocolos,
     adicionarProtocolo,
     atualizarProtocolo,
     desativarProtocolo,

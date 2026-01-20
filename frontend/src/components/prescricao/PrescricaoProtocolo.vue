@@ -1,13 +1,13 @@
 <script lang="ts" setup>
 import {computed, ref} from 'vue'
 import {useAppStore} from '@/stores/app'
-import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card'
+import {Card} from '@/components/ui/card'
 import {Button} from '@/components/ui/button'
-import {Input} from '@/components/ui/input'
 import {Label} from '@/components/ui/label'
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select'
 import {Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList} from '@/components/ui/command'
 import {Popover, PopoverContent, PopoverTrigger} from '@/components/ui/popover'
-import {Activity, Check, ChevronsUpDown, Copy, Info} from 'lucide-vue-next'
+import {AlertTriangle, Check, ChevronsUpDown, Copy, Info} from 'lucide-vue-next'
 
 const props = defineProps<{
   protocolo: string
@@ -33,30 +33,51 @@ const localNumeroCiclo = computed({
   get: () => props.numeroCiclo,
   set: (val) => emit('update:numeroCiclo', val)
 })
+
+const protocoloSelecionadoObj = computed(() => {
+  return appStore.protocolos.find(p => p.nome === props.protocolo)
+})
+
+const opcoesCiclo = computed(() => {
+  const total = protocoloSelecionadoObj.value?.totalCiclos || 0
+  if (total === 0) {
+    return [{value: '0', label: '0 - Indefinido'}]
+  }
+  return Array.from({length: total}, (_, i) => ({
+    value: (i + 1).toString(),
+    label: `Ciclo ${i + 1}`
+  }))
+})
 </script>
 
 <template>
-  <Card>
-    <CardHeader>
-      <CardTitle class="flex items-center gap-2">
-        <Activity class="h-5 w-5"/>
-        2. Ciclo
-      </CardTitle>
-    </CardHeader>
-    <CardContent class="grid grid-cols-1 sm:grid-cols-4 gap-4">
-      <div v-if="ultimaPrescricao"
-           class="col-span-1 sm:col-span-4 bg-blue-50 border border-blue-200 rounded-md p-3 flex items-start gap-3 mb-2">
-        <Info class="h-5 w-5 text-blue-600 mt-0.5 shrink-0"/>
-        <div class="text-sm">
-          <p class="font-medium text-blue-900">Último Tratamento Registrado</p>
-          <div class="flex flex-wrap gap-x-4 mt-1 text-blue-800">
-            <span>Protocolo: <strong>{{ ultimaPrescricao.protocolo }}</strong></span>
-            <span>Ciclo Realizado: <strong>{{ ultimaPrescricao.cicloAtual }}</strong></span>
-            <span class="text-blue-600 text-xs self-center">({{
-                new Date(ultimaPrescricao.dataPrescricao).toLocaleDateString('pt-BR')
-              }})</span>
+  <Card class="p-6">
+    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+      <div v-if="ultimaPrescricao && ultimaPrescricao.conteudo && ultimaPrescricao.conteudo.protocolo"
+           class="col-span-1 sm:col-span-4 bg-blue-50 border border-blue-200 rounded-md p-3 flex items-center
+           justify-between mb-2 animate-in fade-in">
+        <div class="flex items-center gap-3">
+          <Info class="h-5 w-5 text-blue-600 shrink-0"/>
+          <div class="text-sm">
+            <p class="font-medium text-blue-900">Última Prescrição Emitida</p>
+            <div class="flex flex-wrap gap-x-4 mt-1 text-blue-800">
+              <span>{{ ultimaPrescricao.conteudo.protocolo.nome }}</span>
+              <span><strong>Ciclo {{ ultimaPrescricao.conteudo.protocolo.cicloAtual }}</strong></span>
+              <span class="text-blue-600 text-xs self-center">({{
+                  new Date(ultimaPrescricao.dataEmissao).toLocaleDateString('pt-BR')
+                }})</span>
+            </div>
           </div>
         </div>
+        <Button
+            v-if="ultimaPrescricao"
+            class="border bg-white text-blue-700 uppercase font-bold"
+            variant="secondary"
+            @click="emit('repetir')"
+        >
+          <Copy class="h-4 w-4 mr-2"/>
+          Repetir
+        </Button>
       </div>
 
       <div class="col-span-1 sm:col-span-3 flex flex-col gap-2">
@@ -84,14 +105,14 @@ const localNumeroCiclo = computed({
                   <CommandItem
                       v-for="p in appStore.protocolos"
                       :key="p.id"
-                      :value="p.nome + ' ' + p.indicacao"
+                      :value="p.nome"
                       class="cursor-pointer border-b last:border-0"
                       @select="() => { localProtocolo = p.nome; openCombobox = false }"
                   >
                     <Check :class="['mr-2 h-4 w-4', localProtocolo === p.nome ? 'opacity-100' : 'opacity-0']"/>
                     <div class="flex flex-col">
                       <span class="font-medium">{{ p.nome }}</span>
-                      <span class="text-xs text-muted-foreground">{{ p.indicacao }} • {{ p.duracao }} min</span>
+                      <span v-if="p.indicacao" class="text-xs text-muted-foreground">{{ p.indicacao }}</span>
                     </div>
                   </CommandItem>
                 </CommandGroup>
@@ -102,30 +123,41 @@ const localNumeroCiclo = computed({
       </div>
 
       <div class="col-span-1 sm:col-span-1 flex flex-col gap-2">
-        <Label>Ciclo Nº</Label>
-        <Input v-model="localNumeroCiclo" class="h-14" type="number"/>
+        <Label>Ciclo Atual</Label>
+        <Select v-model="localNumeroCiclo" :disabled="!localProtocolo">
+          <SelectTrigger class="h-14">
+            <SelectValue placeholder="Ciclo"/>
+          </SelectTrigger>
+          <SelectContent class="max-h-60">
+            <SelectItem v-for="op in opcoesCiclo" :key="op.value" :value="op.value">
+              {{ op.label }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
       </div>
-    </CardContent>
-  </Card>
 
-  <div class="flex justify-center py-2">
-    <div class="relative inline-block">
-      <Button
-          :disabled="!ultimaPrescricao || protocolo !== ultimaPrescricao.protocolo"
-          class="text-blue-700 border-blue-200 hover:bg-blue-50 bg-white shadow-sm"
-          variant="outline"
-          @click="emit('repetir')"
-      >
-        <Copy class="h-4 w-4 mr-2"/>
-        Repetir Última Prescrição
-      </Button>
+      </div> <div v-if="protocoloSelecionadoObj && (protocoloSelecionadoObj.observacoes || protocoloSelecionadoObj.precaucoes)"
+         class="mt-6 space-y-4 border-t pt-4 animate-in slide-in-from-top-2">
 
-      <span
-          v-if="ultimaPrescricao && protocolo !== ultimaPrescricao.protocolo"
-          class="absolute left-1/2 -translate-x-1/2 -top-8 w-max px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 hover:opacity-100 transition-opacity cursor-help"
-      >
-        Disponível apenas para o mesmo protocolo
-      </span>
+      <div v-if="protocoloSelecionadoObj.observacoes" class="flex flex-col gap-1 px-3">
+        <h4 class="text-sm font-bold flex items-center gap-2 text-slate-700">
+          <Info class="h-4 w-4" />
+          Observações do Protocolo
+        </h4>
+        <p class="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
+          {{ protocoloSelecionadoObj.observacoes }}
+        </p>
+      </div>
+
+      <div v-if="protocoloSelecionadoObj.precaucoes" class="flex flex-col gap-1 p-3 bg-amber-50 border border-amber-100 rounded-md">
+        <h4 class="text-sm font-bold flex items-center gap-2 text-amber-800">
+          <AlertTriangle class="h-4 w-4" />
+          Precauções
+        </h4>
+        <p class="text-sm text-amber-700 whitespace-pre-line">
+          {{ protocoloSelecionadoObj.precaucoes }}
+        </p>
+      </div>
     </div>
-  </div>
+  </Card>
 </template>

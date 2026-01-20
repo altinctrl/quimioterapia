@@ -3,10 +3,11 @@ import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card'
 import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs'
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '@/components/ui/table'
 import {useAppStore} from '@/stores/app'
+import {Agendamento, PrescricaoMedica} from "@/types";
 
 defineProps<{
-  agendamentos: any[]
-  prescricoes: any[]
+  agendamentos: Agendamento[]
+  prescricoes: PrescricaoMedica[]
 }>()
 
 const emit = defineEmits<{
@@ -44,10 +45,10 @@ const formatarStatusPrescricao = (status: string) => {
         <TabsContent class="mt-4" value="agendamentos">
           <Table>
             <TableHeader>
-              <TableRow>
+              <TableRow class="hover:bg-transparent">
                 <TableHead>Data</TableHead>
-                <TableHead>Turno</TableHead>
                 <TableHead>Horário</TableHead>
+                <TableHead>Tipo</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
@@ -62,8 +63,8 @@ const formatarStatusPrescricao = (status: string) => {
                   @click="emit('ver-agendamento', ag)"
               >
                 <TableCell>{{ new Date(ag.data).toLocaleDateString('pt-BR') }}</TableCell>
-                <TableCell class="capitalize">{{ ag.turno }}</TableCell>
                 <TableCell>{{ ag.horarioInicio }}</TableCell>
+                <TableCell class="capitalize">{{ ag.tipo }}</TableCell>
                 <TableCell>{{ getStatusLabel(ag.status) }}</TableCell>
               </TableRow>
             </TableBody>
@@ -73,7 +74,7 @@ const formatarStatusPrescricao = (status: string) => {
         <TabsContent class="mt-4" value="prescricoes">
           <Table>
             <TableHeader>
-              <TableRow>
+              <TableRow class="hover:bg-transparent">
                 <TableHead>Data</TableHead>
                 <TableHead>Protocolo</TableHead>
                 <TableHead>Ciclo</TableHead>
@@ -90,9 +91,11 @@ const formatarStatusPrescricao = (status: string) => {
                   class="cursor-pointer hover:bg-gray-50"
                   @click="emit('ver-prescricao', p)"
               >
-                <TableCell>{{ new Date(p.dataPrescricao).toLocaleDateString('pt-BR') }}</TableCell>
-                <TableCell>{{ p.protocolo || 'N/A' }}</TableCell>
-                <TableCell>{{ p.cicloAtual }} / {{ p.ciclosTotal }}</TableCell>
+                <TableCell>{{ new Date(p.dataEmissao).toLocaleDateString('pt-BR') }}</TableCell>
+                <TableCell>{{ p.conteudo?.protocolo?.nome || 'N/A' }}</TableCell>
+                <TableCell>
+                  {{ p.conteudo?.protocolo?.cicloAtual }}
+                </TableCell>
                 <TableCell>{{ formatarStatusPrescricao(p.status) }}</TableCell>
               </TableRow>
             </TableBody>

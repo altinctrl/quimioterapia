@@ -1,8 +1,8 @@
 <script lang="ts" setup>
-import {computed, ref, watch} from 'vue'
+import {computed, onMounted, ref, watch} from 'vue'
 import {useRouter} from 'vue-router'
 import {useAppStore} from '@/stores/app'
-import {isInfusao, type StatusFarmacia} from '@/types'
+import {Agendamento, AgendamentoStatusEnum, FarmaciaStatusEnum, isInfusao} from '@/types'
 import {Card, CardContent} from '@/components/ui/card'
 import FarmaciaHeader from '@/components/farmacia/FarmaciaHeader.vue'
 import FarmaciaMetrics from '@/components/farmacia/FarmaciaMetrics.vue'
@@ -10,16 +10,22 @@ import FarmaciaTable, {type FarmaciaTableRow} from '@/components/farmacia/Farmac
 import FarmaciaControls, {type FiltrosFarmacia} from '@/components/farmacia/FarmaciaControls.vue'
 import {getDataLocal} from '@/lib/utils.ts'
 import {somarDias} from '@/utils/agendaUtils.ts'
+import AgendamentoDetalhesModal from "@/components/modals/AgendamentoDetalhesModal.vue";
+import PrescricaoHistoricoModal from "@/components/modals/PrescricaoHistoricoModal.vue";
 
 const router = useRouter()
 const appStore = useAppStore()
 const dataSelecionada = ref(getDataLocal())
 
+onMounted(() => {
+  appStore.fetchConfiguracoes()
+})
+
 const STATUS_ORDER: Record<string, number> = {
-  'pendente': 0,
-  'em-preparacao': 1,
-  'pronta': 2,
-  'enviada': 3
+  [FarmaciaStatusEnum.PENDENTE]: 0,
+  [FarmaciaStatusEnum.EM_PREPARACAO]: 1,
+  [FarmaciaStatusEnum.PRONTA]: 2,
+  [FarmaciaStatusEnum.ENVIADA]: 3
 }
 
 const filtros = ref<FiltrosFarmacia>({
@@ -30,71 +36,87 @@ const filtros = ref<FiltrosFarmacia>({
 
 const mostrarMetricas = ref(true)
 const expandedIds = ref<string[]>([])
-const checklist = ref<Record<string, Record<string, boolean>>>({})
+
+const detalhesModalOpen = ref(false)
+const agendamentoSelecionado = ref<Agendamento | null>(null)
+const prescricaoModalOpen = ref(false)
+const prescricaoParaVisualizar = ref<any>(null)
+
+const handleVerDetalhes = (row: FarmaciaTableRow) => {
+  const ag = appStore.agendamentos.find(a => a.id === row.id)
+  if (ag) {
+    agendamentoSelecionado.value = ag
+    detalhesModalOpen.value = true
+  }
+}
+
+const handleAbrirPrescricao = (row: FarmaciaTableRow) => {
+  const ag = appStore.agendamentos.find(a => a.id === row.id)
+  if (ag && ag.prescricao) {
+    prescricaoParaVisualizar.value = ag.prescricao
+    prescricaoModalOpen.value = true
+  }
+}
 
 const getStatusDotColor = (statusId: string) => {
   const config = appStore.getStatusConfig(statusId)
   return config ? config.cor.split(' ')[0] : 'bg-gray-200'
 }
 
-const agendamentosFiltrados = computed(() => {
-  let lista = [...appStore.agendamentos]
-
-  if (filtros.value.turno !== 'todos') {
-    lista = lista.filter(a => a.turno === filtros.value.turno)
-  }
-
-  if (filtros.value.status.length > 0) {
-    lista = lista.filter(a => {
-      if (!isInfusao(a)) return false
-      return filtros.value.status.includes(a.detalhes.infusao.status_farmacia)
-    })
-  }
-
-  return lista.sort((a, b) => {
-    if (filtros.value.ordenacao === 'horario') {
-      return a.horarioInicio.localeCompare(b.horarioInicio)
-    }
-    if (filtros.value.ordenacao === 'status') {
-      const sa = isInfusao(a) ? a.detalhes.infusao.status_farmacia : 'pendente'
-      const sb = isInfusao(b) ? b.detalhes.infusao.status_farmacia : 'pendente'
-      if (STATUS_ORDER[sa] !== STATUS_ORDER[sb]) return STATUS_ORDER[sa] - STATUS_ORDER[sb]
-      return a.horarioInicio.localeCompare(b.horarioInicio)
-    }
-    return a.horarioInicio.localeCompare(b.horarioInicio)
-  })
+const agendamentosDoDia = computed(() => {
+  return appStore.getAgendamentosDoDia(dataSelecionada.value).filter(ag =>
+      ag.tipo === 'infusao' && ag.detalhes?.infusao
+  )
 })
 
-const viewRows = computed<FarmaciaTableRow[]>(() => {
-  return agendamentosFiltrados.value.map(ag => {
-    const listaMedicamentos = ag.prescricao?.qt || []
-    const hasMedicamentos = listaMedicamentos.length > 0
-    const savedChecklist = (isInfusao(ag) ? ag.detalhes.infusao.checklist_farmacia : {}) || {}
+const getUnidadeFinal = (unidade: string) => {
+  if (!unidade) return ''
+  if (unidade.includes('/')) {
+    return unidade.split('/')[0]
+  }
+  return unidade
+}
 
-    const medicamentos = listaMedicamentos.map((med, idx) => {
-      const key = `${med.tipo}:${med.id ?? idx}:${med.nome}`
-      return {
-        key,
-        nome: med.nome,
-        dose: med.dose?.toString() || '',
-        unidade: med.unidade || '',
-        checked: savedChecklist[key] || false
-      }
-    })
+const tableRows = computed<FarmaciaTableRow[]>(() => {
+  return agendamentosDoDia.value.map(ag => {
+    const infoInfusao = ag.detalhes?.infusao;
+    const prescricao = ag.prescricao;
+    const diaCicloAtual = infoInfusao?.diaCiclo || 1;
 
-    let checklistLabel = ''
-    if (hasMedicamentos) {
-      const checks = checklist.value[ag.id] || {}
-      let checkedCount = 0
-      medicamentos.forEach(m => {
-        if (checks[m.key]) checkedCount++
-      })
-      checklistLabel = `${checkedCount}/${medicamentos.length}`
+    const itensPreparados = new Set(infoInfusao?.itensPreparados || []);
+
+    const medicamentosRow: Array<{
+      key: string;
+      nome: string;
+      dose: string;
+      unidade: string;
+      checked: boolean
+    }> = [];
+
+    if (prescricao && prescricao.conteudo && prescricao.conteudo.blocos) {
+      prescricao.conteudo.blocos.forEach(bloco => {
+        bloco.itens.forEach(item => {
+          if (item.diasDoCiclo.includes(diaCicloAtual)) {
+            const key = item.idItem || `${bloco.ordem}-${item.medicamento}`;
+
+            medicamentosRow.push({
+              key: key,
+              nome: item.medicamento,
+              dose: String(item.doseFinal),
+              unidade: getUnidadeFinal(item.unidade),
+              checked: itensPreparados.has(key)
+            });
+          }
+        });
+      });
     }
 
-    const protocolo = appStore.getProtocoloPeloHistorico(ag.pacienteId)
-    const statusFarmacia = isInfusao(ag) ? ag.detalhes.infusao.status_farmacia : 'pendente'
-    const bloqueado = ['suspenso', 'remarcado'].includes(ag.status)
+    const totalMeds = medicamentosRow.length;
+    const totalChecked = medicamentosRow.filter(m => m.checked).length;
+    const checklistLabel = totalMeds > 0 ? `${totalChecked}/${totalMeds}` : '-';
+
+    const statusFarmacia = infoInfusao?.statusFarmacia || FarmaciaStatusEnum.PENDENTE;
+    const bloqueado = [AgendamentoStatusEnum.SUSPENSO, AgendamentoStatusEnum.REMARCADO].includes(ag.status)
 
     return {
       id: ag.id,
@@ -103,17 +125,44 @@ const viewRows = computed<FarmaciaTableRow[]>(() => {
       pacienteNome: ag.paciente?.nome || 'Paciente não carregado',
       pacienteRegistro: ag.paciente?.registro || '',
       observacoesClinicas: ag.paciente?.observacoesClinicas,
-      protocoloNome: ag.prescricao?.protocolo || protocolo?.nome || '-',
+      protocoloNome: prescricao?.conteudo?.protocolo?.nome || '-',
       checkin: ag.checkin,
       statusTexto: ag.status ? ag.status.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : '',
       statusBloqueado: bloqueado,
       statusFarmacia: statusFarmacia,
       statusFarmaciaCor: getStatusDotColor(bloqueado ? 'pendente' : statusFarmacia),
-      previsaoEntrega: isInfusao(ag) ? ag.detalhes.infusao.horario_previsao_entrega || '' : '',
-      medicamentos,
+      previsaoEntrega: isInfusao(ag) ? ag.detalhes.infusao.horarioPrevisaoEntrega || '' : '',
+      medicamentos: medicamentosRow,
       checklistLabel,
-      hasMedicamentos
+      hasMedicamentos: totalMeds > 0
     }
+  })
+})
+
+const viewRows = computed(() => {
+  let lista = [...tableRows.value]
+
+  if (filtros.value.turno !== 'todos') {
+    const idsTurno = new Set(agendamentosDoDia.value
+        .filter(a => a.turno === filtros.value.turno)
+        .map(a => a.id))
+    lista = lista.filter(r => idsTurno.has(r.id))
+  }
+
+  if (filtros.value.status.length > 0) {
+    lista = lista.filter(r => filtros.value.status.includes(r.statusFarmacia))
+  }
+
+  return lista.sort((a, b) => {
+    if (filtros.value.ordenacao === 'horario') {
+      return a.horario.localeCompare(b.horario)
+    }
+    if (filtros.value.ordenacao === 'status') {
+      const rankA = STATUS_ORDER[a.statusFarmacia] ?? 0
+      const rankB = STATUS_ORDER[b.statusFarmacia] ?? 0
+      return rankA - rankB
+    }
+    return 0
   })
 })
 
@@ -129,7 +178,7 @@ const handleResetFiltros = () => {
   filtros.value = {ordenacao: 'horario', turno: 'todos', status: []}
 }
 
-const handleAlterarStatus = (agendamentoId: string, novoStatus: StatusFarmacia) => {
+const handleAlterarStatus = (agendamentoId: string, novoStatus: FarmaciaStatusEnum) => {
   appStore.atualizarStatusFarmacia(agendamentoId, novoStatus)
 }
 
@@ -141,26 +190,30 @@ const handleNavigatePaciente = (pacienteId: string) => {
   router.push({path: '/pacientes', query: {pacienteId}})
 }
 
-const handleToggleCheckItem = async (agId: string, itemKey: string, statusAtual: StatusFarmacia) => {
+const handleToggleCheckItem = async (agId: string, itemKey: string, statusAtual: FarmaciaStatusEnum) => {
   const agendamento = appStore.agendamentos.find(a => a.id === agId)
   if (!agendamento || !isInfusao(agendamento)) return
 
-  const currentChecklist = agendamento.detalhes.infusao.checklist_farmacia || {}
-  const novoValor = !currentChecklist[itemKey]
-  const novoChecklist = {...currentChecklist, [itemKey]: novoValor}
-  agendamento.detalhes.infusao.checklist_farmacia = novoChecklist
+  const rowAtual = tableRows.value.find(r => r.id === agId)
+  const currentChecklist = new Set(agendamento.detalhes.infusao.itensPreparados || [])
 
-  const values = Object.values(novoChecklist)
-  const totalChecked = values.filter(Boolean).length
-  const totalItens = agendamento.prescricao?.qt?.length || Object.keys(currentChecklist).length || 0
+  if (currentChecklist.has(itemKey)) {
+    currentChecklist.delete(itemKey)
+  } else {
+    currentChecklist.add(itemKey)
+  }
+  const novoChecklist = Array.from(currentChecklist)
 
-  let proximoStatus: StatusFarmacia | null = null
-  if (statusAtual === 'pendente' && totalChecked > 0) {
-    proximoStatus = 'em-preparacao'
-  } else if (totalChecked === totalItens && totalItens > 0 && statusAtual !== 'pronta') {
-    proximoStatus = 'pronta'
-  } else if (totalChecked < totalItens && statusAtual === 'pronta') {
-    proximoStatus = 'em-preparacao'
+  const totalChecked = currentChecklist.size
+  const totalItens = rowAtual.medicamentos.length || 0
+
+  let proximoStatus: FarmaciaStatusEnum | null = null
+  if (statusAtual === FarmaciaStatusEnum.PENDENTE && totalChecked > 0) {
+    proximoStatus = FarmaciaStatusEnum.EM_PREPARACAO
+  } else if (totalChecked === totalItens && totalItens > 0 && statusAtual !== FarmaciaStatusEnum.PRONTA) {
+    proximoStatus = FarmaciaStatusEnum.PRONTA
+  } else if (totalChecked < totalItens && statusAtual === FarmaciaStatusEnum.PRONTA) {
+    proximoStatus = FarmaciaStatusEnum.EM_PREPARACAO
   }
 
   try {
@@ -174,13 +227,14 @@ const handleToggleCheckItem = async (agId: string, itemKey: string, statusAtual:
 }
 
 const metricas = computed(() => {
-  const infusoes = appStore.agendamentos.filter(isInfusao)
-  const total = infusoes.length
-  const pendente = infusoes.filter(a => a.detalhes.infusao.status_farmacia === 'pendente').length
-  const emPreparacao = infusoes.filter(a => a.detalhes.infusao.status_farmacia === 'em-preparacao').length
-  const pronta = infusoes.filter(a => a.detalhes.infusao.status_farmacia === 'pronta').length
-  const enviada = infusoes.filter(a => a.detalhes.infusao.status_farmacia === 'enviada').length
-  return {total, pendente, emPreparacao, pronta, enviada}
+  const rows = tableRows.value
+  return {
+    total: rows.length,
+    pendente: rows.filter(r => r.statusFarmacia === FarmaciaStatusEnum.PENDENTE).length,
+    emPreparacao: rows.filter(r => r.statusFarmacia === FarmaciaStatusEnum.EM_PREPARACAO).length,
+    pronta: rows.filter(r => r.statusFarmacia === FarmaciaStatusEnum.PRONTA).length,
+    enviada: rows.filter(r => r.statusFarmacia === FarmaciaStatusEnum.ENVIADA).length
+  }
 })
 
 const opcoesStatusFarmacia = computed(() => {
@@ -191,15 +245,27 @@ watch(dataSelecionada, async (novaData) => {
   await appStore.fetchAgendamentos(novaData, novaData)
 }, {immediate: true})
 
-watch(agendamentosFiltrados, (lista) => {
-  const ids = new Set(lista.map(a => a.id))
-  expandedIds.value = expandedIds.value.filter(id => ids.has(id))
+watch(viewRows, (lista) => {
+  const idsVisiveis = new Set(lista.map(r => r.id))
+  expandedIds.value = expandedIds.value.filter(id => idsVisiveis.has(id))
 })
 </script>
 
 <template>
   <div class="max-w-7xl mx-auto space-y-6">
     <h1 class="text-3xl font-bold tracking-tight text-gray-900">Farmácia</h1>
+
+    <AgendamentoDetalhesModal
+        v-model:open="detalhesModalOpen"
+        :agendamento="agendamentoSelecionado"
+        :paciente-nome="agendamentoSelecionado?.paciente?.nome"
+    />
+
+    <PrescricaoHistoricoModal
+        v-if="prescricaoParaVisualizar"
+        v-model:open="prescricaoModalOpen"
+        :prescricao="prescricaoParaVisualizar"
+    />
 
     <FarmaciaHeader
         v-model="dataSelecionada"
@@ -229,6 +295,8 @@ watch(agendamentosFiltrados, (lista) => {
             :rows="viewRows"
             @alterar-status="handleAlterarStatus"
             @alterar-horario="handleAlterarHorario"
+            @abrir-detalhes="handleVerDetalhes"
+            @abrir-prescricao="handleAbrirPrescricao"
             @click-paciente="handleNavigatePaciente"
             @toggle-check-item="handleToggleCheckItem"
         />

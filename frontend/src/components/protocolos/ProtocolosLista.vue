@@ -5,7 +5,7 @@ import {Button} from '@/components/ui/button'
 import {Input} from '@/components/ui/input'
 import {Label} from '@/components/ui/label'
 import {Badge} from '@/components/ui/badge'
-import {Beaker,Clock, Edit, Search, XCircle} from 'lucide-vue-next'
+import {Clock, Edit, Hash, Layers, Repeat, Search, XCircle} from 'lucide-vue-next'
 
 const props = defineProps<{
   protocolos: any[]
@@ -39,7 +39,7 @@ const inferirGrupoInfusao = (duracao: number): 'rapido' | 'medio' | 'longo' => {
 const filteredProtocolos = computed(() => {
   return props.protocolos.filter(p => {
     const matchesSearch = p.nome.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
-        p.indicacao.toLowerCase().includes(searchTerm.value.toLowerCase())
+        (p.indicacao && p.indicacao.toLowerCase().includes(searchTerm.value.toLowerCase()))
     if (!matchesSearch) return false
 
     if (statusFilter.value === 'ativos' && !p.ativo) return false
@@ -51,7 +51,7 @@ const filteredProtocolos = computed(() => {
 
     let grupo = p.grupoInfusao
     if (!grupo) {
-      grupo = inferirGrupoInfusao(p.duracao)
+      grupo = inferirGrupoInfusao(p.tempoTotalMinutos || 0)
     }
     return !(grupoInfusaoFilter.value !== 'todos' && grupo !== grupoInfusaoFilter.value);
   })
@@ -128,7 +128,7 @@ const filteredProtocolos = computed(() => {
           v-for="p in filteredProtocolos"
           :key="p.id"
           :class="!p.ativo ? 'opacity-70 bg-gray-50' : ''"
-          class="cursor-pointer"
+          class="cursor-pointer hover:shadow-md transition-shadow"
           @click="emit('details', p)">
         <CardHeader class="p-5 pb-3">
           <div class="flex justify-between items-start gap-4">
@@ -137,7 +137,9 @@ const filteredProtocolos = computed(() => {
                 <XCircle v-if="!p.ativo" class="h-4 w-4 text-gray-400 flex-shrink-0"/>
                 {{ p.nome }}
               </CardTitle>
-              <CardDescription :title="p.indicacao" class="text-sm mt-1">{{ p.indicacao }}</CardDescription>
+              <CardDescription :title="p.indicacao" class="text-sm mt-1">
+                {{ p.indicacao || 'Sem indicação' }}
+              </CardDescription>
             </div>
 
             <Button class="h-8 w-8" size="icon" variant="ghost" @click.stop="emit('edit', p)">
@@ -147,31 +149,44 @@ const filteredProtocolos = computed(() => {
         </CardHeader>
 
         <CardContent class="p-5 pt-0 space-y-3">
-          <div class="flex items-center gap-4 text-sm text-gray-600 mt-2">
-            <div class="flex items-center gap-1">
+          <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-600 mt-2">
+            <div class="flex items-center gap-1" title="Total de Ciclos">
+              <Hash class="h-4 w-4"/>
+              {{ p.totalCiclos ? `${p.totalCiclos} ciclos` : 'Indef.' }}
+            </div>
+            <div class="flex items-center gap-1" title="Duração do Ciclo">
+              <Repeat class="h-4 w-4"/>
+              {{ p.duracaoCicloDias }} dias
+            </div>
+            <div class="flex items-center gap-1" title="Tempo na Cadeira">
               <Clock class="h-4 w-4"/>
-              {{ p.duracao }} min
+              {{ p.tempoTotalMinutos || 0 }} min
             </div>
-            <div class="flex items-center gap-1">
-              <Beaker class="h-4 w-4"/>
-              {{ p.medicamentos.length }} meds
+            <div class="flex items-center gap-1" title="Templates/Variantes">
+              <Layers class="h-4 w-4"/>
+              {{ p.templatesCiclo?.length || 0 }} variantes
             </div>
           </div>
 
-          <div v-if="p.diasSemanaPermitidos && p.diasSemanaPermitidos.length > 0"
-               class="text-xs text-orange-600 font-medium">
-            Restrito: {{
-              p.diasSemanaPermitidos.map((d: number) => diasSemanaOptions.find(o => o.value === d)?.label).join(', ')
-            }}
+          <div :class="p.diasSemanaPermitidos?.length > 0 ? 'text-orange-600' : 'text-muted-foreground'"
+               class="text-xs font-medium h-4 flex items-center">
+            <template v-if="p.diasSemanaPermitidos?.length > 0">
+              Permitido nos dias: {{
+                p.diasSemanaPermitidos.map((d: number) => diasSemanaOptions.find(o => o.value === d)?.label).join(', ')
+              }}.
+            </template>
+            <template v-else>
+              Permitido todos os dias.
+            </template>
           </div>
 
-          <div class="flex flex-wrap gap-1.5 overflow-hidden content-start">
-            <Badge v-for="(m, idx) in p.medicamentos.slice(0, 4)" :key="idx" class="px-2 py-0.5" variant="secondary">
-              {{ m.nome }}
+          <div v-if="p.fase || p.linha" class="flex flex-wrap gap-2 pt-1">
+            <Badge v-if="p.fase" class="bg-blue-50 text-blue-700 border-blue-100 hover:bg-blue-100" variant="secondary">
+              {{ p.fase }}
             </Badge>
-            <span v-if="p.medicamentos.length > 4" class="text-xs text-gray-500 self-center font-medium pl-1">
-              +{{ p.medicamentos.length - 4 }}
-            </span>
+            <Badge v-if="p.linha" class="border-gray-300 text-gray-600" variant="outline">
+              {{ p.linha }}ª Linha
+            </Badge>
           </div>
         </CardContent>
       </Card>

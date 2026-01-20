@@ -32,7 +32,7 @@ const form = ref({
   username: '',
   nome: '',
   cargo: '',
-  coren: '',
+  registro: '',
   ativo: true
 })
 
@@ -54,12 +54,12 @@ function openModal(profissional: Profissional | null = null) {
     isEditing.value = true
     form.value = {
       ...profissional,
-      coren: profissional.coren || ""
+      registro: profissional.registro || ""
     }
   } else {
     isEditing.value = false
     const cargoPadrao = props.cargos.length > 0 ? props.cargos[0] : ''
-    form.value = {username: '', nome: '', cargo: cargoPadrao, coren: '', ativo: true}
+    form.value = {username: '', nome: '', cargo: cargoPadrao, registro: '', ativo: true}
   }
   isModalOpen.value = true
 }
@@ -136,7 +136,7 @@ function onSubmit() {
               <TableRow v-for="prof in profissionaisFiltrados" :key="prof.username">
                 <TableCell class="font-medium pl-4">{{ prof.nome }}</TableCell>
                 <TableCell>{{ prof.cargo }}</TableCell>
-                <TableCell>{{ prof.coren || '-' }}</TableCell>
+                <TableCell>{{ prof.registro || '-' }}</TableCell>
                 <TableCell>
                   {{ prof.ativo ? 'Ativo' : 'Inativo' }}
                 </TableCell>
@@ -183,7 +183,7 @@ function onSubmit() {
           </div>
           <div class="grid grid-cols-4 items-center gap-4">
             <Label class="text-right">Registro</Label>
-            <Input v-model="form.coren" class="col-span-3" placeholder="COREN, CRM..."/>
+            <Input v-model="form.registro" class="col-span-3" placeholder="COREN, CRM..."/>
           </div>
           <div v-if="isEditing" class="grid grid-cols-4 items-center gap-4">
             <Label class="text-right">Ativo</Label>
