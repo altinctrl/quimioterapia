@@ -84,7 +84,6 @@ export const usePacienteStore = defineStore('paciente', () => {
       const res = await api.put(`/api/pacientes/${id}`, dados)
       const idx = pacientes.value.findIndex(p => p.id === id)
       if (idx !== -1) pacientes.value[idx] = res.data
-      toast.success("Dados do paciente atualizados")
     } catch (e) {
       toast.error("Erro ao atualizar paciente")
     }

@@ -10,6 +10,8 @@ import {Check, Search} from 'lucide-vue-next'
 import {Dialog, DialogContent, DialogHeader, DialogTitle,} from '@/components/ui/dialog'
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '@/components/ui/table'
 import type {Paciente} from '@/types'
+import {buscaPacienteFormSchema} from "@/schemas/pacienteSchema.ts";
+import {useForm} from "vee-validate";
 
 const props = defineProps<{
   open: boolean
@@ -22,36 +24,36 @@ const emit = defineEmits<{
 
 const appStore = useAppStore()
 
-const termoExterno = ref('')
+const {errors, defineField, handleSubmit, resetForm} = useForm({
+  validationSchema: buscaPacienteFormSchema,
+  initialValues: {termo: ''}
+})
+
+const [termoExterno, termoProps] = defineField('termo')
 const resultadosExternos = ref<Paciente[]>([])
 const buscandoExterno = ref(false)
 
 watch(() => props.open, (isOpen) => {
   if (isOpen) {
-    termoExterno.value = ''
+    resetForm()
     resultadosExternos.value = []
   }
 })
 
-const handleBuscarExterno = async () => {
-  if (termoExterno.value.length < 3) {
-    toast.warning("Digite pelo menos 3 caracteres")
-    return
-  }
-
+const handleBuscarExterno = handleSubmit(async (values) => {
   buscandoExterno.value = true
   try {
     const res = await api.get('/api/pacientes/externo/buscar', {
-      params: {termo: termoExterno.value}
+      params: {termo: values.termo}
     })
     resultadosExternos.value = res.data
-    if (res.data.length === 0) toast.info("Nenhum paciente encontrado no sistema externo.")
+    if (res.data.length === 0) toast.info("Nenhum paciente encontrado.")
   } catch (e) {
     toast.error("Erro ao buscar no sistema externo")
   } finally {
     buscandoExterno.value = false
   }
-}
+})
 
 const verificarCadastroLocal = (cpfExterno: string) => {
   return appStore.pacientes.some(p => p.cpf === cpfExterno)
@@ -87,16 +89,23 @@ const handleImportarPaciente = async (pacienteExterno: Paciente) => {
       </DialogHeader>
 
       <div class="space-y-4">
-        <div class="flex gap-2">
-          <Input
-              v-model="termoExterno"
-              placeholder="Nome, CPF ou Prontuário..."
-              @keyup.enter="handleBuscarExterno"
-          />
-          <Button :disabled="buscandoExterno" @click="handleBuscarExterno">
-            <Search class="h-4 w-4 mr-2"/>
-            {{ buscandoExterno ? 'Buscando...' : 'Buscar' }}
-          </Button>
+        <div class="space-y-1">
+          <div class="flex gap-2">
+            <Input
+                v-model="termoExterno"
+                :class="{'border-destructive': errors.termo}"
+                placeholder="Nome, CPF ou Prontuário..."
+                v-bind="termoProps"
+                @keyup.enter="handleBuscarExterno"
+            />
+            <Button :disabled="buscandoExterno" @click="handleBuscarExterno">
+              <Search class="h-4 w-4 mr-2"/>
+              {{ buscandoExterno ? 'Buscando...' : 'Buscar' }}
+            </Button>
+          </div>
+          <p v-if="errors.termo" class="text-xs font-medium text-destructive">
+            {{ errors.termo }}
+          </p>
         </div>
 
         <div class="border rounded-md max-h-[300px] overflow-y-auto">
