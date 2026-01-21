@@ -3,6 +3,7 @@ import {useAuthStore} from '@/stores/auth'
 import LoginView from '@/views/LoginView.vue'
 import Layout from '@/components/Layout.vue'
 import PacientesView from '@/views/PacientesView.vue'
+import ProntuarioView from "@/views/ProntuarioView.vue";
 import AgendaView from '@/views/AgendaView.vue'
 import AgendamentoView from '@/views/AgendamentoView.vue'
 import FarmaciaView from '@/views/FarmaciaView.vue'
@@ -18,6 +19,7 @@ const router = createRouter({
     {path: '/', component: Layout, meta: {requiresAuth: true},
       children: [{path: '', redirect: '/agenda'},
         {path: 'pacientes', name: 'Pacientes', component: PacientesView },
+        {path: 'pacientes/:id', name: 'Prontuario', component: ProntuarioView},
         {path: 'agenda', name: 'Agenda', component: AgendaView},
         {path: 'agendamento', name: 'Agendamento', component: AgendamentoView},
         {path: 'farmacia', name: 'Farmacia', component: FarmaciaView},
