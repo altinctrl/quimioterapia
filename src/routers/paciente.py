@@ -6,16 +6,20 @@ from src.auth.auth import auth_handler
 from src.controllers import paciente_controller
 from src.dependencies import get_paciente_provider, get_paciente_legacy_provider
 from src.providers.interfaces.paciente_provider_interface import PacienteProviderInterface
-from src.schemas.paciente import PacienteCreate, PacienteUpdate, PacienteResponse, PacientePagination
+from src.schemas.paciente import PacienteCreate, PacienteUpdate, PacienteResponse, PacientePagination, \
+    PacienteImportResponse
 
 router = APIRouter(prefix="/api/pacientes", tags=["Pacientes"], dependencies=[Depends(auth_handler.decode_token)])
 
 
-@router.get("/externo/buscar", response_model=List[PacienteResponse])
-async def buscar_paciente_aghu(termo: str = Query(..., min_length=3),
-                               provider: PacienteProviderInterface = Depends(get_paciente_legacy_provider)):
-    paginacao = await paciente_controller.listar_pacientes(provider, termo, page=1, size=50)
-    return paginacao.items
+@router.get("/externo/buscar", response_model=List[PacienteImportResponse])
+async def buscar_paciente_aghu(
+    termo: str = Query(..., min_length=3),
+    limit: int = Query(100, ge=1, le=500),
+    legacy: PacienteProviderInterface = Depends(get_paciente_legacy_provider),
+    local: PacienteProviderInterface = Depends(get_paciente_provider)
+):
+    return await paciente_controller.buscar_pacientes_externos(legacy, local, termo, limit)
 
 
 @router.get("", response_model=PacientePagination)

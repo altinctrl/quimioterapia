@@ -23,8 +23,8 @@ class PacienteLegacyProvider(PacienteProviderInterface):
             telefone=None,
             email=None)
 
-    async def listar_pacientes(self, termo: Optional[str] = None, ordenacao: str = None) -> List[Paciente]:
-        query = select(AghuPaciente).limit(50)
+    async def listar_pacientes(self, termo: Optional[str] = None, ordenacao: str = None, limit: int = 100) -> List[Paciente]:
+        query = select(AghuPaciente).limit(limit)
 
         if termo:
             t = f"%{termo}%"
@@ -60,3 +60,6 @@ class PacienteLegacyProvider(PacienteProviderInterface):
 
     async def atualizar_paciente(self, paciente: Paciente) -> Paciente:
         raise NotImplementedError("Edição no AGHU não permitida")
+
+    async def obter_paciente_por_cpf_multi(self, cpfs: List[str]) -> List[Paciente]:
+        raise NotImplementedError

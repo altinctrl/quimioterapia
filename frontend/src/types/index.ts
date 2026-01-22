@@ -134,6 +134,14 @@ export interface Paciente {
   protocoloUltimaPrescricao?: string;
 }
 
+export interface PacienteImport {
+  id?: string;
+  nome: string;
+  cpf: string;
+  registro: string;
+  dataNascimento: string
+}
+
 export interface ConfiguracaoDiluicao {
   opcoesPermitidas?: string[];
   selecionada?: string;
