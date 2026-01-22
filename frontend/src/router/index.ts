@@ -24,7 +24,8 @@ const router = createRouter({
         {path: 'agendamento', name: 'Agendamento', component: AgendamentoView},
         {path: 'farmacia', name: 'Farmacia', component: FarmaciaView},
         {path: 'relatorios', name: 'Relatorios', component: RelatoriosView},
-        {path: 'protocolos', name: 'Protocolos', component: ProtocolosView},
+        {path: 'protocolos/novo', name: 'NovoProtocolo', component: ProtocolosView},
+        {path: 'protocolos/:id', name: 'EditarProtocolo', component: ProtocolosView},
         {path: 'ajustes', name: 'Ajustes', component: AjustesView},
         {path: 'prescricao', name: 'Prescricao', component: PrescricaoView},
         {path: 'equipe', name: 'Equipe', component: EquipeView}

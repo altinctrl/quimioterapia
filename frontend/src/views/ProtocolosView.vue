@@ -1,27 +1,18 @@
 <script lang="ts" setup>
-import {onMounted, ref} from 'vue'
-import {useRouter} from 'vue-router'
+import {computed, onMounted, ref} from 'vue'
+import {useRoute, useRouter} from 'vue-router'
 import {useAppStore} from '@/stores/app'
-import {Button} from '@/components/ui/button'
-import {Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle} from '@/components/ui/dialog'
-import {ArrowLeft, Plus} from 'lucide-vue-next'
 import {toast} from 'vue-sonner'
-import ProtocolosLista from '@/components/protocolos/ProtocolosLista.vue'
 import ProtocolosForm from '@/components/protocolos/ProtocolosForm.vue'
-import ProtocolosDetalhes from '@/components/protocolos/ProtocolosDetalhes.vue'
-import {ScrollArea} from "@/components/ui/scroll-area";
+import {Button} from "@/components/ui/button";
+import {Save} from 'lucide-vue-next'
 
 const router = useRouter()
+const route = useRoute()
 const appStore = useAppStore()
 
-onMounted(() => {
-  appStore.fetchProtocolos()
-})
-
-const dialogOpen = ref(false)
-const detailsOpen = ref(false)
-const editMode = ref(false)
-const selectedProtocolo = ref<any>(null)
+const loading = ref(true)
+const isEditMode = computed(() => !!route.params.id)
 
 const getInitialFormState = () => ({
   nome: '',
@@ -37,7 +28,7 @@ const getInitialFormState = () => ({
   diasSemanaPermitidos: [] as number[],
   templatesCiclo: [
     {
-      idTemplate: 'padrao',
+      idTemplate: 'Padrão',
       aplicavelAosCiclos: '',
       blocos: []
     }
@@ -46,56 +37,50 @@ const getInitialFormState = () => ({
 
 const formData = ref(getInitialFormState())
 
-const handleAdd = () => {
-  formData.value = getInitialFormState()
-  selectedProtocolo.value = null
-  editMode.value = false
-  dialogOpen.value = true
-}
-
-const handleEdit = (p: any) => {
-  selectedProtocolo.value = p
-  const clone = JSON.parse(JSON.stringify(p))
-  if (!clone.templatesCiclo || clone.templatesCiclo.length === 0) {
-    clone.templatesCiclo = [{idTemplate: 'padrao', blocos: []}]
-  }
-
-  formData.value = {
-    nome: clone.nome,
-    indicacao: clone.indicacao,
-    fase: clone.fase,
-    linha: clone.linha,
-    tempoTotalMinutos: clone.tempoTotalMinutos || clone.duracao || 0,
-    duracaoCicloDias: clone.duracaoCicloDias || 21,
-    totalCiclos: clone.totalCiclos || 0,
-    observacoes: clone.observacoes || '',
-    precaucoes: clone.precaucoes || '',
-    ativo: clone.ativo,
-    diasSemanaPermitidos: Array.isArray(clone.diasSemanaPermitidos) ? [...clone.diasSemanaPermitidos] : [],
-    templatesCiclo: clone.templatesCiclo
-  }
-
-  editMode.value = true
-  dialogOpen.value = true
-}
-
-const handleViewDetails = (p: any) => {
-  selectedProtocolo.value = p
-  detailsOpen.value = true
-}
-
-const handleToggleStatus = async (p: any) => {
+onMounted(async () => {
   try {
-    if (p.ativo) {
-      await appStore.desativarProtocolo(p.id)
-      toast.success('Protocolo desativado')
-    } else {
-      await appStore.atualizarProtocolo(p.id, {ativo: true})
-      toast.success('Protocolo reativado')
+    loading.value = true
+    await appStore.fetchProtocolos()
+
+    if (isEditMode.value) {
+      const id = route.params.id
+      const protocolo = appStore.protocolos.find((p: any) => p.id === id)
+
+      if (protocolo) {
+        const clone = JSON.parse(JSON.stringify(protocolo))
+        if (!clone.templatesCiclo || clone.templatesCiclo.length === 0) {
+          clone.templatesCiclo = [{idTemplate: 'Padrão', blocos: []}]
+        }
+
+        formData.value = {
+          nome: clone.nome,
+          indicacao: clone.indicacao,
+          fase: clone.fase,
+          linha: clone.linha,
+          tempoTotalMinutos: clone.tempoTotalMinutos || clone.duracao || 0,
+          duracaoCicloDias: clone.duracaoCicloDias || 21,
+          totalCiclos: clone.totalCiclos || 0,
+          observacoes: clone.observacoes || '',
+          precaucoes: clone.precaucoes || '',
+          ativo: clone.ativo,
+          diasSemanaPermitidos: Array.isArray(clone.diasSemanaPermitidos) ? [...clone.diasSemanaPermitidos] : [],
+          templatesCiclo: clone.templatesCiclo
+        }
+      } else {
+        toast.error("Protocolo não encontrado")
+        await router.push({name: 'Ajustes', query: {tab: 'protocolos'}})
+      }
     }
   } catch (error) {
     console.error(error)
+    toast.error("Erro ao carregar dados do protocolo")
+  } finally {
+    loading.value = false
   }
+})
+
+const handleCancel = () => {
+  router.push({name: 'Ajustes', query: {tab: 'protocolos'}})
 }
 
 const handleSubmit = async () => {
@@ -126,66 +111,50 @@ const handleSubmit = async () => {
       })
     }
 
-    if (editMode.value && selectedProtocolo.value) {
-      await appStore.atualizarProtocolo(selectedProtocolo.value.id, data)
-      toast.success('Protocolo atualizado')
+    if (isEditMode.value) {
+      await appStore.atualizarProtocolo(route.params.id as string, data)
+      toast.success('Protocolo atualizado com sucesso')
     } else {
       await appStore.adicionarProtocolo(data)
-      toast.success('Protocolo criado')
+      toast.success('Protocolo criado com sucesso')
     }
-    dialogOpen.value = false
+
+    await router.push({name: 'Ajustes', query: {tab: 'protocolos'}})
   } catch (error) {
     console.error(error)
+    toast.error('Erro ao salvar protocolo')
   }
 }
 </script>
 
 <template>
-  <div class="space-y-6 max-w-7xl mx-auto">
-    <div class="flex items-center justify-between">
-      <div class="flex items-center gap-4">
-        <Button size="icon" variant="outline" @click="router.back()">
-          <ArrowLeft class="h-4 w-4"/>
-        </Button>
-        <div>
-          <h1 class="text-3xl font-bold tracking-tight text-gray-900">Protocolos</h1>
-        </div>
-      </div>
-      <Button @click="handleAdd">
-        <Plus class="h-4 w-4 mr-2"/>
-        Novo Protocolo
-      </Button>
+  <div class="max-w-5xl mx-auto space-y-8 pb-12">
+    <div v-if="loading" class="flex justify-center py-12">
+      <p class="text-muted-foreground animate-pulse">Carregando dados...</p>
     </div>
 
-    <ProtocolosLista
-        :protocolos="appStore.protocolos"
-        @details="handleViewDetails"
-        @edit="handleEdit"
-        @toggle-status="handleToggleStatus"
-    />
+    <template v-else>
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-3xl font-bold tracking-tight text-gray-900">
+            {{ isEditMode ? 'Editar Protocolo' : 'Novo Protocolo' }}
+          </h1>
+        </div>
 
-    <Dialog v-model:open="dialogOpen">
-      <DialogContent class="max-w-4xl max-h-[90vh] flex flex-col p-0 gap-0">
-        <DialogHeader class="p-6 pb-4 border-b">
-          <DialogTitle class="text-xl font-bold text-gray-900 flex items-center gap-3">
-            {{ editMode ? 'Editar' : 'Novo' }} Protocolo
-          </DialogTitle>
-        </DialogHeader>
+        <div class="flex items-center gap-3">
+          <Button variant="outline" @click="handleCancel">
+            Cancelar
+          </Button>
+          <Button class="flex items-center gap-2" @click="handleSubmit">
+            <Save class="h-4 w-4"/>
+            Salvar
+          </Button>
+        </div>
+      </div>
 
-        <ScrollArea class="h-[calc(90vh-140px)] w-full">
-          <ProtocolosForm v-model="formData" class="p-6"/>
-        </ScrollArea>
-
-        <DialogFooter class="p-4 border-t bg-gray-50">
-          <Button variant="outline" @click="dialogOpen = false">Cancelar</Button>
-          <Button @click="handleSubmit">Salvar Protocolo</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-
-    <ProtocolosDetalhes
-        v-model:open="detailsOpen"
-        :protocolo="selectedProtocolo"
-    />
+      <ProtocolosForm
+          v-model="formData"
+      />
+    </template>
   </div>
 </template>
