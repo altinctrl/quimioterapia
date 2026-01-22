@@ -28,10 +28,12 @@ const doseCalculadaInicial = computed(() => {
   if (un === UnidadeDoseEnum.AUC) {
     const {creatinina, peso, idade, sexo} = props.dadosPaciente
     if (!creatinina || !peso || !idade || !sexo) return 0
-    // TODO: Talvez seja preciso adicionar um piso ao valor da creatinina (ex: se cr<0.7, usar 0.7). Confirmar com profissional.
-    let gfr = ((140 - idade) * peso) / (72 * creatinina)
+    const pisoCreatinina = props.item.pisoCreatinina ?? 0.7
+    const tetoGfr = props.item.tetoGfr ?? 125
+    const creatininaFinal = creatinina < pisoCreatinina ? pisoCreatinina : creatinina
+    let gfr = ((140 - idade) * peso) / (72 * creatininaFinal)
     if (['F', 'FEMININO'].includes(sexo.toUpperCase())) gfr = gfr * 0.85
-    if (gfr > 125) gfr = 125 // TODO: Tornar o valor desse limite configurável
+    if (gfr > tetoGfr) gfr = tetoGfr
     return ref * (gfr + 25)
   }
   return ref
@@ -58,6 +60,13 @@ watch(doseFinal, (val) => {
 const diluentesPermitidos = computed(() => {
   return props.item.configuracaoDiluicao?.opcoesPermitidas || []
 })
+
+watch(() => props.item.unidade, (newUnidade) => {
+  if (newUnidade === UnidadeDoseEnum.AUC) {
+    if (props.item.pisoCreatinina === undefined) props.item.pisoCreatinina = 0.7
+    if (props.item.tetoGfr === undefined) props.item.tetoGfr = 125
+  }
+}, { immediate: true })
 
 watch(() => props.item.configuracaoDiluicao, (cfg) => {
   if (cfg?.selecionada && !props.item.diluicaoFinal) {
@@ -97,6 +106,40 @@ const formatNumber = (val: number) => {
         </div>
         <div class="font-bold text-sm text-gray-700 bg-gray-100 px-2 py-1 rounded">
           Dias do Ciclo: {{ formatDiasCiclo(item.diasDoCiclo) }}
+        </div>
+      </div>
+    </div>
+
+    <div v-if="item.unidade === 'AUC'" class="grid grid-cols-2 md:grid-cols-12 gap-3 items-end">
+      <div class="col-span-1 md:col-span-6">
+        <Label class="text-xs text-gray-500 uppercase">
+          Piso Creatinina
+        </Label>
+        <div class="relative">
+          <Input
+              v-model.number="item.pisoCreatinina"
+              class="h-8 pr-6"
+              min="0"
+              step="0.1"
+              type="number"
+          />
+          <span class="absolute right-12 top-1.5 text-sm pointer-events-none">mg/dL</span>
+        </div>
+      </div>
+
+      <div class="col-span-1 md:col-span-6">
+        <Label class="text-xs text-gray-500 uppercase">
+          Teto GFR
+        </Label>
+        <div class="relative">
+          <Input
+              v-model.number="item.tetoGfr"
+              class="h-8 pr-6"
+              min="0"
+              step="1"
+              type="number"
+          />
+          <span class="absolute right-12 top-1.5 text-sm pointer-events-none">mL/min</span>
         </div>
       </div>
     </div>
