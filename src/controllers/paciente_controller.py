@@ -1,11 +1,13 @@
 import uuid
 from math import ceil
+from typing import List
 
 from fastapi import HTTPException, status
 
 from src.models.paciente import Paciente, ContatoEmergencia
 from src.providers.interfaces.paciente_provider_interface import PacienteProviderInterface
-from src.schemas.paciente import PacienteCreate, PacienteUpdate, PacienteResponse, PacientePagination
+from src.schemas.paciente import PacienteCreate, PacienteUpdate, PacienteResponse, PacientePagination, \
+    PacienteImportResponse
 
 
 async def listar_pacientes(
@@ -73,3 +75,31 @@ async def atualizar_paciente(provider: PacienteProviderInterface, paciente_id: s
 
     atualizado = await provider.atualizar_paciente(paciente)
     return PacienteResponse.model_validate(atualizado)
+
+
+async def buscar_pacientes_externos(
+        legacy_provider: PacienteProviderInterface,
+        local_provider: PacienteProviderInterface,
+        termo: str,
+        limit: int = 100,
+) -> List[PacienteImportResponse]:
+    pacientes_legados = await legacy_provider.listar_pacientes(termo, limit=limit)
+    if not pacientes_legados: return []
+
+    cpfs_externos = [p.cpf for p in pacientes_legados if p.cpf]
+    pacientes_locais = await local_provider.obter_paciente_por_cpf_multi(cpfs_externos)
+    mapa_local = {p.cpf: p.id for p in pacientes_locais}
+
+    resultado = []
+    for p_legado in pacientes_legados:
+        id_local = mapa_local.get(p_legado.cpf)
+        ja_cadastrado = id_local is not None
+        resultado.append(PacienteImportResponse(
+            id=id_local if ja_cadastrado else None,
+            nome=p_legado.nome,
+            cpf=p_legado.cpf,
+            registro=p_legado.registro,
+            data_nascimento=p_legado.data_nascimento
+        ))
+
+    return resultado

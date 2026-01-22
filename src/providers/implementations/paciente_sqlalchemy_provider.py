@@ -13,7 +13,7 @@ class PacienteSQLAlchemyProvider(PacienteProviderInterface):
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def listar_pacientes(self, termo: Optional[str] = None, ordenacao: str = None) -> List[Paciente]:
+    async def listar_pacientes(self, termo: Optional[str] = None, ordenacao: str = None, limit: int = 100) -> List[Paciente]:
         subquery_protocolo = (
             select(Prescricao.conteudo['protocolo', 'nome'].astext)
             .where(Prescricao.paciente_id == Paciente.id)
@@ -23,7 +23,7 @@ class PacienteSQLAlchemyProvider(PacienteProviderInterface):
             .scalar_subquery()
         )
 
-        query = select(Paciente, subquery_protocolo.label("ultimo_protocolo_nome")).options(
+        query = select(Paciente, subquery_protocolo.label("ultimo_protocolo_nome")).limit(limit).options(
             selectinload(Paciente.contatos_emergencia)
         )
         if termo:
@@ -60,6 +60,12 @@ class PacienteSQLAlchemyProvider(PacienteProviderInterface):
         query = select(Paciente).where(Paciente.cpf == cpf).options(selectinload(Paciente.contatos_emergencia))
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
+
+    async def obter_paciente_por_cpf_multi(self, cpfs: List[str]) -> List[Paciente]:
+        if not cpfs: return []
+        query = select(Paciente).where(Paciente.cpf.in_(cpfs))
+        result = await self.session.execute(query)
+        return list(result.scalars().all())
 
     async def criar_paciente(self, paciente: Paciente) -> Paciente:
         self.session.add(paciente)
