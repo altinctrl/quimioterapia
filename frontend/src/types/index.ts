@@ -338,6 +338,7 @@ export interface ParametrosAgendamento {
   tags: string[];
   cargos: string[];
   funcoes: string[];
+  diluentes: string[];
 }
 
 export interface ConfigStatus {

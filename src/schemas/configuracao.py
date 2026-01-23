@@ -19,6 +19,7 @@ class ConfiguracaoBase(BaseModel):
     tags: List[str] = []
     cargos: List[str] = []
     funcoes: List[str] = []
+    diluentes: List[str] = []
 
     model_config = ConfigDict(from_attributes=True, alias_generator=to_camel, populate_by_name=True)
 

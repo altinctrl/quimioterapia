@@ -14,6 +14,7 @@ import AjustesCargos from '@/components/ajustes/AjustesCargos.vue'
 import AjustesFuncoes from '@/components/ajustes/AjustesFuncoes.vue'
 import ProtocolosLista from '@/components/protocolos/ProtocolosLista.vue'
 import ProtocolosDetalhes from '@/components/protocolos/ProtocolosDetalhes.vue'
+import AjustesDiluentes from "@/components/ajustes/AjustesDiluentes.vue";
 
 const appStore = useAppStore()
 const router = useRouter()
@@ -29,6 +30,7 @@ const diasSelecionados = ref<number[]>([])
 const tags = ref<string[]>([])
 const cargos = ref<string[]>([])
 const funcoes = ref<string[]>([])
+const diluentes = ref<string[]>([])
 
 const grupos = reactive({
   rapido: {vagas: 0 as number | string, duracao: ''},
@@ -79,7 +81,8 @@ const handleSalvar = async () => {
     },
     tags: [...tags.value],
     cargos: [...cargos.value],
-    funcoes: [...funcoes.value]
+    funcoes: [...funcoes.value],
+    diluentes: [...diluentes.value]
   }
   try {
     await appStore.salvarConfiguracoes(payload)
@@ -100,6 +103,7 @@ const handleDesfazer = async () => {
     tags.value = [...(dadosSalvos.tags || [])]
     cargos.value = [...(dadosSalvos.cargos || [])]
     funcoes.value = [...(dadosSalvos.funcoes || [])]
+    diluentes.value = [...(dadosSalvos.diluentes || [])]
     Object.assign(grupos.rapido, dadosSalvos.gruposInfusao.rapido)
     Object.assign(grupos.medio, dadosSalvos.gruposInfusao.medio)
     Object.assign(grupos.longo, dadosSalvos.gruposInfusao.longo)
@@ -155,7 +159,7 @@ onMounted(async () => {
 })
 
 watch(
-    [horarioAbertura, horarioFechamento, diasSelecionados, tags, cargos, funcoes, grupos],
+    [horarioAbertura, horarioFechamento, diasSelecionados, tags, cargos, funcoes, grupos, diluentes],
     () => {
       if (!carregando.value) {
         isDirty.value = true
@@ -174,6 +178,7 @@ watch(
         tags.value = [...(newVal.tags || [])]
         cargos.value = [...(newVal.cargos || [])]
         funcoes.value = [...(newVal.funcoes || [])]
+        diluentes.value = [...(newVal.diluentes || [])]
         Object.assign(grupos.rapido, newVal.gruposInfusao.rapido)
         Object.assign(grupos.medio, newVal.gruposInfusao.medio)
         Object.assign(grupos.longo, newVal.gruposInfusao.longo)
@@ -223,7 +228,7 @@ watch(
       <TabsList>
         <TabsTrigger value="administrativo">Administrativo</TabsTrigger>
         <TabsTrigger value="vagas">Vagas</TabsTrigger>
-        <TabsTrigger value="prescricoes">Prescrições</TabsTrigger>
+        <TabsTrigger value="diluicao">Diluição</TabsTrigger>
         <TabsTrigger value="protocolos">Protocolos</TabsTrigger>
       </TabsList>
 
@@ -263,10 +268,10 @@ watch(
         />
       </TabsContent>
 
-      <TabsContent class="space-y-8 mt-6" value="prescricoes">
-        <div class="p-4 border rounded-lg bg-gray-50 text-gray-500 text-center">
-          Configurações de fórmulas e diluentes estarão disponíveis em breve.
-        </div>
+      <TabsContent class="space-y-8 mt-6" value="diluicao">
+        <AjustesDiluentes
+            v-model:diluentes="diluentes"
+        />
       </TabsContent>
     </Tabs>
 

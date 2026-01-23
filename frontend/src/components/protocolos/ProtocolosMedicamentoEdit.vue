@@ -15,9 +15,17 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: DetalhesMedicamento): void
 }>()
 
-const updateDias = (val: string) => {
-  const dias = val.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n))
-  emit('update:modelValue', {...props.modelValue, diasDoCiclo: dias})
+const updateField = (field: keyof DetalhesMedicamento, value: any) => {
+  emit('update:modelValue', {
+    ...props.modelValue,
+    [field]: value
+  })
+}
+
+const updateDias = (val: string | number) => {
+  const strVal = String(val)
+  const dias = strVal.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n))
+  updateField('diasDoCiclo', dias)
 }
 
 const formattedDias = (arr: number[]) => arr?.join(', ') || ''
@@ -82,7 +90,6 @@ const formattedDias = (arr: number[]) => arr?.join(', ') || ''
 
       <div class="col-span-8">
         <DiluenteSelector
-            v-if="modelValue.configuracaoDiluicao"
             v-model="modelValue.configuracaoDiluicao"
         />
       </div>
