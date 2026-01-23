@@ -29,6 +29,21 @@ TAGS_CONFIG = [
     "Laboratório Ciente", "Quimio Adiada", "Comunicado ao Paciente", "Virá Após a RDT"
 ]
 
+DILUENTES_CONFIG = [
+    "Soro Fisiológico 0,9% 50ml",
+    "Soro Fisiológico 0,9% 100ml",
+    "Soro Fisiológico 0,9% 250ml",
+    "Soro Fisiológico 0,9% 500ml",
+    "Soro Fisiológico 0,9% 1000ml",
+    "Glicose 5% 50ml",
+    "Glicose 5% 100ml",
+    "Glicose 5% 250ml",
+    "Glicose 5% 500ml",
+    "Glicose 5% 1000ml",
+    "Água para Injeção 10ml",
+    "Sem Diluente (Bolus)"
+]
+
 CARGOS = ["Enfermeiro", "Técnico de Enfermagem", "Farmacêutico", "Médico", "Administrador"]
 FUNCOES = ["Gestão", "Salão QT", "Triagem/Marcação", "Consulta de Enfermagem", "Apoio"]
 MEDICOS_USERNAMES = ["med.carlos", "med.fernanda", "med.roberto"]
@@ -80,6 +95,13 @@ def criar_prescricao_payload(protocolo_model: Protocolo, paciente: Paciente, med
                 elif dados.unidade == UnidadeDoseEnum.MG_KG:
                     dose_calc = dados.dose_referencia * paciente.peso
 
+                diluicao_padrao = ""
+                if hasattr(dados, 'configuracao_diluicao') and dados.configuracao_diluicao:
+                    config = dados.configuracao_diluicao
+                    diluicao_padrao = getattr(config, 'selecionada', "") or ""
+                    if not diluicao_padrao and hasattr(config, 'opcoes_permitidas') and config.opcoes_permitidas:
+                        diluicao_padrao = config.opcoes_permitidas[0]
+
                 item_p = ItemPrescricao(
                     id_item=str(uuid.uuid4()),
                     medicamento=dados.medicamento,
@@ -89,6 +111,7 @@ def criar_prescricao_payload(protocolo_model: Protocolo, paciente: Paciente, med
                     dose_final=round(dose_calc, 2),
                     via=dados.via,
                     tempo_minutos=dados.tempo_minutos,
+                    diluicao_final=diluicao_padrao,
                     dias_do_ciclo=dados.dias_do_ciclo,
                     notas_especificas=dados.notas_especificas
                 )
@@ -200,7 +223,8 @@ async def setup_app(aghu_pacientes):
             },
             tags=TAGS_CONFIG,
             cargos=CARGOS,
-            funcoes=FUNCOES
+            funcoes=FUNCOES,
+            diluentes=DILUENTES_CONFIG,
         )
         session.add(conf)
 

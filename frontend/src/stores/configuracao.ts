@@ -110,7 +110,8 @@ export const useConfiguracaoStore = defineStore('configuracao', () => {
     },
     tags: [],
     cargos: [],
-    funcoes: []
+    funcoes: [],
+    diluentes: [],
   })
 
   function getStatusConfig(id: string) {

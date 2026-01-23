@@ -5,9 +5,11 @@ import {useAuthStore} from '@/stores/auth'
 import {useMediaQuery} from '@vueuse/core'
 import {Calendar, FileText, LogOut, Menu, Pill, Settings, Stethoscope, Users, X} from 'lucide-vue-next'
 import {Button} from '@/components/ui/button'
+import {useConfiguracaoStore} from "@/stores/configuracao.ts";
 
 const router = useRouter()
 const authStore = useAuthStore()
+const configStore = useConfiguracaoStore()
 
 const isDesktop = useMediaQuery('(min-width: 1024px)')
 
@@ -15,6 +17,7 @@ const sidebarOpen = ref(true)
 
 onMounted(async () => {
   sidebarOpen.value = window.innerWidth >= 1024
+  await configStore.fetchConfiguracoes()
 })
 
 watch(isDesktop, (ehDesktop) => {

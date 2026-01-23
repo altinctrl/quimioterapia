@@ -138,7 +138,7 @@ const handleBaixar = async () => {
             </div>
             <div class="flex flex-col">
               <span class="text-sm text-gray-500">Creatinina</span>
-              <span class="font-medium">{{ prescricao.conteudo.paciente.creatinina || '-' }}</span>
+              <span class="font-medium">{{ prescricao.conteudo.paciente.creatinina ? prescricao.conteudo.paciente.creatinina + ' mg/dL' : '-' }}</span>
             </div>
           </div>
         </div>

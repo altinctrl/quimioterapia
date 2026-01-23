@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, JSON
+from sqlalchemy import Column, Integer, String, JSON, Float
 
 from src.resources.database import Base
 
@@ -14,3 +14,4 @@ class Configuracao(Base):
     tags = Column(JSON, default=[])
     cargos = Column(JSON, default=[])
     funcoes = Column(JSON, default=[])
+    diluentes = Column(JSON, default=[])

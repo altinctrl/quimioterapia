@@ -6,6 +6,7 @@ import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/c
 import {AlertTriangle} from 'lucide-vue-next'
 import {UnidadeDoseEnum} from "@/types"
 import {formatDiasCiclo, getUnidadeFinal} from "@/utils/prescricaoUtils.ts";
+import {useAppStore} from "@/stores/app.ts";
 
 const props = defineProps<{
   item: any
@@ -19,6 +20,8 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits(['update:item'])
+
+const appStore = useAppStore()
 
 const doseCalculadaInicial = computed(() => {
   const ref = parseFloat(props.item.doseReferencia) || 0
@@ -81,6 +84,10 @@ const formatNumber = (val: number) => {
     minimumFractionDigits: casasDecimais,
     maximumFractionDigits: casasDecimais
   });
+}
+
+const isDiluenteDisponivel = (nome: string) => {
+  return !appStore.parametros.diluentes?.includes(nome)
 }
 </script>
 
@@ -201,8 +208,11 @@ const formatNumber = (val: number) => {
             v-model="item.diluicaoFinal"
             :disabled="!diluentesPermitidos || diluentesPermitidos.length === 0"
         >
-          <SelectTrigger class="h-8 text-sm">
-            <SelectValue :placeholder="(!diluentesPermitidos || diluentesPermitidos.length === 0) ? 'Sem diluentes' : 'Selecione...'"/>
+          <SelectTrigger
+              :class="diluentesPermitidos.length > 0 && isDiluenteDisponivel(item.diluicaoFinal) ? 'border-red-300 bg-red-50 text-red-900' : ''"
+              class="h-8 text-sm"
+          >
+            <SelectValue :placeholder="(!diluentesPermitidos || diluentesPermitidos.length === 0) ? 'Sem opções' : 'Selecione...'"/>
           </SelectTrigger>
           <SelectContent>
             <SelectItem
@@ -210,7 +220,15 @@ const formatNumber = (val: number) => {
                 :key="dil"
                 :value="dil"
             >
-              {{ dil }}
+              <span :class="isDiluenteDisponivel(dil) ? 'text-red-600 line-through decoration-red-600/50' : ''">
+                {{ dil }}
+              </span>
+              <span
+                  v-if="isDiluenteDisponivel(dil)"
+                  class="text-[10px] text-red-500 font-bold bg-red-50 px-1 rounded ml-auto"
+              >
+                INDISPONÍVEL
+              </span>
             </SelectItem>
           </SelectContent>
         </Select>
