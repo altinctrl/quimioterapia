@@ -22,10 +22,16 @@ onMounted(() => {
 })
 
 const STATUS_ORDER: Record<string, number> = {
-  [FarmaciaStatusEnum.PENDENTE]: 0,
-  [FarmaciaStatusEnum.EM_PREPARACAO]: 1,
-  [FarmaciaStatusEnum.PRONTA]: 2,
-  [FarmaciaStatusEnum.ENVIADA]: 3
+  [FarmaciaStatusEnum.AGUARDA_PRESCRICAO]: 0,
+  [FarmaciaStatusEnum.VALIDANDO_PRESCRICAO]: 1,
+  [FarmaciaStatusEnum.PENDENTE]: 2,
+  [FarmaciaStatusEnum.EM_PREPARACAO]: 3,
+  [FarmaciaStatusEnum.PRONTO]: 4,
+  [FarmaciaStatusEnum.ENVIADO]: 5,
+  [FarmaciaStatusEnum.MED_EM_FALTA]: 6,
+  [FarmaciaStatusEnum.MED_JUD_EM_FALTA]: 7,
+  [FarmaciaStatusEnum.SEM_PROCESSO]: 8,
+  [FarmaciaStatusEnum.PRESCRICAO_DEVOLVIDA]: 9,
 }
 
 const filtros = ref<FiltrosFarmacia>({
@@ -210,9 +216,9 @@ const handleToggleCheckItem = async (agId: string, itemKey: string, statusAtual:
   let proximoStatus: FarmaciaStatusEnum | null = null
   if (statusAtual === FarmaciaStatusEnum.PENDENTE && totalChecked > 0) {
     proximoStatus = FarmaciaStatusEnum.EM_PREPARACAO
-  } else if (totalChecked === totalItens && totalItens > 0 && statusAtual !== FarmaciaStatusEnum.PRONTA) {
-    proximoStatus = FarmaciaStatusEnum.PRONTA
-  } else if (totalChecked < totalItens && statusAtual === FarmaciaStatusEnum.PRONTA) {
+  } else if (totalChecked === totalItens && totalItens > 0 && statusAtual !== FarmaciaStatusEnum.PRONTO) {
+    proximoStatus = FarmaciaStatusEnum.PRONTO
+  } else if (totalChecked < totalItens && statusAtual === FarmaciaStatusEnum.PRONTO) {
     proximoStatus = FarmaciaStatusEnum.EM_PREPARACAO
   }
 
@@ -232,13 +238,19 @@ const metricas = computed(() => {
     total: rows.length,
     pendente: rows.filter(r => r.statusFarmacia === FarmaciaStatusEnum.PENDENTE).length,
     emPreparacao: rows.filter(r => r.statusFarmacia === FarmaciaStatusEnum.EM_PREPARACAO).length,
-    pronta: rows.filter(r => r.statusFarmacia === FarmaciaStatusEnum.PRONTA).length,
-    enviada: rows.filter(r => r.statusFarmacia === FarmaciaStatusEnum.ENVIADA).length
+    pronta: rows.filter(r => r.statusFarmacia === FarmaciaStatusEnum.PRONTO).length,
+    enviada: rows.filter(r => r.statusFarmacia === FarmaciaStatusEnum.ENVIADO).length
   }
 })
 
 const opcoesStatusFarmacia = computed(() => {
-  return appStore.statusConfig.filter(s => s.tipo === 'farmacia')
+  return appStore.statusConfig
+    .filter(s => s.tipo === 'farmacia')
+    .sort((a, b) => {
+      const rankA = STATUS_ORDER[a.id] ?? 99
+      const rankB = STATUS_ORDER[b.id] ?? 99
+      return rankA - rankB
+    })
 })
 
 watch(dataSelecionada, async (novaData) => {

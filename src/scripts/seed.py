@@ -375,7 +375,7 @@ async def setup_app(aghu_pacientes):
                     if data_ag < date.today():
                         status_ag = AgendamentoStatusEnum.CONCLUIDO
                         checkin = True
-                        status_farm = FarmaciaStatusEnum.ENVIADA
+                        status_farm = FarmaciaStatusEnum.ENVIADO
                     elif data_ag == date.today():
                         status_ag = random.choice([
                             AgendamentoStatusEnum.AGENDADO,
@@ -383,7 +383,7 @@ async def setup_app(aghu_pacientes):
                             AgendamentoStatusEnum.CONCLUIDO,
                         ])
                         checkin = True if status_ag != AgendamentoStatusEnum.AGENDADO else False
-                        status_farm = FarmaciaStatusEnum.PENDENTE if checkin else FarmaciaStatusEnum.ENVIADA
+                        status_farm = FarmaciaStatusEnum.PENDENTE if checkin else FarmaciaStatusEnum.ENVIADO
 
                     inicio, fim = gerar_horario(random.choice(["manha", "tarde"]), protocolo.tempo_total_minutos)
 

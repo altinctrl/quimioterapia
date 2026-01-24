@@ -174,13 +174,13 @@ async def add_agendamentos(data_fixa: date = None, quantidade: int = None):
             if data_ag < date.today():
                 status_ag = AgendamentoStatusEnum.CONCLUIDO
                 checkin = True
-                status_farm = FarmaciaStatusEnum.ENVIADA
+                status_farm = FarmaciaStatusEnum.ENVIADO
             elif data_ag == date.today():
                 status_ag = random.choice([AgendamentoStatusEnum.AGENDADO,
                                            AgendamentoStatusEnum.EM_INFUSAO,
                                            AgendamentoStatusEnum.CONCLUIDO])
                 checkin = status_ag != AgendamentoStatusEnum.CONCLUIDO
-                status_farm = FarmaciaStatusEnum.ENVIADA if checkin else FarmaciaStatusEnum.PENDENTE
+                status_farm = FarmaciaStatusEnum.ENVIADO if checkin else FarmaciaStatusEnum.PENDENTE
 
             ag = Agendamento(
                 id=str(uuid.uuid4()),
