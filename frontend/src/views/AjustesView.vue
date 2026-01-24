@@ -282,6 +282,7 @@ watch(
 
       <TabsContent class="space-y-6 mt-6" value="protocolos">
         <ProtocolosLista
+            :dias-funcionamento="diasSelecionados"
             :protocolos="appStore.protocolos"
             @criar="handleNovoProtocolo"
             @details="handleViewDetails"
