@@ -152,7 +152,8 @@ export const useConfiguracaoStore = defineStore('configuracao', () => {
     gruposInfusao: {
       rapido: {vagas: 0, duracao: ''},
       medio: {vagas: 0, duracao: ''},
-      longo: {vagas: 0, duracao: ''}
+      longo: {vagas: 0, duracao: ''},
+      extra_longo: {vagas: 0, duracao: ''}
     },
     tags: [],
     cargos: [],

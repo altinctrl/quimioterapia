@@ -122,6 +122,8 @@ const metricas = computed(() => {
   let rapido = 0
   let medio = 0
   let longo = 0
+  let extraLongo = 0
+
   const getStatusFarmacia = (a: any) => a.detalhes?.infusao?.status_farmacia
   list.forEach(a => {
     const minutos = getDuracaoAgendamento(a)
@@ -129,6 +131,7 @@ const metricas = computed(() => {
     if (grupo === 'rapido') rapido++
     else if (grupo === 'medio') medio++
     else if (grupo === 'longo') longo++
+    else if (grupo === 'extra_longo') extraLongo++
   })
 
   return {
@@ -142,6 +145,7 @@ const metricas = computed(() => {
     rapido,
     medio,
     longo,
+    extraLongo,
     intercorrencias: list.filter(a => a.status === AgendamentoStatusEnum.INTERCORRENCIA).length,
     farmaciaPendentes: list.filter(a => getStatusFarmacia(a) === FarmaciaStatusEnum.PENDENTE).length,
     farmaciaPreparando: list.filter(a => getStatusFarmacia(a) === FarmaciaStatusEnum.EM_PREPARACAO).length,

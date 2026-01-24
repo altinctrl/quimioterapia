@@ -13,6 +13,7 @@ defineProps<{
     rapido: number
     medio: number
     longo: number
+    extraLongo: number
     intercorrencias: number
     suspensos: number
     farmaciaPendentes: number
@@ -62,18 +63,22 @@ defineProps<{
         <Clock2 class="h-4 w-4 text-blue-600"/>
       </CardHeader>
       <CardContent class="space-y-4">
-        <div class="grid grid-cols-3 gap-2 text-center text-sm">
-          <div class="bg-green-50 p-2 rounded border border-green-100">
-            <span class="text-2xl block font-bold text-green-700">{{ metricas.rapido }}</span>
-            <span class="text-xs text-green-500">Curta</span>
+        <div class="grid grid-cols-4 gap-2 text-center text-sm">
+          <div class="bg-blue-50 p-2 rounded border border-blue-100">
+            <span class="text-2xl block font-bold text-blue-700">{{ metricas.rapido }}</span>
+            <span class="text-xs text-blue-600">Rápido</span>
+          </div>
+          <div class="bg-emerald-50 p-2 rounded border border-emerald-100">
+            <span class="text-2xl block font-bold text-emerald-700">{{ metricas.medio }}</span>
+            <span class="text-xs text-emerald-600">Médio</span>
           </div>
           <div class="bg-amber-50 p-2 rounded border border-amber-100">
-            <span class="text-2xl block font-bold text-amber-700">{{ metricas.medio }}</span>
-            <span class="text-xs text-amber-600">Média</span>
+            <span class="text-2xl block font-bold text-amber-700">{{ metricas.longo }}</span>
+            <span class="text-xs text-amber-600">Longo</span>
           </div>
-          <div class="bg-red-50 p-2 rounded border border-red-100">
-            <span class="text-2xl block font-bold text-red-700">{{ metricas.longo }}</span>
-            <span class="text-xs text-red-600">Longa</span>
+          <div class="bg-rose-50 p-2 rounded border border-rose-100">
+            <span class="text-2xl block font-bold text-rose-700">{{ metricas.extraLongo }}</span>
+            <span class="text-xs text-rose-600">Extra Longo</span>
           </div>
         </div>
       </CardContent>
