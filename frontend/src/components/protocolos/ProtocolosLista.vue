@@ -2,12 +2,10 @@
 import {computed, ref} from 'vue'
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card'
 import {Button} from '@/components/ui/button'
-import {Input} from '@/components/ui/input'
-import {Label} from '@/components/ui/label'
 import {Badge} from '@/components/ui/badge'
-import {Clock, Edit, FileUp, Hash, Layers, Plus, Repeat, Search, XCircle} from 'lucide-vue-next'
-import {useProtocoloImport} from "@/composables/protocolos/useProtocoloImport";
+import {Clock, Edit, Hash, Layers, Repeat, XCircle} from 'lucide-vue-next'
 import {diasSemanaOptions} from "@/utils/protocoloConstants";
+import ProtocolosListaControls, {type ProtocoloFiltros} from "@/components/protocolos/ProtocolosListaControls.vue";
 
 const props = defineProps<{
   diasFuncionamento: number[],
@@ -15,7 +13,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'criar') : void
+  (e: 'criar'): void
   (e: 'importar', lista: any[], ignored: number): void
   (e: 'edit', protocolo: any): void
   (e: 'details', protocolo: any): void
@@ -23,9 +21,12 @@ const emit = defineEmits<{
 }>()
 
 const searchTerm = ref('')
-const statusFilter = ref<'todos' | 'ativos' | 'inativos'>('todos')
-const restricaoDiaFilter = ref<'todos' | 'com' | 'sem'>('todos')
-const grupoInfusaoFilter = ref<'todos' | 'rapido' | 'medio' | 'longo' | 'extra_longo'>('todos')
+const filtros = ref<ProtocoloFiltros>({
+  sortOrder: 'nome',
+  status: 'todos',
+  restricao: 'todos',
+  grupoInfusao: ['rapido', 'medio', 'longo', 'extra_longo']
+})
 
 const inferirGrupoInfusao = (duracao: number): 'rapido' | 'medio' | 'longo' | 'extra_longo' => {
   if (duracao <= 30) return 'rapido'
@@ -56,116 +57,41 @@ const checkRestricao = (protocolo: any) => {
 }
 
 const filteredProtocolos = computed(() => {
-  return props.protocolos.filter(p => {
+  let result = props.protocolos.filter(p => {
     const matchesSearch = p.nome.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
         (p.indicacao && p.indicacao.toLowerCase().includes(searchTerm.value.toLowerCase()))
     if (!matchesSearch) return false
 
-    if (statusFilter.value === 'ativos' && !p.ativo) return false
-    if (statusFilter.value === 'inativos' && p.ativo) return false
+    if (filtros.value.status === 'ativos' && !p.ativo) return false
+    if (filtros.value.status === 'inativos' && p.ativo) return false
 
     const {isRestricted} = checkRestricao(p)
-    if (restricaoDiaFilter.value === 'com' && !isRestricted) return false
-    if (restricaoDiaFilter.value === 'sem' && isRestricted) return false
+    if (filtros.value.restricao === 'com' && !isRestricted) return false
+    if (filtros.value.restricao === 'sem' && isRestricted) return false
 
-    let grupo = p.grupoInfusao
-    if (!grupo) {
-      grupo = inferirGrupoInfusao(p.tempoTotalMinutos || 0)
+    const grupo = p.grupoInfusao || inferirGrupoInfusao(p.tempoTotalMinutos || 0)
+    return filtros.value.grupoInfusao.includes(grupo);
+  })
+
+  return result.sort((a: any, b: any) => {
+    if (filtros.value.sortOrder === 'duracao') {
+      return (a.tempoTotalMinutos || 0) - (b.tempoTotalMinutos || 0)
     }
-    return !(grupoInfusaoFilter.value !== 'todos' && grupo !== grupoInfusaoFilter.value);
+    return a.nome.localeCompare(b.nome)
   })
 })
-
-const { handleFileUpload, isProcessing, ignored } = useProtocoloImport()
-const fileInput = ref<HTMLInputElement | null>(null)
-
-const onFileChange = async (e: Event) => {
-  const dados = await handleFileUpload(e)
-  if (dados) emit('importar', dados, ignored.value)
-}
 </script>
 
 <template>
   <div class="space-y-6">
     <Card>
-      <CardContent class="pt-6 space-y-4">
-        <div class="flex flex-col md:flex-row gap-4">
-          <div class="relative flex-1">
-            <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400"/>
-            <Input v-model="searchTerm" class="pl-10" placeholder="Buscar por nome ou indicação..."/>
-          </div>
-
-          <div class="flex gap-2">
-            <Button class="flex items-center justify-end gap-3" @click.stop="emit('criar')">
-              <Plus class="h-4 w-4"/>
-              Criar
-            </Button>
-
-            <Button :disabled="isProcessing" class="flex items-center justify-end gap-3" variant="outline"
-                    @click="fileInput?.click()">
-              <FileUp class="h-4 w-4"/>
-              Importar
-            </Button>
-            <input ref="fileInput" accept=".json" class="hidden" type="file" @change="onFileChange"/>
-          </div>
-        </div>
-
-        <div class="flex flex-wrap gap-1">
-          <div class="flex items-center gap-2">
-            <Label class="whitespace-nowrap">Status:</Label>
-            <div class="flex gap-1">
-              <Button :variant="statusFilter === 'todos' ? 'default' : 'outline'" size="sm"
-                      @click="statusFilter = 'todos'">Todos
-              </Button>
-              <Button :variant="statusFilter === 'ativos' ? 'default' : 'outline'" size="sm"
-                      @click="statusFilter = 'ativos'">Ativos
-              </Button>
-              <Button :variant="statusFilter === 'inativos' ? 'default' : 'outline'" size="sm"
-                      @click="statusFilter = 'inativos'">Inativos
-              </Button>
-            </div>
-          </div>
-
-          <div class="h-8 w-px bg-gray-200 mx-2 hidden md:block"></div>
-
-          <div class="flex items-center gap-2">
-            <Label class="whitespace-nowrap">Restrição:</Label>
-            <div class="flex gap-1">
-              <Button :variant="restricaoDiaFilter === 'todos' ? 'default' : 'outline'" size="sm"
-                      @click="restricaoDiaFilter = 'todos'">Todos
-              </Button>
-              <Button :variant="restricaoDiaFilter === 'com' ? 'default' : 'outline'" size="sm"
-                      @click="restricaoDiaFilter = 'com'">Com
-              </Button>
-              <Button :variant="restricaoDiaFilter === 'sem' ? 'default' : 'outline'" size="sm"
-                      @click="restricaoDiaFilter = 'sem'">Sem
-              </Button>
-            </div>
-          </div>
-
-          <div class="h-8 w-px bg-gray-200 mx-2 hidden md:block"></div>
-
-          <div class="flex items-center gap-2">
-            <Label class="whitespace-nowrap">Tempo:</Label>
-            <div class="flex gap-1">
-              <Button :variant="grupoInfusaoFilter === 'todos' ? 'default' : 'outline'" size="sm"
-                      @click="grupoInfusaoFilter = 'todos'">Todos
-              </Button>
-              <Button :variant="grupoInfusaoFilter === 'rapido' ? 'default' : 'outline'" size="sm"
-                      @click="grupoInfusaoFilter = 'rapido'">&lt; 30min
-              </Button>
-              <Button :variant="grupoInfusaoFilter === 'medio' ? 'default' : 'outline'" size="sm"
-                      @click="grupoInfusaoFilter = 'medio'">30min-2h
-              </Button>
-              <Button :variant="grupoInfusaoFilter === 'longo' ? 'default' : 'outline'" size="sm"
-                      @click="grupoInfusaoFilter = 'longo'">2h-4h
-              </Button>
-              <Button :variant="grupoInfusaoFilter === 'extra_longo' ? 'default' : 'outline'" size="sm"
-                      @click="grupoInfusaoFilter = 'extra_longo'">&gt; 4h
-              </Button>
-            </div>
-          </div>
-        </div>
+      <CardContent class="pt-6">
+        <ProtocolosListaControls
+            v-model:filtros="filtros"
+            v-model:searchTerm="searchTerm"
+            @criar="emit('criar')"
+            @importar="(dados, ignored) => emit('importar', dados, ignored)"
+        />
       </CardContent>
     </Card>
 
