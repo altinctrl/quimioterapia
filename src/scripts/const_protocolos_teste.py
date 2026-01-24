@@ -302,7 +302,7 @@ PROTOCOLOS_DATA = [
                     },
                     {
                         "ordem": 3,
-                        "categoria": CategoriaBlocoEnum.INFUSOR,
+                        "categoria": CategoriaBlocoEnum.QT,
                         "itens": [
                             {
                                 "tipo": "medicamento_unico",
@@ -601,6 +601,24 @@ PROTOCOLOS_DATA = [
                     },
                     {
                         "ordem": 4,
+                        "categoria": CategoriaBlocoEnum.QT,
+                        "itens": [
+                            {
+                            "tipo": "medicamento_unico",
+                            "dados": {
+                                "medicamento": "Quimioterápico Expansor",
+                                "dose_referencia": 1200,
+                                "unidade": UnidadeDoseEnum.MG_M2,
+                                "via": ViaAdministracaoEnum.IV,
+                                "tempo_minutos": 1140,
+                                "dias_do_ciclo": [1],
+                                "notas_especificas": "Instalar na bomba elastomérica para 24h"
+                            }
+                        }
+                        ]
+                    },
+                    {
+                        "ordem": 5,
                         "categoria": CategoriaBlocoEnum.POS_MED_HOSPITALAR,
                         "itens": [
                             {
@@ -616,24 +634,6 @@ PROTOCOLOS_DATA = [
                                     "opcoes_permitidas": ["Soro Fisiológico 0,9% 500ml"],
                                     "selecionada": "Soro Fisiológico 0,9% 500ml"
                                 }
-                            }
-                        }
-                        ]
-                    },
-                    {
-                        "ordem": 5,
-                        "categoria": CategoriaBlocoEnum.INFUSOR,
-                        "itens": [
-                            {
-                            "tipo": "medicamento_unico",
-                            "dados": {
-                                "medicamento": "Quimioterápico Expansor",
-                                "dose_referencia": 1200,
-                                "unidade": UnidadeDoseEnum.MG_M2,
-                                "via": ViaAdministracaoEnum.IV,
-                                "tempo_minutos": 1140,
-                                "dias_do_ciclo": [1],
-                                "notas_especificas": "Instalar na bomba elastomérica para 24h"
                             }
                         }
                         ]

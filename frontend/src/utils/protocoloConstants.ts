@@ -13,5 +13,4 @@ export const categoriasBloco = [
   {value: CategoriaBlocoEnum.QT, label: 'Terapia'},
   {value: CategoriaBlocoEnum.POS_MED_HOSPITALAR, label: 'Pós-Med (Hospitalar)'},
   {value: CategoriaBlocoEnum.POS_MED_DOMICILIAR, label: 'Pós-Med (Domiciliar)'},
-  {value: CategoriaBlocoEnum.INFUSOR, label: 'Infusor'}
 ]
