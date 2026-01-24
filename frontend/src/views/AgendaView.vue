@@ -2,16 +2,16 @@
 import {computed, onMounted, ref, watch} from 'vue'
 import {useRouter} from 'vue-router'
 import {useAppStore} from '@/stores/app'
-import {Card, CardContent} from '@/components/ui/card'
+import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs'
 import AgendaHeader from '@/components/agenda/AgendaHeader.vue'
 import AgendaMetrics from '@/components/agenda/AgendaMetrics.vue'
-import AgendaTable from '@/components/agenda/AgendaTable.vue'
 import AgendaRemarcarModal from '@/components/agenda/AgendaRemarcarModal.vue'
 import StatusChangeModal from '@/components/agenda/AgendaStatusChangeModal.vue'
 import TagsModal from '@/components/modals/TagsModal.vue'
-import AgendaControls, {type FiltrosAgenda} from '@/components/agenda/AgendaControls.vue'
+import {type FiltrosAgenda} from '@/components/agenda/AgendaControls.vue'
+import AgendaTipoTab from '@/components/agenda/AgendaTipoTab.vue'
 import {getDuracaoAgendamento, getGrupoInfusao, somarDias} from '@/utils/agendaUtils'
-import {type Agendamento, AgendamentoStatusEnum, FarmaciaStatusEnum, statusPermitidosSemCheckin} from "@/types";
+import {type Agendamento, AgendamentoStatusEnum, FarmaciaStatusEnum, statusPermitidosSemCheckin, type TipoAgendamento} from "@/types";
 import {getDataLocal} from '@/lib/utils.ts';
 import {toast} from "vue-sonner";
 import AgendamentoDetalhesModal from "@/components/modals/AgendamentoDetalhesModal.vue";
@@ -40,12 +40,14 @@ const agendamentoParaRemarcar = ref<Agendamento | null>(null)
 const statusModalOpen = ref(false)
 const statusPendingData = ref<{ id: string; novoStatus: AgendamentoStatusEnum; pacienteNome: string } | null>(null)
 
+const activeTipo = ref<TipoAgendamento>('infusao')
+
 const agendamentosDoDia = computed(() => {
   return appStore.getAgendamentosDoDia(dataSelecionada.value)
       .sort((a, b) => a.horarioInicio.localeCompare(b.horarioInicio))
 })
 
-const filtros = ref<FiltrosAgenda>({
+const defaultFiltros = (): FiltrosAgenda => ({
   ordenacao: 'grupo_asc',
   turno: 'todos',
   statusFarmacia: [],
@@ -53,71 +55,31 @@ const filtros = ref<FiltrosAgenda>({
   esconderRemarcados: true
 })
 
-const resetFiltros = () => {
-  filtros.value = {
-    ordenacao: 'grupo_asc',
-    turno: 'todos',
-    statusFarmacia: [],
-    gruposInfusao: [],
-    esconderRemarcados: true
-  }
+const filtrosInfusao = ref<FiltrosAgenda>(defaultFiltros())
+const filtrosConsulta = ref<FiltrosAgenda>(defaultFiltros())
+const filtrosProcedimento = ref<FiltrosAgenda>(defaultFiltros())
+
+const resetFiltros = (tipo: TipoAgendamento) => {
+  if (tipo === 'infusao') filtrosInfusao.value = defaultFiltros()
+  if (tipo === 'consulta') filtrosConsulta.value = defaultFiltros()
+  if (tipo === 'procedimento') filtrosProcedimento.value = defaultFiltros()
 }
 
-const agendamentosProcessados = computed(() => {
-  let lista = appStore.getAgendamentosDoDia(dataSelecionada.value)
-
-  if (filtros.value.esconderRemarcados) lista = lista.filter(a => a.status !== AgendamentoStatusEnum.REMARCADO)
-  if (filtros.value.turno !== 'todos') lista = lista.filter(a => a.turno === filtros.value.turno)
-  if (filtros.value.statusFarmacia.length > 0) {
-    lista = lista.filter(a => {
-      const status = a.detalhes?.infusao?.statusFarmacia
-      return status && filtros.value.statusFarmacia.includes(status)
-    })
-  }
-  if (filtros.value.gruposInfusao.length > 0) {
-    lista = lista.filter(a => {
-      const duracao = getDuracaoAgendamento(a)
-      const grupo = getGrupoInfusao(duracao)
-      return filtros.value.gruposInfusao.includes(grupo)
-    })
-  }
-
-  return lista.sort((a, b) => {
-    const durA = getDuracaoAgendamento(a)
-    const durB = getDuracaoAgendamento(b)
-
-    switch (filtros.value.ordenacao) {
-      case 'grupo_asc':
-        if (durA !== durB) return durA - durB
-        return a.horarioInicio.localeCompare(b.horarioInicio)
-
-      case 'grupo_desc':
-        if (durA !== durB) return durB - durA
-        return a.horarioInicio.localeCompare(b.horarioInicio)
-
-      case 'horario':
-        return a.horarioInicio.localeCompare(b.horarioInicio)
-
-      case 'status':
-        const getPeso = (s: string) => {
-          if (['suspenso', 'intercorrencia', 'ausente'].includes(s)) return 0
-          if (s === 'aguardando-medicamento') return 1
-          if (s === 'em-infusao') return 2
-          if (s === 'concluido') return 10
-          return 5
-        }
-        return getPeso(a.status) - getPeso(b.status)
-
-      default:
-        return 0
-    }
-  })
+const agendamentosPorTipo = computed(() => {
+  const base = agendamentosDoDia.value
+  return {
+    infusao: base.filter(a => a.tipo === 'infusao'),
+    consulta: base.filter(a => a.tipo === 'consulta'),
+    procedimento: base.filter(a => a.tipo === 'procedimento')
+  } satisfies Record<TipoAgendamento, Agendamento[]>
 })
+
+const agendamentosTipoAtivo = computed(() => agendamentosPorTipo.value[activeTipo.value])
 
 const mostrarMetricas = ref(true)
 
 const metricas = computed(() => {
-  const list = agendamentosDoDia.value
+  const list = agendamentosTipoAtivo.value
 
   let rapido = 0
   let medio = 0
@@ -290,20 +252,21 @@ const handleRemarcado = () => {
         @go-today="handleHoje"
     />
 
-    <AgendaMetrics v-if="mostrarMetricas" :metricas="metricas"/>
+    <Tabs v-model="activeTipo" class="space-y-4">
+      <TabsList>
+        <TabsTrigger value="infusao">Infusão</TabsTrigger>
+        <TabsTrigger value="consulta">Consulta</TabsTrigger>
+        <TabsTrigger value="procedimento">Procedimento</TabsTrigger>
+      </TabsList>
 
-    <Card class="overflow-hidden">
-      <div class="px-4 pt-4">
-        <AgendaControls
-            v-model="filtros"
-            @reset="resetFiltros"
-        />
-      </div>
+      <AgendaMetrics v-if="mostrarMetricas" :metricas="metricas"/>
 
-      <CardContent class="p-0 mt-0">
-        <AgendaTable
-            :agendamentos="agendamentosProcessados"
-            class="border-0 rounded-none shadow-none"
+      <TabsContent class="space-y-4" value="infusao">
+        <AgendaTipoTab
+            v-model:filtros="filtrosInfusao"
+            :agendamentos="agendamentosPorTipo.infusao"
+            :mostrar-filtros-infusao="true"
+            @reset="resetFiltros('infusao')"
             @abrir-detalhes="handleVerDetalhes"
             @abrir-prescricao="handleAbrirPrescricao"
             @abrir-tags="handleAbrirTags"
@@ -311,7 +274,37 @@ const handleRemarcado = () => {
             @alterar-checkin="handleAlterarCheckin"
             @alterar-status="handleAlterarStatus"
         />
-      </CardContent>
-    </Card>
+      </TabsContent>
+
+      <TabsContent class="space-y-4" value="consulta">
+        <AgendaTipoTab
+            v-model:filtros="filtrosConsulta"
+            :agendamentos="agendamentosPorTipo.consulta"
+            :mostrar-filtros-infusao="false"
+            @reset="resetFiltros('consulta')"
+            @abrir-detalhes="handleVerDetalhes"
+            @abrir-prescricao="handleAbrirPrescricao"
+            @abrir-tags="handleAbrirTags"
+            @abrir-remarcar="handleAbrirRemarcar"
+            @alterar-checkin="handleAlterarCheckin"
+            @alterar-status="handleAlterarStatus"
+        />
+      </TabsContent>
+
+      <TabsContent class="space-y-4" value="procedimento">
+        <AgendaTipoTab
+            v-model:filtros="filtrosProcedimento"
+            :agendamentos="agendamentosPorTipo.procedimento"
+            :mostrar-filtros-infusao="false"
+            @reset="resetFiltros('procedimento')"
+            @abrir-detalhes="handleVerDetalhes"
+            @abrir-prescricao="handleAbrirPrescricao"
+            @abrir-tags="handleAbrirTags"
+            @abrir-remarcar="handleAbrirRemarcar"
+            @alterar-checkin="handleAlterarCheckin"
+            @alterar-status="handleAlterarStatus"
+        />
+      </TabsContent>
+    </Tabs>
   </div>
 </template>
