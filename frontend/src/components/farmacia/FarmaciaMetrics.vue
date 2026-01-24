@@ -18,10 +18,10 @@ defineProps<{
     <Card>
       <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle class="text-sm font-medium">Pendentes</CardTitle>
-        <Clock class="h-4 w-4 text-slate-500"/>
+        <Clock class="h-4 w-4 text-yellow-500"/>
       </CardHeader>
       <CardContent>
-        <div class="text-4xl font-bold text-slate-600">{{ metricas.pendente }}</div>
+        <div class="text-4xl font-bold text-yellow-500">{{ metricas.pendente }}</div>
       </CardContent>
     </Card>
     <Card>
@@ -45,10 +45,10 @@ defineProps<{
     <Card>
       <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle class="text-sm font-medium">Enviadas</CardTitle>
-        <Send class="h-4 w-4 text-purple-600"/>
+        <Send class="h-4 w-4 text-slate-500"/>
       </CardHeader>
       <CardContent>
-        <div class="text-4xl font-bold text-purple-700">{{ metricas.enviada }}</div>
+        <div class="text-4xl font-bold text-slate-500">{{ metricas.enviada }}</div>
       </CardContent>
     </Card>
   </div>

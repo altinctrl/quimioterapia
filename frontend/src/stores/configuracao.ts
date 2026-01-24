@@ -72,27 +72,73 @@ const defaultStatusConfig: ConfigStatus[] = [
     tipo: 'paciente'
   },
   {
+    id: 'aguarda-prescricao',
+    label: 'Aguarda Prescrição',
+    cor: 'bg-red-600 text-white',
+    corBadge: 'bg-red-100 hover:bg-red-100 text-red-800 border-red-200',
+    tipo: 'farmacia'
+  },
+  {
+    id: 'validando-prescricao',
+    label: 'Validando Prescrição',
+    cor: 'bg-purple-500 text-white',
+    corBadge: 'bg-yellow-100 hover:bg-yellow-100 text-yellow-800 border-yellow-200',
+    tipo: 'farmacia'
+  },
+  {
     id: 'pendente',
     label: 'Pendente',
-    cor: 'bg-gray-500 text-white',
+    cor: 'bg-yellow-500 text-white',
+    corBadge: 'bg-gray-100 hover:bg-gray-100 text-gray-800 border-gray-200',
     tipo: 'farmacia'
   },
   {
     id: 'em-preparacao',
     label: 'Em Preparação',
     cor: 'bg-blue-500 text-white',
+    corBadge: 'bg-blue-100 hover:bg-blue-100 text-blue-800 border-blue-200',
     tipo: 'farmacia'
   },
   {
-    id: 'pronta',
-    label: 'Pronta',
+    id: 'pronto',
+    label: 'Pronto',
     cor: 'bg-green-500 text-white',
+    corBadge: 'bg-green-100 hover:bg-green-100 text-green-800 border-green-200',
     tipo: 'farmacia'
   },
   {
-    id: 'enviada',
-    label: 'Enviada',
-    cor: 'bg-purple-600 text-white',
+    id: 'enviado',
+    label: 'Enviado',
+    cor: 'bg-gray-200 text-white',
+    corBadge: 'bg-gray-100 hover:bg-gray-100 text-gray-800 border-gray-200',
+    tipo: 'farmacia'
+  },
+  {
+    id: 'med-em-falta',
+    label: 'Med. em Falta',
+    cor: 'bg-gray-200 text-white',
+    corBadge: 'bg-red-100 hover:bg-red-100 text-red-800 border-red-200',
+    tipo: 'farmacia'
+  },
+  {
+    id: 'med-jud-em-falta',
+    label: 'Med. Jud. em Falta',
+    cor: 'bg-gray-200 text-white',
+    corBadge: 'bg-red-100 hover:bg-red-100 text-red-800 border-red-200',
+    tipo: 'farmacia'
+  },
+  {
+    id: 'sem-processo',
+    label: 'Sem Processo',
+    cor: 'bg-gray-200 text-white',
+    corBadge: 'bg-red-100 hover:bg-red-100 text-red-800 border-red-200',
+    tipo: 'farmacia'
+  },
+  {
+    id: 'prescricao-devolvida',
+    label: 'Prescrição Devolvida',
+    cor: 'bg-gray-200 text-white',
+    corBadge: 'bg-red-100 hover:bg-red-100 text-red-800 border-red-200',
     tipo: 'farmacia'
   }
 ]

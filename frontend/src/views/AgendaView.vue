@@ -145,7 +145,7 @@ const metricas = computed(() => {
     intercorrencias: list.filter(a => a.status === AgendamentoStatusEnum.INTERCORRENCIA).length,
     farmaciaPendentes: list.filter(a => getStatusFarmacia(a) === FarmaciaStatusEnum.PENDENTE).length,
     farmaciaPreparando: list.filter(a => getStatusFarmacia(a) === FarmaciaStatusEnum.EM_PREPARACAO).length,
-    farmaciaProntas: list.filter(a => getStatusFarmacia(a) === FarmaciaStatusEnum.PRONTA).length
+    farmaciaProntas: list.filter(a => getStatusFarmacia(a) === FarmaciaStatusEnum.PRONTO).length
   }
 })
 

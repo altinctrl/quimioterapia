@@ -30,10 +30,16 @@ export enum AgendamentoStatusEnum {
 }
 
 export enum FarmaciaStatusEnum {
+  AGUARDA_PRESCRICAO = 'aguarda-prescricao', // Não recebido
+  VALIDANDO_PRESCRICAO = 'validando-prescricao', // Aguarda confirmação dos dados da prescrição
   PENDENTE = 'pendente',
   EM_PREPARACAO = 'em-preparacao',
-  PRONTA = 'pronta',
-  ENVIADA = 'enviada'
+  PRONTO = 'pronto',
+  ENVIADO = 'enviado',
+  MED_EM_FALTA = 'med-em-falta',
+  MED_JUD_EM_FALTA = 'med-jud-em-falta',
+  SEM_PROCESSO = 'sem-processo',
+  PRESCRICAO_DEVOLVIDA = 'prescricao-devolvida', // Devolvido
 }
 
 export enum FaseEnum {
@@ -345,6 +351,7 @@ export interface ConfigStatus {
   id: string;
   label: string;
   cor: string;
+  corBadge?: string;
   tipo: 'paciente' | 'farmacia';
 }
 

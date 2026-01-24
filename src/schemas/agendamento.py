@@ -35,8 +35,14 @@ class AgendamentoStatusEnum(str, enum.Enum):
 class FarmaciaStatusEnum(str, enum.Enum):
     PENDENTE = 'pendente'
     EM_PREPARACAO = 'em-preparacao'
-    PRONTA = 'pronta'
-    ENVIADA = 'enviada'
+    PRONTO = 'pronto'
+    ENVIADO = 'enviado'
+    AGUARDA_PRESCRICAO = 'aguarda-prescricao' # Não recebido
+    VALIDANDO_PRESCRICAO = 'validando-prescricao' # Aguarda confirmação dos dados da prescrição
+    MED_EM_FALTA = 'med-em-falta'
+    MED_JUD_EM_FALTA = 'med-jud-em-falta'
+    SEM_PROCESSO = 'sem-processo'
+    PRESCRICAO_DEVOLVIDA = 'prescricao-devolvida' # Devolvido
 
 
 class TipoAgendamento(str, enum.Enum):

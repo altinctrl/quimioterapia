@@ -96,9 +96,9 @@ const onStatusChange = (id: string, event: Event) => {
           <TableHead class="w-[100px]">Horário</TableHead>
           <TableHead class="min-w-[150px]">Paciente</TableHead>
           <TableHead class="min-w-[100px]">Prescrição</TableHead>
-          <TableHead class="w-[80px] text-center">Check-in</TableHead>
+          <TableHead class="w-[80px] text-center">Em Sala</TableHead>
           <TableHead class="w-[140px]">Status Paciente</TableHead>
-          <TableHead class="w-[220px]">Status Farmácia</TableHead>
+          <TableHead class="w-[250px]">Status Farmácia</TableHead>
           <TableHead class="w-[140px]">Previsão</TableHead>
         </TableRow>
       </TableHeader>
@@ -161,7 +161,7 @@ const onStatusChange = (id: string, event: Event) => {
               <div class="flex items-center justify-center w-full">
                 <Checkbox
                     :checked="row.checkin"
-                    class="cursor-not-allowed opacity-70"
+                    class="disabled:cursor-default opacity-70"
                     disabled
                 />
               </div>
@@ -182,7 +182,7 @@ const onStatusChange = (id: string, event: Event) => {
                     row.statusFarmaciaCor
                   ]"
                 />
-                <div class="relative w-full max-w-[150px]">
+                <div class="relative w-full max-w-[200px]">
                   <select
                       :disabled="row.statusBloqueado"
                       :value="row.statusFarmacia"

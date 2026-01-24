@@ -87,6 +87,14 @@ const getAgendamentoInfo = (ag: Agendamento) => {
 const getObservacoesClinicas = (ag: Agendamento) => {
   return ag.paciente?.observacoesClinicas || getPaciente(ag.pacienteId)?.observacoesClinicas
 }
+
+const getFarmaciaStatusConfig = (statusId: string | undefined) => {
+  const id = statusId || 'pendente'
+  return appStore.statusConfig.find(s => s.id === id && s.tipo === 'farmacia') || {
+    label: '-',
+    corBadge: 'bg-gray-100 hover:bg-gray-100 text-gray-800 border-gray-200'
+  }
+}
 </script>
 
 <template>
@@ -97,7 +105,7 @@ const getObservacoesClinicas = (ag: Agendamento) => {
           <TableHead class="pl-5 w-[100px]">Horário</TableHead>
           <TableHead class="min-w-[150px]">Paciente</TableHead>
           <TableHead class="min-w-[100px]">Prescrição</TableHead>
-          <TableHead class="w-[80px] text-center">Check-in</TableHead>
+          <TableHead class="w-[80px] text-center">Em Sala</TableHead>
           <TableHead class="min-w-[240px]">Status Paciente</TableHead>
           <TableHead class="min-w-[140px]">Status Farmácia</TableHead>
           <TableHead class="w-fit">Tags</TableHead>
@@ -208,19 +216,12 @@ const getObservacoesClinicas = (ag: Agendamento) => {
           <TableCell class="align-top">
             <div class="flex flex-col gap-1">
               <Badge
-                  :class="{
-                    'bg-green-100 text-green-800 border-green-200': isInfusao(ag) && ag.detalhes.infusao.statusFarmacia === 'pronta',
-                    'bg-yellow-100 text-yellow-800 border-yellow-200': isInfusao(ag) && ag.detalhes.infusao.statusFarmacia === 'pendente',
-                    'bg-blue-100 text-blue-800 border-blue-200': isInfusao(ag) && ag.detalhes.infusao.statusFarmacia === 'em-preparacao',
-                    'bg-purple-100 text-purple-800 border-purple-200': isInfusao(ag) && ag.detalhes.infusao.statusFarmacia === 'enviada'
-                  }"
-                  class="w-fit font-semibold px-2 border"
+                  v-if="isInfusao(ag) && ag.detalhes.infusao.statusFarmacia"
+                  :class="[getFarmaciaStatusConfig(ag.detalhes.infusao.statusFarmacia).corBadge]"
+                  class="w-fit font-semibold px-2 border uppercase hover:bg-opacity-100"
                   variant="secondary"
               >
-                {{
-                  isInfusao(ag) && ag.detalhes.infusao.statusFarmacia ?
-                      ag.detalhes.infusao.statusFarmacia.toUpperCase().replace('-', ' ') : 'PENDENTE'
-                }}
+                {{ getFarmaciaStatusConfig(ag.detalhes.infusao.statusFarmacia).label }}
               </Badge>
 
               <div class="pl-1 flex items-center gap-1.5 text-xs">
