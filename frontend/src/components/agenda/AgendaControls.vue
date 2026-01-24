@@ -21,6 +21,8 @@ export interface FiltrosAgenda {
 
 const props = defineProps<{
   modelValue: FiltrosAgenda
+  mostrarFarmacia?: boolean
+  mostrarGruposInfusao?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -51,8 +53,8 @@ const updateField = (field: keyof FiltrosAgenda, value: any) => {
 const activeCount = computed(() => {
   let c = 0
   if (filtros.value.turno != 'todos') c++
-  if (filtros.value.statusFarmacia.length > 0) c++
-  if (filtros.value.gruposInfusao.length > 0) c++
+  if ((props.mostrarFarmacia ?? true) && filtros.value.statusFarmacia.length > 0) c++
+  if ((props.mostrarGruposInfusao ?? true) && filtros.value.gruposInfusao.length > 0) c++
   if (!filtros.value.esconderRemarcados) c++
   if (filtros.value.ordenacao !== 'grupo_asc') c++
   return c
@@ -178,7 +180,7 @@ const activeCount = computed(() => {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <DropdownMenu>
+        <DropdownMenu v-if="props.mostrarGruposInfusao ?? true">
           <DropdownMenuTrigger as-child>
             <Button
                 :class="{'border-blue-300 bg-blue-50': filtros.gruposInfusao.length > 0}"
@@ -222,7 +224,7 @@ const activeCount = computed(() => {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <DropdownMenu>
+        <DropdownMenu v-if="props.mostrarFarmacia ?? true">
           <DropdownMenuTrigger as-child>
             <Button
                 :class="{'border-blue-300': filtros.statusFarmacia.length > 0}"
