@@ -72,8 +72,7 @@ const handleImportarPaciente = async (pacienteExterno: PacienteImport) => {
         emit('update:open', false)
       }
     } else {
-      const detalhesCompletos = await api.get(`/api/pacientes/externo/${pacienteExterno.id}`)
-      const novoPaciente = await appStore.adicionarPaciente(detalhesCompletos.data)
+      const novoPaciente = await appStore.adicionarPaciente(pacienteExterno)
       toast.success(`Paciente ${pacienteExterno.nome} importado com sucesso!`)
       emit('paciente-importado', novoPaciente)
       emit('update:open', false)
