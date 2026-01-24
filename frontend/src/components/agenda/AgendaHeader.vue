@@ -3,7 +3,7 @@ import {computed} from 'vue'
 import {Card, CardContent} from '@/components/ui/card'
 import {Button} from '@/components/ui/button'
 import {Input} from '@/components/ui/input'
-import {ChevronLeft, ChevronRight, Eye, EyeOff, Plus} from 'lucide-vue-next'
+import {CalendarArrowDown, ChevronLeft, ChevronRight, Eye, EyeOff, Plus} from 'lucide-vue-next'
 
 const props = defineProps<{
   modelValue: string
@@ -14,6 +14,7 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
   (e: 'navigate-prev'): void
   (e: 'navigate-next'): void
+  (e: 'go-today'): void
   (e: 'new-appointment'): void
   (e: 'toggle-metrics'): void
 }>()
@@ -31,6 +32,9 @@ const data = computed({
         <div class="flex items-center gap-2">
           <Button size="icon" variant="outline" @click="$emit('navigate-prev')">
             <ChevronLeft class="h-4 w-4"/>
+          </Button>
+          <Button size="icon" title="Hoje" variant="outline" @click="$emit('go-today')">
+            <CalendarArrowDown class="h-4 w-4"/>
           </Button>
           <div class="flex items-center gap-2">
             <Input v-model="data" class="w-auto" type="date"/>

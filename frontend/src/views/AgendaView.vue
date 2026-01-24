@@ -157,6 +157,10 @@ const handleProximoDia = () => {
   dataSelecionada.value = somarDias(dataSelecionada.value, 1)
 }
 
+const handleHoje = () => {
+  dataSelecionada.value = getDataLocal()
+}
+
 watch(dataSelecionada, async (novaData) => {
   await appStore.fetchAgendamentos(novaData, novaData)
 }, {immediate: true})
@@ -279,6 +283,7 @@ const handleRemarcado = () => {
         @navigate-prev="handleDiaAnterior"
         @navigate-next="handleProximoDia"
         @new-appointment="router.push('/agendamento')"
+        @go-today="handleHoje"
     />
 
     <AgendaMetrics v-if="mostrarMetricas" :metricas="metricas"/>
