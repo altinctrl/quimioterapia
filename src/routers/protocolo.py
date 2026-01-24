@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from fastapi import APIRouter, Depends, Query
 
@@ -22,9 +22,13 @@ async def obter_protocolo(protocolo_id: str, provider: ProtocoloProviderInterfac
     return await protocolo_controller.obter_protocolo(provider, protocolo_id)
 
 
-@router.post("", response_model=ProtocoloResponse)
-async def criar_protocolo(dados: ProtocoloCreate,
-        provider: ProtocoloProviderInterface = Depends(get_protocolo_provider)):
+@router.post("", response_model=Union[ProtocoloResponse, List[ProtocoloResponse]])
+async def criar_protocolo(
+    dados: Union[ProtocoloCreate, List[ProtocoloCreate]],
+    provider: ProtocoloProviderInterface = Depends(get_protocolo_provider),
+):
+    if isinstance(dados, list):
+        return await protocolo_controller.criar_protocolo_multi(provider, dados)
     return await protocolo_controller.criar_protocolo(provider, dados)
 
 

@@ -5,7 +5,7 @@ import {useAppStore} from '@/stores/app'
 import {Button} from '@/components/ui/button'
 import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs'
 import {toast} from 'vue-sonner'
-import {Plus, Save, X} from 'lucide-vue-next'
+import {Save, X} from 'lucide-vue-next'
 
 import AjustesFuncionamento from '@/components/ajustes/AjustesFuncionamento.vue'
 import AjustesCapacidade from '@/components/ajustes/AjustesCapacidade.vue'
@@ -15,6 +15,7 @@ import AjustesFuncoes from '@/components/ajustes/AjustesFuncoes.vue'
 import ProtocolosLista from '@/components/protocolos/ProtocolosLista.vue'
 import ProtocolosDetalhes from '@/components/protocolos/ProtocolosDetalhes.vue'
 import AjustesDiluentes from "@/components/ajustes/AjustesDiluentes.vue";
+import ProtocolosImportModal from "@/components/modals/ProtocolosImportModal.vue";
 
 const appStore = useAppStore()
 const router = useRouter()
@@ -40,6 +41,9 @@ const grupos = reactive({
 
 const detailsOpen = ref(false)
 const selectedProtocolo = ref<any>(null)
+const importModalOpen = ref(false)
+const listaParaImportar = ref<any[]>([])
+const protocolosIgnoradosContador = ref(0)
 
 onBeforeRouteLeave((_to, _from, next) => {
   if (isDirty.value) {
@@ -114,6 +118,25 @@ const handleDesfazer = async () => {
 
 const handleNovoProtocolo = () => {
   router.push({name: 'NovoProtocolo'})
+}
+
+const handleImportarRequest = (lista: any[], ignoredCount: number) => {
+  listaParaImportar.value = lista
+  protocolosIgnoradosContador.value = ignoredCount
+  importModalOpen.value = true
+}
+
+const handleConfirmarImportacao = async () => {
+  try {
+    const lista = listaParaImportar.value
+    await appStore.importarProtocolos(lista)
+    toast.success(`${lista.length} protocolos importados com sucesso!`)
+    await appStore.fetchProtocolos()
+    listaParaImportar.value = []
+  } catch (error) {
+    console.error(error)
+    toast.error("Erro ao processar importação no servidor.")
+  }
 }
 
 const handleEditProtocolo = (p: any) => {
@@ -201,14 +224,8 @@ watch(
         <h1 class="text-3xl font-bold tracking-tight text-gray-900">Configurações</h1>
       </div>
 
-      <div class="flex items-center justify-end gap-3">
-        <Button v-if="['protocolos'].includes(activeTab)" @click="handleNovoProtocolo">
-          <Plus class="h-4 w-4 mr-1"/>
-          Novo Protocolo
-        </Button>
-
+      <div v-if="isDirty" class="flex items-center justify-end gap-3">
         <Button
-            v-if="isDirty"
             class="text-muted-foreground"
             variant="ghost"
             @click="handleDesfazer"
@@ -262,8 +279,10 @@ watch(
       <TabsContent class="space-y-6 mt-6" value="protocolos">
         <ProtocolosLista
             :protocolos="appStore.protocolos"
+            @criar="handleNovoProtocolo"
             @details="handleViewDetails"
             @edit="handleEditProtocolo"
+            @importar="handleImportarRequest"
             @toggle-status="handleToggleStatusProtocolo"
         />
       </TabsContent>
@@ -274,6 +293,13 @@ watch(
         />
       </TabsContent>
     </Tabs>
+
+    <ProtocolosImportModal
+        v-model:open="importModalOpen"
+        :ignored="protocolosIgnoradosContador"
+        :protocolos="listaParaImportar"
+        @confirmar="handleConfirmarImportacao"
+    />
 
     <ProtocolosDetalhes
         v-model:open="detailsOpen"

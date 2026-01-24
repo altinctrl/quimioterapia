@@ -5,13 +5,16 @@ import {Button} from '@/components/ui/button'
 import {Input} from '@/components/ui/input'
 import {Label} from '@/components/ui/label'
 import {Badge} from '@/components/ui/badge'
-import {Clock, Edit, Hash, Layers, Repeat, Search, XCircle} from 'lucide-vue-next'
+import {Clock, Edit, FileUp, Hash, Layers, Plus, Repeat, Search, XCircle} from 'lucide-vue-next'
+import {useProtocoloImport} from "@/composables/protocolos/useProtocoloImport";
 
 const props = defineProps<{
   protocolos: any[]
 }>()
 
 const emit = defineEmits<{
+  (e: 'criar') : void
+  (e: 'importar', lista: any[], ignored: number): void
   (e: 'edit', protocolo: any): void
   (e: 'details', protocolo: any): void
   (e: 'toggleStatus', protocolo: any): void
@@ -56,15 +59,39 @@ const filteredProtocolos = computed(() => {
     return !(grupoInfusaoFilter.value !== 'todos' && grupo !== grupoInfusaoFilter.value);
   })
 })
+
+const { handleFileUpload, isProcessing, ignored } = useProtocoloImport()
+const fileInput = ref<HTMLInputElement | null>(null)
+
+const onFileChange = async (e: Event) => {
+  const dados = await handleFileUpload(e)
+  if (dados) emit('importar', dados, ignored.value)
+}
 </script>
 
 <template>
   <div class="space-y-6">
     <Card>
       <CardContent class="pt-6 space-y-4">
-        <div class="relative w-full">
-          <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400"/>
-          <Input v-model="searchTerm" class="pl-10" placeholder="Buscar por nome ou indicação..."/>
+        <div class="flex flex-col md:flex-row gap-4">
+          <div class="relative flex-1">
+            <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400"/>
+            <Input v-model="searchTerm" class="pl-10" placeholder="Buscar por nome ou indicação..."/>
+          </div>
+
+          <div class="flex gap-2">
+            <Button class="flex items-center justify-end gap-3" @click.stop="emit('criar')">
+              <Plus class="h-4 w-4"/>
+              Criar
+            </Button>
+
+            <Button :disabled="isProcessing" class="flex items-center justify-end gap-3" variant="outline"
+                    @click="fileInput?.click()">
+              <FileUp class="h-4 w-4"/>
+              Importar
+            </Button>
+            <input ref="fileInput" accept=".json" class="hidden" type="file" @change="onFileChange"/>
+          </div>
         </div>
 
         <div class="flex flex-wrap gap-4">

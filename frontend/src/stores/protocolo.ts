@@ -30,6 +30,16 @@ export const useProtocoloStore = defineStore('protocolo', () => {
     }
   }
 
+  async function importarProtocolos(lista: Partial<Protocolo>[]) {
+    try {
+      const res = await api.post('/api/protocolos', lista)
+      protocolos.value.push(...res.data)
+    } catch (e) {
+      toast.error("Erro na importação.")
+      throw e
+    }
+  }
+
   async function atualizarProtocolo(id: string, dados: Partial<Protocolo>) {
     try {
       const res = await api.put(`/api/protocolos/${id}`, dados)
@@ -57,6 +67,7 @@ export const useProtocoloStore = defineStore('protocolo', () => {
     getProtocoloById,
     fetchProtocolos,
     adicionarProtocolo,
+    importarProtocolos,
     atualizarProtocolo,
     desativarProtocolo
   }
