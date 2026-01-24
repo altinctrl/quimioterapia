@@ -25,6 +25,12 @@ watch(() => props.modelValue.templatesCiclo.length, (newLen) => {
   }
 })
 
+watch(() => props.modelValue, (newVal) => {
+  if (newVal && (!newVal.diasSemanaPermitidos || newVal.diasSemanaPermitidos.length === 0)) {
+    newVal.diasSemanaPermitidos = [1, 2, 3, 4, 5]
+  }
+}, { immediate: true })
+
 const currentTemplate = computed(() => {
   if (!props.modelValue.templatesCiclo || props.modelValue.templatesCiclo.length === 0) {
     props.modelValue.templatesCiclo = [{

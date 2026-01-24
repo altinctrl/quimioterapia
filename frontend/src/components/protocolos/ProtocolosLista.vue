@@ -7,8 +7,10 @@ import {Label} from '@/components/ui/label'
 import {Badge} from '@/components/ui/badge'
 import {Clock, Edit, FileUp, Hash, Layers, Plus, Repeat, Search, XCircle} from 'lucide-vue-next'
 import {useProtocoloImport} from "@/composables/protocolos/useProtocoloImport";
+import {diasSemanaOptions} from "@/utils/protocoloConstants";
 
 const props = defineProps<{
+  diasFuncionamento: number[],
   protocolos: any[]
 }>()
 
@@ -23,20 +25,34 @@ const emit = defineEmits<{
 const searchTerm = ref('')
 const statusFilter = ref<'todos' | 'ativos' | 'inativos'>('todos')
 const restricaoDiaFilter = ref<'todos' | 'com' | 'sem'>('todos')
-const grupoInfusaoFilter = ref<'todos' | 'rapido' | 'medio' | 'longo'>('todos')
+const grupoInfusaoFilter = ref<'todos' | 'rapido' | 'medio' | 'longo' | 'extra_longo'>('todos')
 
-const diasSemanaOptions = [
-  {value: 1, label: 'Segunda'},
-  {value: 2, label: 'Terça'},
-  {value: 3, label: 'Quarta'},
-  {value: 4, label: 'Quinta'},
-  {value: 5, label: 'Sexta'}
-]
+const inferirGrupoInfusao = (duracao: number): 'rapido' | 'medio' | 'longo' | 'extra_longo' => {
+  if (duracao <= 30) return 'rapido'
+  if (duracao <= 120) return 'medio'
+  if (duracao <= 240) return 'longo'
+  return 'extra_longo'
+}
 
-const inferirGrupoInfusao = (duracao: number): 'rapido' | 'medio' | 'longo' => {
-  if (duracao < 120) return 'rapido'
-  if (duracao <= 240) return 'medio'
-  return 'longo'
+const checkRestricao = (protocolo: any) => {
+  const diasPermitidos = protocolo.diasSemanaPermitidos || []
+  const diasClinica = props.diasFuncionamento || []
+  if (!diasPermitidos.length || !diasClinica.length) {
+    return {isRestricted: false, text: 'Permitido todos os dias.'}
+  }
+
+  const diasFaltantes = diasClinica.filter((d: number) => !diasPermitidos.includes(d))
+  if (diasFaltantes.length === 0) {
+    return {isRestricted: false, text: 'Permitido todos os dias.'}
+  }
+
+  const labels = diasPermitidos
+      .sort((a: number, b: number) => a - b)
+      .map((d: number) => diasSemanaOptions.find(opt => opt.value === d)?.label)
+      .filter(Boolean)
+      .join(', ')
+
+  return {isRestricted: true, text: `Permitido nos dias: ${labels}.`}
 }
 
 const filteredProtocolos = computed(() => {
@@ -48,9 +64,9 @@ const filteredProtocolos = computed(() => {
     if (statusFilter.value === 'ativos' && !p.ativo) return false
     if (statusFilter.value === 'inativos' && p.ativo) return false
 
-    const temRestricao = p.diasSemanaPermitidos && p.diasSemanaPermitidos.length > 0
-    if (restricaoDiaFilter.value === 'com' && !temRestricao) return false
-    if (restricaoDiaFilter.value === 'sem' && temRestricao) return false
+    const {isRestricted} = checkRestricao(p)
+    if (restricaoDiaFilter.value === 'com' && !isRestricted) return false
+    if (restricaoDiaFilter.value === 'sem' && isRestricted) return false
 
     let grupo = p.grupoInfusao
     if (!grupo) {
@@ -94,7 +110,7 @@ const onFileChange = async (e: Event) => {
           </div>
         </div>
 
-        <div class="flex flex-wrap gap-4">
+        <div class="flex flex-wrap gap-1">
           <div class="flex items-center gap-2">
             <Label class="whitespace-nowrap">Status:</Label>
             <div class="flex gap-1">
@@ -136,13 +152,16 @@ const onFileChange = async (e: Event) => {
                       @click="grupoInfusaoFilter = 'todos'">Todos
               </Button>
               <Button :variant="grupoInfusaoFilter === 'rapido' ? 'default' : 'outline'" size="sm"
-                      @click="grupoInfusaoFilter = 'rapido'">&lt; 2h
+                      @click="grupoInfusaoFilter = 'rapido'">&lt; 30min
               </Button>
               <Button :variant="grupoInfusaoFilter === 'medio' ? 'default' : 'outline'" size="sm"
-                      @click="grupoInfusaoFilter = 'medio'">2-4h
+                      @click="grupoInfusaoFilter = 'medio'">30min-2h
               </Button>
               <Button :variant="grupoInfusaoFilter === 'longo' ? 'default' : 'outline'" size="sm"
-                      @click="grupoInfusaoFilter = 'longo'">&gt; 4h
+                      @click="grupoInfusaoFilter = 'longo'">2h-4h
+              </Button>
+              <Button :variant="grupoInfusaoFilter === 'extra_longo' ? 'default' : 'outline'" size="sm"
+                      @click="grupoInfusaoFilter = 'extra_longo'">&gt; 4h
               </Button>
             </div>
           </div>
@@ -195,16 +214,9 @@ const onFileChange = async (e: Event) => {
             </div>
           </div>
 
-          <div :class="p.diasSemanaPermitidos?.length > 0 ? 'text-orange-600' : 'text-muted-foreground'"
+          <div :class="checkRestricao(p).isRestricted ? 'text-orange-600' : 'text-muted-foreground'"
                class="text-xs font-medium h-4 flex items-center">
-            <template v-if="p.diasSemanaPermitidos?.length > 0">
-              Permitido nos dias: {{
-                p.diasSemanaPermitidos.map((d: number) => diasSemanaOptions.find(o => o.value === d)?.label).join(', ')
-              }}.
-            </template>
-            <template v-else>
-              Permitido todos os dias.
-            </template>
+            {{ checkRestricao(p).text }}
           </div>
 
           <div v-if="p.fase || p.linha" class="flex flex-wrap gap-2 pt-1">
