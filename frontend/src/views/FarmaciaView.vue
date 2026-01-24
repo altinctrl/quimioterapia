@@ -180,6 +180,10 @@ const handleProximoDia = () => {
   dataSelecionada.value = somarDias(dataSelecionada.value, 1)
 }
 
+const handleHoje = () => {
+  dataSelecionada.value = getDataLocal()
+}
+
 const handleResetFiltros = () => {
   filtros.value = {ordenacao: 'horario', turno: 'todos', status: []}
 }
@@ -285,6 +289,7 @@ watch(viewRows, (lista) => {
         @dia-anterior="handleDiaAnterior"
         @proximo-dia="handleProximoDia"
         @toggle-metrics="mostrarMetricas = !mostrarMetricas"
+        @go-today="handleHoje"
     />
 
     <FarmaciaMetrics

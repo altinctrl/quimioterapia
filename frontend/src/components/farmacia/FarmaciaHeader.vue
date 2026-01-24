@@ -2,7 +2,7 @@
 import {Card, CardContent} from '@/components/ui/card'
 import {Button} from '@/components/ui/button'
 import {Input} from '@/components/ui/input'
-import {ChevronLeft, ChevronRight, Eye, EyeOff} from 'lucide-vue-next'
+import {CalendarArrowDown, ChevronLeft, ChevronRight, Eye, EyeOff} from 'lucide-vue-next'
 
 const props = defineProps<{
   modelValue: string
@@ -13,6 +13,7 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
   (e: 'diaAnterior'): void
   (e: 'proximoDia'): void
+  (e: 'go-today'): void
   (e: 'toggle-metrics'): void
 }>()
 </script>
@@ -24,6 +25,10 @@ const emit = defineEmits<{
         <div class="flex items-center gap-2">
           <Button size="icon" variant="outline" @click="emit('diaAnterior')">
             <ChevronLeft class="h-4 w-4"/>
+          </Button>
+
+          <Button size="icon" title="Hoje" variant="outline" @click="emit('go-today')">
+            <CalendarArrowDown class="h-4 w-4"/>
           </Button>
 
           <Input
