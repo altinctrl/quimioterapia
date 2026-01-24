@@ -32,6 +32,13 @@ class ProtocoloSQLAlchemyProvider(ProtocoloProviderInterface):
         result = await self.session.execute(query)
         return result.scalar_one()
 
+    async def criar_protocolo_multi(self, protocolos: List[Protocolo]) -> List[Protocolo]:
+        self.session.add_all(protocolos)
+        await self.session.commit()
+        for p in protocolos:
+            await self.session.refresh(p)
+        return protocolos
+
     async def atualizar_protocolo(self, protocolo: Protocolo) -> Protocolo:
         self.session.add(protocolo)
         await self.session.commit()

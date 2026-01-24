@@ -36,6 +36,22 @@ async def criar_protocolo(
     return _montar_resposta(criado)
 
 
+async def criar_protocolo_multi(
+        provider: ProtocoloProviderInterface,
+        dados: List[ProtocoloCreate],
+) -> List[ProtocoloResponse]:
+    protocolos = []
+    for protocolo in dados:
+        novo_id = str(uuid.uuid4())
+        dados_dict = protocolo.model_dump(mode='json')
+        protocolos.append(Protocolo(**dados_dict, id=novo_id))
+    criados = await provider.criar_protocolo_multi(protocolos)
+    validados = []
+    for protocolo in criados:
+        validados.append(ProtocoloResponse.model_validate(protocolo))
+    return validados
+
+
 async def atualizar_protocolo(
         provider: ProtocoloProviderInterface,
         protocolo_id: str,

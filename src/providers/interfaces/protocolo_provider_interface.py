@@ -18,6 +18,10 @@ class ProtocoloProviderInterface(ABC):
         pass
 
     @abstractmethod
+    async def criar_protocolo_multi(self, protocolo: List[Protocolo]) -> List[Protocolo]:
+        pass
+
+    @abstractmethod
     async def atualizar_protocolo(self, protocolo: Protocolo) -> Protocolo:
         pass
 

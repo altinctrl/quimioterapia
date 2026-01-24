@@ -37,6 +37,7 @@ export const useAppStore = defineStore('app', () => {
     getProtocoloById,
     fetchProtocolos,
     adicionarProtocolo,
+    importarProtocolos,
     atualizarProtocolo,
     desativarProtocolo
   } = protocoloStore
@@ -95,6 +96,7 @@ export const useAppStore = defineStore('app', () => {
     salvarChecklistFarmacia,
     fetchProtocolos,
     adicionarProtocolo,
+    importarProtocolos,
     atualizarProtocolo,
     desativarProtocolo,
     adicionarPrescricao
