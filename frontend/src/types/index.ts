@@ -98,7 +98,7 @@ export enum TipoConsultaEnum {
   NAVEGACAO = 'navegacao'
 }
 
-export type GrupoInfusao = 'rapido' | 'medio' | 'longo';
+export type GrupoInfusao = 'rapido' | 'medio' | 'longo' | 'extra_longo';
 
 export const opcoesProcedimento = [
   {value: TipoProcedimentoEnum.RETIRADA_INFUSOR, label: 'Retirada de Infusor'},
@@ -338,7 +338,10 @@ export interface ParametrosAgendamento {
   horarioFechamento: string;
   diasFuncionamento: number[];
   gruposInfusao: {
-    rapido: ConfigGrupoInfusao; medio: ConfigGrupoInfusao; longo: ConfigGrupoInfusao;
+    rapido: ConfigGrupoInfusao;
+    medio: ConfigGrupoInfusao;
+    longo: ConfigGrupoInfusao;
+    extra_longo: ConfigGrupoInfusao;
   };
   tags: string[];
   cargos: string[];

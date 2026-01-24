@@ -1,9 +1,10 @@
 import {Agendamento} from '@/types';
 
-export type GrupoInfusao = 'rapido' | 'medio' | 'longo' | 'indefinido'
+export type GrupoInfusao = 'rapido' | 'medio' | 'longo' | 'extra_longo' | 'indefinido'
 
-export const LIMITE_RAPIDO_MINUTOS = 119
-export const LIMITE_MEDIO_MINUTOS = 239
+export const LIMITE_RAPIDO_MINUTOS = 30
+export const LIMITE_MEDIO_MINUTOS = 120
+export const LIMITE_LONGO_MINUTOS = 240
 
 export function calcularDuracaoMinutos(inicio: string, fim: string): number {
   if (!inicio || !fim) return 0
@@ -29,23 +30,26 @@ export function getGrupoInfusao(minutos: number): GrupoInfusao {
   if (minutos <= 0) return 'indefinido'
   if (minutos <= LIMITE_RAPIDO_MINUTOS) return 'rapido'
   if (minutos <= LIMITE_MEDIO_MINUTOS) return 'medio'
-  return 'longo'
+  if (minutos <= LIMITE_LONGO_MINUTOS) return 'longo'
+  return 'extra_longo'
 }
 
 export function getCorGrupo(grupo: GrupoInfusao): string {
   switch (grupo) {
-    case 'rapido': return 'bg-emerald-500'
-    case 'medio': return 'bg-amber-500'
-    case 'longo': return 'bg-rose-600'
+    case 'rapido': return 'bg-blue-500'
+    case 'medio': return 'bg-emerald-500'
+    case 'longo': return 'bg-amber-500'
+    case 'extra_longo': return 'bg-rose-600'
     default: return 'bg-gray-200'
   }
 }
 
 export function getBadgeGrupo(grupo: GrupoInfusao): string {
   switch (grupo) {
-    case 'rapido': return 'text-emerald-700 bg-emerald-50 border-emerald-100'
-    case 'medio': return 'text-amber-700 bg-amber-50 border-amber-100'
-    case 'longo': return 'text-rose-700 bg-rose-50 border-rose-100'
+    case 'rapido': return 'text-blue-700 bg-blue-50 border-blue-100'
+    case 'medio': return 'text-emerald-700 bg-emerald-50 border-emerald-100'
+    case 'longo': return 'text-amber-700 bg-amber-50 border-amber-100'
+    case 'extra_longo': return 'text-rose-700 bg-rose-50 border-rose-100'
     default: return 'text-gray-500 bg-gray-50 border-gray-100'
   }
 }

@@ -199,19 +199,25 @@ const activeCount = computed(() => {
                 :checked="filtros.gruposInfusao.includes('rapido')"
                 @select.prevent="toggleFilter('gruposInfusao', 'rapido')"
             >
-              <span class="w-2 h-2 rounded-full bg-emerald-500 mr-2"></span> Rápida (&lt;2h)
+              <span class="w-2 h-2 rounded-full bg-blue-500 mr-2"></span> Rápida (&lt;30m)
             </DropdownMenuCheckboxItem>
             <DropdownMenuCheckboxItem
                 :checked="filtros.gruposInfusao.includes('medio')"
                 @select.prevent="toggleFilter('gruposInfusao', 'medio')"
             >
-              <span class="w-2 h-2 rounded-full bg-amber-500 mr-2"></span> Média (2-4h)
+              <span class="w-2 h-2 rounded-full bg-emerald-500 mr-2"></span> Média (30m-2h)
             </DropdownMenuCheckboxItem>
             <DropdownMenuCheckboxItem
                 :checked="filtros.gruposInfusao.includes('longo')"
                 @select.prevent="toggleFilter('gruposInfusao', 'longo')"
             >
-              <span class="w-2 h-2 rounded-full bg-rose-500 mr-2"></span> Longa (&gt;4h)
+              <span class="w-2 h-2 rounded-full bg-amber-500 mr-2"></span> Longa (2h-4h)
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+                :checked="filtros.gruposInfusao.includes('extra_longo')"
+                @select.prevent="toggleFilter('gruposInfusao', 'extra_longo')"
+            >
+              <span class="w-2 h-2 rounded-full bg-rose-600 mr-2"></span> Extra Longa (&gt;4h)
             </DropdownMenuCheckboxItem>
           </DropdownMenuContent>
         </DropdownMenu>

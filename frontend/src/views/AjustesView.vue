@@ -36,7 +36,8 @@ const diluentes = ref<string[]>([])
 const grupos = reactive({
   rapido: {vagas: 0 as number | string, duracao: ''},
   medio: {vagas: 0 as number | string, duracao: ''},
-  longo: {vagas: 0 as number | string, duracao: ''}
+  longo: {vagas: 0 as number | string, duracao: ''},
+  extra_longo: {vagas: 0 as number | string, duracao: ''}
 })
 
 const detailsOpen = ref(false)
@@ -81,7 +82,8 @@ const handleSalvar = async () => {
     gruposInfusao: {
       rapido: {...grupos.rapido, vagas: Number(grupos.rapido.vagas)},
       medio: {...grupos.medio, vagas: Number(grupos.medio.vagas)},
-      longo: {...grupos.longo, vagas: Number(grupos.longo.vagas)}
+      longo: {...grupos.longo, vagas: Number(grupos.longo.vagas)},
+      extra_longo: {...grupos.extra_longo, vagas: Number(grupos.extra_longo.vagas)}
     },
     tags: [...tags.value],
     cargos: [...cargos.value],
@@ -111,6 +113,7 @@ const handleDesfazer = async () => {
     Object.assign(grupos.rapido, dadosSalvos.gruposInfusao.rapido)
     Object.assign(grupos.medio, dadosSalvos.gruposInfusao.medio)
     Object.assign(grupos.longo, dadosSalvos.gruposInfusao.longo)
+    Object.assign(grupos.extra_longo, dadosSalvos.gruposInfusao.extra_longo)
     await nextTick()
     isDirty.value = false
   }
@@ -205,6 +208,7 @@ watch(
         Object.assign(grupos.rapido, newVal.gruposInfusao.rapido)
         Object.assign(grupos.medio, newVal.gruposInfusao.medio)
         Object.assign(grupos.longo, newVal.gruposInfusao.longo)
+        Object.assign(grupos.extra_longo, newVal.gruposInfusao.extra_longo)
         nextTick(() => {
           isDirty.value = false
         })
