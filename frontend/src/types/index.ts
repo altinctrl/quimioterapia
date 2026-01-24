@@ -55,7 +55,6 @@ export enum CategoriaBlocoEnum {
   QT = "qt",
   POS_MED_HOSPITALAR = "pos_med_hospitalar",
   POS_MED_DOMICILIAR = "pos_med_domiciliar",
-  INFUSOR = "infusor"
 }
 
 export enum UnidadeDoseEnum {

@@ -19,7 +19,6 @@ class CategoriaBlocoEnum(str, Enum):
     QT = "qt"
     POS_MED_HOSPITALAR = "pos_med_hospitalar"
     POS_MED_DOMICILIAR = "pos_med_domiciliar"
-    INFUSOR = "infusor"
 
 
 class UnidadeDoseEnum(str, Enum):

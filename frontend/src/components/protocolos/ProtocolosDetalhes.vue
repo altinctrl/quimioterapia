@@ -54,7 +54,6 @@ const getCategoriaLabel = (cat: string) => {
     'qt': 'Terapia',
     'pos_med_hospitalar': 'Pós-Med (Hosp)',
     'pos_med_domiciliar': 'Pós-Med (Casa)',
-    'infusor': 'Infusor'
   }
   return map[cat] || cat
 }
