@@ -20,6 +20,7 @@ export type PrescricaoComLabel = PrescricaoMedica & { labelFormatado: string };
 defineProps<{
   tipo: TipoAgendamento
   horario: string
+  dataSelecionada?: string
   diaCiclo: number | null
   observacoes: string
   horarioAbertura: string
@@ -155,40 +156,42 @@ const emit = defineEmits<{
         </div>
       </div>
 
-      <div>
-        <Label>Horário</Label>
-        <Input :model-value="horario" type="time" @update:model-value="(val) => emit('update:horario', String(val))"/>
-        <p class="text-xs text-gray-500 mt-1">
-          Funcionamento: {{ horarioAbertura }} às {{ horarioFechamento }}
-        </p>
-      </div>
+      <div v-if="dataSelecionada" class="space-y-5">
+        <div>
+          <Label>Horário</Label>
+          <Input :model-value="horario" type="time" @update:model-value="(val) => emit('update:horario', String(val))"/>
+          <p class="text-xs text-gray-500 mt-1">
+            Funcionamento: {{ horarioAbertura }} às {{ horarioFechamento }}
+          </p>
+        </div>
 
-      <div class="flex items-center space-x-2 py-2">
-        <Checkbox
-            id="encaixe"
-            :checked="encaixe"
-            @update:checked="(val) => emit('update:encaixe', val === true)"
-        />
-        <Label class="cursor-pointer" for="encaixe">Encaixe</Label>
-      </div>
+        <div class="flex items-center space-x-2 py-2">
+          <Checkbox
+              id="encaixe"
+              :checked="encaixe"
+              @update:checked="(val) => emit('update:encaixe', val === true)"
+          />
+          <Label class="cursor-pointer" for="encaixe">Encaixe</Label>
+        </div>
 
-      <div>
-        <Label>Observações</Label>
-        <Textarea :model-value="observacoes"
-                  @update:model-value="(val) => emit('update:observacoes', String(val))"/>
-      </div>
+        <div>
+          <Label>Observações</Label>
+          <Textarea :model-value="observacoes"
+                    @update:model-value="(val) => emit('update:observacoes', String(val))"/>
+        </div>
 
-      <Button
-          :disabled="
-          (tipo === 'infusao' && (!prescricaoSelecionadaId || diasPermitidos.length === 0)) ||
-          (tipo === 'consulta' && !tipoConsulta) ||
-          (tipo === 'procedimento' && !tipoProcedimento)
-        "
-          class="w-full"
-          @click="emit('confirmar')"
-      >
-        Confirmar Agendamento
-      </Button>
+        <Button
+            :disabled="
+            (tipo === 'infusao' && (!prescricaoSelecionadaId || diasPermitidos.length === 0)) ||
+            (tipo === 'consulta' && !tipoConsulta) ||
+            (tipo === 'procedimento' && !tipoProcedimento)
+          "
+            class="w-full"
+            @click="emit('confirmar')"
+        >
+          Confirmar Agendamento
+        </Button>
+      </div>
     </CardContent>
   </Card>
 </template>
