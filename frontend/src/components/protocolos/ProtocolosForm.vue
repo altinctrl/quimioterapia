@@ -10,7 +10,7 @@ import {Card, CardContent} from '@/components/ui/card'
 import {ClipboardList, Copy, Info, Layers, Plus, Trash2} from 'lucide-vue-next'
 import {diasSemanaOptions} from '@/utils/protocoloConstants.ts'
 import ProtocolosBlocoMedicamentos from './ProtocolosBlocoMedicamentos.vue'
-import {CategoriaBlocoEnum, FaseEnum} from "@/types";
+import {CategoriaBlocoEnum, FaseEnum} from "@/types/protocoloTypes.ts";
 
 const props = defineProps<{
   modelValue: any

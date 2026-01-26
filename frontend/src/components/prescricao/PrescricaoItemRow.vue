@@ -4,7 +4,7 @@ import {Input} from '@/components/ui/input'
 import {Label} from '@/components/ui/label'
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select'
 import {AlertTriangle} from 'lucide-vue-next'
-import {UnidadeDoseEnum} from "@/types"
+import {UnidadeDoseEnum} from "@/types/protocoloTypes.ts";
 import {formatDiasCiclo, getUnidadeFinal} from "@/utils/prescricaoUtils.ts";
 import {useAppStore} from "@/stores/app.ts";
 

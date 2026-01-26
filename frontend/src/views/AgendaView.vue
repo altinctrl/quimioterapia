@@ -11,7 +11,8 @@ import TagsModal from '@/components/modals/TagsModal.vue'
 import {type FiltrosAgenda} from '@/components/agenda/AgendaControls.vue'
 import AgendaTipoTab from '@/components/agenda/AgendaTipoTab.vue'
 import {getDuracaoAgendamento, getGrupoInfusao, somarDias} from '@/utils/agendaUtils'
-import {type Agendamento, AgendamentoStatusEnum, FarmaciaStatusEnum, statusPermitidosSemCheckin, type TipoAgendamento} from "@/types";
+import {Agendamento, AgendamentoStatusEnum, FarmaciaStatusEnum, TipoAgendamento} from "@/types/agendamentoTypes.ts";
+import {statusPermitidosSemCheckin} from "@/constants/agendaConstants.ts";
 import {getDataLocal} from '@/lib/utils.ts';
 import {toast} from "vue-sonner";
 import AgendamentoDetalhesModal from "@/components/modals/AgendamentoDetalhesModal.vue";

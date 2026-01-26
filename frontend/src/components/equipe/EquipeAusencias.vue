@@ -2,7 +2,7 @@
 import {computed, defineEmits, defineProps, ref} from 'vue'
 import {addMonths, format} from 'date-fns'
 import {ptBR} from 'date-fns/locale'
-import type {AusenciaProfissional, Profissional} from '@/types'
+import {AusenciaProfissional, Profissional} from "@/types/equipeTypes.ts";
 import {Button} from '@/components/ui/button'
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '@/components/ui/table'
 import {Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle} from '@/components/ui/dialog'

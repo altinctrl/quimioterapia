@@ -4,7 +4,7 @@ import {toast} from 'vue-sonner'
 import {useAppStore} from '@/stores/app'
 import {useAuthStore} from '@/stores/auth'
 import {pacienteFormSchema} from '@/schemas/pacienteSchema'
-import type {ContatoEmergencia, Paciente} from '@/types'
+import {ContatoEmergencia, Paciente} from "@/types/pacienteTypes.ts";
 
 export function usePacienteForm() {
   const appStore = useAppStore()

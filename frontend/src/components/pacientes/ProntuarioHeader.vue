@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { CardHeader, CardTitle } from '@/components/ui/card'
 import { Activity } from 'lucide-vue-next'
-import type { Paciente } from '@/types'
+import {Paciente} from "@/types/pacienteTypes.ts";
 
 defineProps<{
   paciente: Paciente

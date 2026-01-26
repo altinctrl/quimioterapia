@@ -1,7 +1,7 @@
 import {defineStore} from 'pinia'
 import {computed, ref} from 'vue'
 import api from '@/services/api'
-import type {User, UserRole} from '@/types'
+import type {User, UserRole} from '@/types/authTypes.ts'
 
 function mapGroupsToRole(groups: string[]): UserRole {
   if (groups.includes('Farmacia')) return 'farmacia'

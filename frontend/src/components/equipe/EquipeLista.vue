@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import {computed, defineEmits, defineProps, ref} from 'vue'
-import type {Profissional} from '@/types'
+import {Profissional} from "@/types/equipeTypes.ts";
 import {Button} from '@/components/ui/button'
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '@/components/ui/table'
 import {Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle} from '@/components/ui/dialog'

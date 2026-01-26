@@ -2,7 +2,7 @@ import {defineStore} from 'pinia'
 import {ref} from 'vue'
 import api from '@/services/api'
 import {toast} from 'vue-sonner'
-import type {BlocoPrescricao, PacienteSnapshot, PrescricaoMedica, ProtocoloRef} from '@/types'
+import {BlocoPrescricao, PacienteSnapshot, PrescricaoMedica, ProtocoloRef} from "@/types/prescricaoTypes.ts";
 
 interface PayloadCriacaoPrescricao {
   paciente_id: string;

@@ -5,7 +5,7 @@ import {Badge} from '@/components/ui/badge'
 import {Button} from '@/components/ui/button'
 import {Checkbox} from '@/components/ui/checkbox'
 import {ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Clock} from 'lucide-vue-next'
-import {FarmaciaStatusEnum} from '@/types'
+import {FarmaciaStatusEnum} from "@/types/agendamentoTypes.ts";
 import PacienteCell from '@/components/common/PacienteCell.vue'
 
 export interface FarmaciaTableRow {

@@ -1,4 +1,4 @@
-import {CategoriaBlocoEnum} from "@/types";
+import {CategoriaBlocoEnum} from "@/types/protocoloTypes.ts";
 
 export const diasSemanaOptions = [
   {value: 0, label: 'Domingo'},

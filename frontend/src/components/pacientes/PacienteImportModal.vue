@@ -9,7 +9,7 @@ import {Badge} from '@/components/ui/badge'
 import {Check, Search} from 'lucide-vue-next'
 import {Dialog, DialogContent, DialogHeader, DialogTitle,} from '@/components/ui/dialog'
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '@/components/ui/table'
-import type {Paciente, PacienteImport} from '@/types'
+import {Paciente, PacienteImport} from "@/types/pacienteTypes.ts";
 import {buscaPacienteFormSchema} from "@/schemas/pacienteSchema.ts";
 import {useForm} from "vee-validate";
 

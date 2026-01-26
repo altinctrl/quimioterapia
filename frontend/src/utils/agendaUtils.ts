@@ -1,17 +1,16 @@
-import {Agendamento, opcoesConsulta, opcoesProcedimento} from '@/types';
+import {Agendamento, DetalhesInfusao, GrupoInfusao} from "@/types/agendamentoTypes.ts";
 import {
+  LABELS_CONSULTA,
+  LABELS_PROCEDIMENTO,
+  LIMITE_LONGO_MINUTOS,
+  LIMITE_MEDIO_MINUTOS,
+  LIMITE_RAPIDO_MINUTOS,
   statusInfusaoPermitidosSemCheckin,
   statusOutrosPermitidosComCheckin,
   statusOutrosPermitidosSemCheckin
 } from "@/constants/agendaConstants.ts";
 import {computed} from "vue";
 import {useAppStore} from '@/stores/app'
-
-export type GrupoInfusao = 'rapido' | 'medio' | 'longo' | 'extra_longo' | 'indefinido'
-
-export const LIMITE_RAPIDO_MINUTOS = 30
-export const LIMITE_MEDIO_MINUTOS = 120
-export const LIMITE_LONGO_MINUTOS = 240
 
 export function calcularDuracaoMinutos(inicio: string, fim: string): number {
   if (!inicio || !fim) return 0
@@ -84,12 +83,12 @@ const opcoesStatusPaciente = computed(() => {
 
 export const formatarConsulta = (tipo: string | undefined) => {
   if (!tipo) return "-"
-  return opcoesConsulta.find(opt => opt.value === tipo)?.label || tipo
+  return LABELS_CONSULTA.find(opt => opt.value === tipo)?.label || tipo
 }
 
 export const formatarProcedimento = (tipo: string | undefined) => {
   if (!tipo) return "-"
-  return opcoesProcedimento.find(opt => opt.value === tipo)?.label || tipo
+  return LABELS_PROCEDIMENTO.find(opt => opt.value === tipo)?.label || tipo
 }
 
 export const getOpcoesStatus = (ag: Agendamento) => {
@@ -129,4 +128,16 @@ export const getFarmaciaStatusConfig = (statusId: string | undefined) => {
     label: '-',
     corBadge: 'bg-gray-100 hover:bg-gray-100 text-gray-800 border-gray-200'
   }
+}
+
+export function isInfusao(ag: Partial<Agendamento>): ag is Agendamento & { detalhes: { infusao: DetalhesInfusao } } {
+  return !!ag.detalhes?.infusao;
+}
+
+export function isProcedimento(ag: Partial<Agendamento>): ag is Agendamento & { detalhes: { procedimento: any } } {
+  return !!ag.detalhes?.procedimento;
+}
+
+export function isConsulta(ag: Partial<Agendamento>): ag is Agendamento & { detalhes: { consulta: any } } {
+  return !!ag.detalhes?.consulta;
 }

@@ -10,7 +10,7 @@ import {
 import {Button} from '@/components/ui/button'
 import {ScrollArea} from '@/components/ui/scroll-area'
 import {Badge} from '@/components/ui/badge'
-import type {Protocolo} from '@/types'
+import {Protocolo} from "@/types/protocoloTypes.ts";
 
 defineProps<{
   open: boolean

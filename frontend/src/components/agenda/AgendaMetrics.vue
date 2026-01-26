@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card'
 import {Activity, AlertTriangle, Ban, CheckCircle2, Clock2, Sun, Users} from "lucide-vue-next";
-import {TipoAgendamento} from "@/types";
+import {TipoAgendamento} from "@/types/agendamentoTypes.ts";
 
 defineProps<{
   metricas: {

@@ -2,7 +2,7 @@ import {defineStore} from 'pinia'
 import {ref} from 'vue'
 import api from '@/services/api'
 import {toast} from 'vue-sonner'
-import type {Paciente} from '@/types'
+import {Paciente} from "@/types/pacienteTypes.ts";
 
 export const usePacienteStore = defineStore('paciente', () => {
   const pacientes = ref<Paciente[]>([])

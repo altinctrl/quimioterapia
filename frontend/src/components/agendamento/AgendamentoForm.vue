@@ -6,13 +6,12 @@ import {Label} from '@/components/ui/label'
 import {Textarea} from '@/components/ui/textarea'
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select'
 import {
-  opcoesConsulta,
-  opcoesProcedimento,
-  PrescricaoMedica,
   TipoAgendamento,
   TipoConsultaEnum,
   TipoProcedimentoEnum
-} from "@/types"
+} from "@/types/agendamentoTypes.ts";
+import {LABELS_CONSULTA, LABELS_PROCEDIMENTO} from "@/constants/agendaConstants.ts";
+import {PrescricaoMedica} from "@/types/prescricaoTypes.ts";
 import {Checkbox} from "@/components/ui/checkbox";
 
 export type PrescricaoComLabel = PrescricaoMedica & { labelFormatado: string };
@@ -129,7 +128,7 @@ const emit = defineEmits<{
               <SelectValue placeholder="Selecione..."/>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem v-for="opt in opcoesConsulta" :key="opt.value" :value="opt.value">
+              <SelectItem v-for="opt in LABELS_CONSULTA" :key="opt.value" :value="opt.value">
                 {{ opt.label }}
               </SelectItem>
             </SelectContent>
@@ -148,7 +147,7 @@ const emit = defineEmits<{
               <SelectValue placeholder="Selecione..."/>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem v-for="opt in opcoesProcedimento" :key="opt.value" :value="opt.value">
+              <SelectItem v-for="opt in LABELS_PROCEDIMENTO" :key="opt.value" :value="opt.value">
                 {{ opt.label }}
               </SelectItem>
             </SelectContent>

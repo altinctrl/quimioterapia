@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '@/components/ui/table'
 import {Badge} from '@/components/ui/badge'
-import type {Paciente} from '@/types'
+import {Paciente} from "@/types/pacienteTypes.ts";
 
 const props = defineProps<{
   pacientes: Paciente[]

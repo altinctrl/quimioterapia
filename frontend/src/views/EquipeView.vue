@@ -9,7 +9,7 @@ import EquipeEscala from '@/components/equipe/EquipeEscala.vue'
 import EquipeLista from '@/components/equipe/EquipeLista.vue'
 import EquipeAusencias from '@/components/equipe/EquipeAusencias.vue'
 import {toast} from 'vue-sonner'
-import type {AusenciaProfissional, EscalaPlantao, Profissional} from '@/types'
+import {AusenciaProfissional, EscalaPlantao, Profissional} from "@/types/equipeTypes.ts";
 
 const equipeStore = useEquipeStore()
 const configStore = useConfiguracaoStore()

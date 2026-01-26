@@ -2,14 +2,14 @@
 import {computed, onMounted, ref, watch} from 'vue'
 import {useRouter} from 'vue-router'
 import {useAppStore} from '@/stores/app'
-import {Agendamento, AgendamentoStatusEnum, FarmaciaStatusEnum, isInfusao} from '@/types'
+import {Agendamento, AgendamentoStatusEnum, FarmaciaStatusEnum} from "@/types/agendamentoTypes.ts";
 import {Card, CardContent} from '@/components/ui/card'
 import FarmaciaHeader from '@/components/farmacia/FarmaciaHeader.vue'
 import FarmaciaMetrics from '@/components/farmacia/FarmaciaMetrics.vue'
 import FarmaciaTable, {type FarmaciaTableRow} from '@/components/farmacia/FarmaciaTable.vue'
 import FarmaciaControls, {type FiltrosFarmacia} from '@/components/farmacia/FarmaciaControls.vue'
 import {getDataLocal} from '@/lib/utils.ts'
-import {somarDias} from '@/utils/agendaUtils.ts'
+import {isInfusao, somarDias} from '@/utils/agendaUtils.ts'
 import AgendamentoDetalhesModal from "@/components/modals/AgendamentoDetalhesModal.vue";
 import PrescricaoHistoricoModal from "@/components/modals/PrescricaoHistoricoModal.vue";
 

@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import {ChevronDown} from 'lucide-vue-next'
-import {ConfiguracaoDiluicao} from "@/types"
+import {ConfiguracaoDiluicao} from "@/types/protocoloTypes.ts";
 import {useConfiguracaoStore} from "@/stores/configuracao.ts"
 
 const props = defineProps<{
