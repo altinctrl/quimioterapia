@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card'
 import {Activity, AlertTriangle, Ban, CheckCircle2, Clock2, Sun, Users} from "lucide-vue-next";
+import {TipoAgendamento} from "@/types";
 
 defineProps<{
   metricas: {
@@ -20,11 +21,12 @@ defineProps<{
     farmaciaPreparando: number
     farmaciaProntas: number
   }
+  tipo: TipoAgendamento
 }>()
 </script>
 
 <template>
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+  <div :class="tipo === 'infusao' ? 'md:grid-cols-3' : 'md:grid-cols-2'" class="grid grid-cols-1 gap-4 w-full">
     <Card>
       <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle class="text-sm font-medium">Agendamentos</CardTitle>
@@ -57,7 +59,7 @@ defineProps<{
       </CardContent>
     </Card>
 
-    <Card>
+    <Card v-if="tipo == 'infusao'">
       <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle class="text-sm font-medium">Agendamentos por Duração</CardTitle>
         <Clock2 class="h-4 w-4 text-blue-600"/>
@@ -85,7 +87,7 @@ defineProps<{
     </Card>
   </div>
 
-  <div class="grid grid-cols-4 gap-4">
+  <div v-if="tipo == 'infusao'" class="grid grid-cols-4 gap-4">
     <div class="bg-blue-50 border border-blue-100 rounded-lg p-4 flex items-center justify-between">
       <div>
         <p class="text-xs font-bold text-blue-600 uppercase">Em Atendimento</p>

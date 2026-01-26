@@ -56,7 +56,7 @@ const activeCount = computed(() => {
   if ((props.mostrarFarmacia ?? true) && filtros.value.statusFarmacia.length > 0) c++
   if ((props.mostrarGruposInfusao ?? true) && filtros.value.gruposInfusao.length > 0) c++
   if (!filtros.value.esconderRemarcados) c++
-  if (filtros.value.ordenacao !== 'grupo_asc') c++
+  if (filtros.value.ordenacao !== 'horario') c++
   return c
 })
 </script>
@@ -97,7 +97,7 @@ const activeCount = computed(() => {
         leave-active-class="animate-out slide-out-to-top-2 fade-out duration-200"
     >
       <div v-if="isExpanded" class="flex flex-wrap gap-3 ">
-        <DropdownMenu>
+        <DropdownMenu v-if="props.mostrarGruposInfusao ?? true">
           <DropdownMenuTrigger as-child>
             <Button class="w-[160px] justify-between bg-white" size="sm" variant="outline">
             <span class="flex items-center gap-2 text-xs text-gray-600">

@@ -6,7 +6,6 @@ import {Button} from '@/components/ui/button'
 import {ArrowLeft} from 'lucide-vue-next'
 import {toast} from 'vue-sonner'
 import type {GrupoInfusao, Paciente, TipoAgendamento, TipoConsultaEnum, TipoProcedimentoEnum, Turno} from '@/types'
-import {useConfiguracaoLocalStore} from '@/stores/configuracaoLocal'
 
 import AgendamentoBusca from '@/components/agendamento/AgendamentoBusca.vue'
 import AgendamentoCalendario from '@/components/agendamento/AgendamentoCalendario.vue'
@@ -16,7 +15,6 @@ import AgendamentoConfirmacaoModal from '@/components/agendamento/AgendamentoCon
 
 const router = useRouter()
 const appStore = useAppStore()
-const configuracaoLocalStore = useConfiguracaoLocalStore()
 
 onMounted(async () => {
   await Promise.all([
@@ -188,6 +186,7 @@ const handleSelecionarData = (data: string) => {
 
 const getVagasInfo = (data: string) => {
   const agendamentosNoDia = appStore.getAgendamentosDoDia(data)
+  const limiteVagas = appStore.parametros.vagas
 
   const isConsideradoNaCapacidade = (ag: any) => {
     return ag.status !== 'remarcado' && ag.status !== 'suspenso'
@@ -195,7 +194,7 @@ const getVagasInfo = (data: string) => {
 
   if (tipoAgendamento.value !== 'infusao') {
     const tipo = tipoAgendamento.value
-    const limite = configuracaoLocalStore.getLimite(tipo)
+    const limite = tipo === 'consulta' ? limiteVagas.consultas : limiteVagas.procedimentos
     const countNoTipo = agendamentosNoDia.reduce((acc, ag) => {
       if (!isConsideradoNaCapacidade(ag)) return acc
       return ag.tipo === tipo ? acc + 1 : acc
@@ -205,7 +204,8 @@ const getVagasInfo = (data: string) => {
   }
 
   const grupo = grupoInfusaoAtual.value
-  const limiteGrupo = appStore.parametros.gruposInfusao[grupo]?.vagas || 4
+  const chaveGrupo = `infusao_${grupo}` as keyof typeof limiteVagas
+  const limiteGrupo = limiteVagas[chaveGrupo] || 0
 
   const countNoGrupo = agendamentosNoDia.reduce((acc, ag) => {
     if (!isConsideradoNaCapacidade(ag)) return acc

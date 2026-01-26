@@ -48,7 +48,7 @@ const agendamentosDoDia = computed(() => {
 })
 
 const defaultFiltros = (): FiltrosAgenda => ({
-  ordenacao: 'grupo_asc',
+  ordenacao: 'horario',
   turno: 'todos',
   statusFarmacia: [],
   gruposInfusao: [],
@@ -242,16 +242,6 @@ const handleRemarcado = () => {
         @confirm="confirmarAlteracaoStatus"
     />
 
-    <AgendaHeader
-        v-model="dataSelecionada"
-        :mostrar-metricas="mostrarMetricas"
-        @toggle-metrics="mostrarMetricas = !mostrarMetricas"
-        @navigate-prev="handleDiaAnterior"
-        @navigate-next="handleProximoDia"
-        @new-appointment="router.push('/agendamento')"
-        @go-today="handleHoje"
-    />
-
     <Tabs v-model="activeTipo" class="space-y-4">
       <TabsList>
         <TabsTrigger value="infusao">Infusão</TabsTrigger>
@@ -259,13 +249,23 @@ const handleRemarcado = () => {
         <TabsTrigger value="procedimento">Procedimento</TabsTrigger>
       </TabsList>
 
-      <AgendaMetrics v-if="mostrarMetricas" :metricas="metricas"/>
+      <AgendaHeader
+          v-model="dataSelecionada"
+          :mostrar-metricas="mostrarMetricas"
+          @toggle-metrics="mostrarMetricas = !mostrarMetricas"
+          @navigate-prev="handleDiaAnterior"
+          @navigate-next="handleProximoDia"
+          @new-appointment="router.push('/agendamento')"
+          @go-today="handleHoje"
+      />
 
       <TabsContent class="space-y-4" value="infusao">
+        <AgendaMetrics v-if="mostrarMetricas" :metricas="metricas" tipo="infusao"/>
         <AgendaTipoTab
             v-model:filtros="filtrosInfusao"
             :agendamentos="agendamentosPorTipo.infusao"
             :mostrar-filtros-infusao="true"
+            tipo="infusao"
             @reset="resetFiltros('infusao')"
             @abrir-detalhes="handleVerDetalhes"
             @abrir-prescricao="handleAbrirPrescricao"
@@ -277,10 +277,12 @@ const handleRemarcado = () => {
       </TabsContent>
 
       <TabsContent class="space-y-4" value="consulta">
+        <AgendaMetrics v-if="mostrarMetricas" :metricas="metricas" tipo="consulta"/>
         <AgendaTipoTab
             v-model:filtros="filtrosConsulta"
             :agendamentos="agendamentosPorTipo.consulta"
             :mostrar-filtros-infusao="false"
+            tipo="consulta"
             @reset="resetFiltros('consulta')"
             @abrir-detalhes="handleVerDetalhes"
             @abrir-prescricao="handleAbrirPrescricao"
@@ -292,10 +294,12 @@ const handleRemarcado = () => {
       </TabsContent>
 
       <TabsContent class="space-y-4" value="procedimento">
+        <AgendaMetrics v-if="mostrarMetricas" :metricas="metricas" tipo="procedimento"/>
         <AgendaTipoTab
             v-model:filtros="filtrosProcedimento"
             :agendamentos="agendamentosPorTipo.procedimento"
             :mostrar-filtros-infusao="false"
+            tipo="procedimento"
             @reset="resetFiltros('procedimento')"
             @abrir-detalhes="handleVerDetalhes"
             @abrir-prescricao="handleAbrirPrescricao"

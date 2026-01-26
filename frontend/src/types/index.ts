@@ -337,11 +337,13 @@ export interface ParametrosAgendamento {
   horarioAbertura: string;
   horarioFechamento: string;
   diasFuncionamento: number[];
-  gruposInfusao: {
-    rapido: ConfigGrupoInfusao;
-    medio: ConfigGrupoInfusao;
-    longo: ConfigGrupoInfusao;
-    extra_longo: ConfigGrupoInfusao;
+  vagas: {
+    infusao_rapido: number;
+    infusao_medio: number;
+    infusao_longo: number;
+    infusao_extra_longo: number;
+    consultas: number;
+    procedimentos: number;
   };
   tags: string[];
   cargos: string[];

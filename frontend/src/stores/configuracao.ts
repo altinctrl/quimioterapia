@@ -149,11 +149,13 @@ export const useConfiguracaoStore = defineStore('configuracao', () => {
     horarioAbertura: '',
     horarioFechamento: '',
     diasFuncionamento: [],
-    gruposInfusao: {
-      rapido: {vagas: 0, duracao: ''},
-      medio: {vagas: 0, duracao: ''},
-      longo: {vagas: 0, duracao: ''},
-      extra_longo: {vagas: 0, duracao: ''}
+    vagas: {
+      infusao_rapido: 16,
+      infusao_medio: 8,
+      infusao_longo: 4,
+      infusao_extra_longo: 4,
+      consultas: 10,
+      procedimentos: 10
     },
     tags: [],
     cargos: [],

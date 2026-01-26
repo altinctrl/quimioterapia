@@ -1,7 +1,6 @@
 <script lang="ts" setup>
 import {computed} from 'vue'
 import {useAppStore} from '@/stores/app'
-import {useConfiguracaoLocalStore} from '@/stores/configuracaoLocal'
 import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card'
 import {Input} from '@/components/ui/input'
 import {Label} from '@/components/ui/label'
@@ -23,7 +22,6 @@ const emit = defineEmits<{
 }>()
 
 const appStore = useAppStore()
-const configuracaoLocalStore = useConfiguracaoLocalStore()
 
 const meses = [
   {value: '1', label: 'Janeiro'}, {value: '2', label: 'Fevereiro'}, {value: '3', label: 'Março'},
@@ -71,10 +69,11 @@ const labelCapacidade = computed(() => {
 
 const getVagasInfo = (data: string) => {
   const agendamentosNoDia = appStore.getAgendamentosDoDia(data)
+  const limiteVagas = appStore.parametros.vagas
 
   if (props.tipoAgendamento !== 'infusao') {
     const tipo = props.tipoAgendamento
-    const limite = configuracaoLocalStore.getLimite(tipo)
+    const limite = tipo === 'consulta' ? limiteVagas.consultas : limiteVagas.procedimentos
     const countNoTipo = agendamentosNoDia.reduce((acc, ag) => {
       if (!isConsideradoNaCapacidade(ag)) return acc
       return ag.tipo === tipo ? acc + 1 : acc
@@ -89,7 +88,8 @@ const getVagasInfo = (data: string) => {
   }
 
   const grupo = props.grupoInfusao
-  const limiteGrupo = appStore.parametros.gruposInfusao[grupo]?.vagas || 4
+  const chaveGrupo = `infusao_${grupo}` as keyof typeof limiteVagas
+  const limiteGrupo = limiteVagas[chaveGrupo] || 0
 
   const countNoGrupo = agendamentosNoDia.reduce((acc, ag) => {
     if (!isConsideradoNaCapacidade(ag)) return acc

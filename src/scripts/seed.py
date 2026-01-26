@@ -15,7 +15,7 @@ from src.models.prescricao import Prescricao
 from src.models.protocolo import Protocolo
 from src.resources.database import app_engine, aghu_engine, AppSessionLocal, AghuSessionLocal, Base
 from src.schemas.agendamento import AgendamentoCreate, DetalhesAgendamento, TipoAgendamento, AgendamentoStatusEnum, \
-    FarmaciaStatusEnum
+    FarmaciaStatusEnum, TipoConsulta, TipoProcedimento
 from src.schemas.equipe import MotivoAusenciaEnum
 from src.schemas.prescricao import ProtocoloRef, PacienteSnapshot, BlocoPrescricao, ItemPrescricao, \
     PrescricaoStatusEnum, MedicoSnapshot
@@ -216,10 +216,13 @@ async def setup_app(aghu_pacientes):
             horario_abertura="07:00",
             horario_fechamento="19:00",
             dias_funcionamento=[1, 2, 3, 4, 5],
-            grupos_infusao={
-                "rapido": {"vagas": 16, "duracao": "< 2h"},
-                "medio": {"vagas": 8, "duracao": "2h - 4h"},
-                "longo": {"vagas": 4, "duracao": "> 4h"}
+            vagas={
+                "infusao_rapido": 16,
+                "infusao_medio": 8,
+                "infusao_longo": 4,
+                "infusao_extra_longo": 4,
+                "consultas": 10,
+                "procedimentos": 10
             },
             tags=TAGS_CONFIG,
             cargos=CARGOS,
@@ -432,6 +435,46 @@ async def setup_app(aghu_pacientes):
                         detalhes=ag_validator.detalhes.model_dump(mode='json', exclude_none=True)
                     )
                     session.add(ag)
+
+            for _ in range(10):
+                tipo_cons = random.choice(list(TipoConsulta))
+                data_cons = encontrar_data_valida(date.today() + timedelta(days=random.randint(-30, 30)))
+                inicio, fim = gerar_horario(random.choice(["manha", "tarde"]), 30)
+
+                ag_cons = Agendamento(
+                    id=str(uuid.uuid4()),
+                    criado_por_id="admin",
+                    paciente_id=p_app.id,
+                    tipo=TipoAgendamento.CONSULTA,
+                    data=data_cons,
+                    turno="manha",
+                    horario_inicio=inicio,
+                    horario_fim=fim,
+                    checkin=True if data_cons < date.today() else False,
+                    status=AgendamentoStatusEnum.CONCLUIDO if data_cons < date.today() else AgendamentoStatusEnum.AGENDADO,
+                    detalhes={"consulta": {"tipo_consulta": tipo_cons.value}}
+                )
+                session.add(ag_cons)
+
+            for _ in range(10):
+                tipo_proc = random.choice(list(TipoProcedimento))
+                data_proc = encontrar_data_valida(date.today() + timedelta(days=random.randint(-30, 30)))
+                inicio, fim = gerar_horario(random.choice(["manha", "tarde"]), 60)
+
+                ag_proc = Agendamento(
+                    id=str(uuid.uuid4()),
+                    criado_por_id="admin",
+                    paciente_id=p_app.id,
+                    tipo=TipoAgendamento.PROCEDIMENTO,
+                    data=data_proc,
+                    turno="manha",
+                    horario_inicio=inicio,
+                    horario_fim=fim,
+                    checkin=True if data_proc < date.today() else False,
+                    status=AgendamentoStatusEnum.CONCLUIDO if data_proc < date.today() else AgendamentoStatusEnum.AGENDADO,
+                    detalhes={"procedimento": {"tipo_procedimento": tipo_proc.value}}
+                )
+                session.add(ag_proc)
 
         await session.commit()
         print("Seed concluído com sucesso!")

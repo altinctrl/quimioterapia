@@ -4,12 +4,13 @@ import {Card, CardContent} from '@/components/ui/card'
 import AgendaControls, {type FiltrosAgenda} from '@/components/agenda/AgendaControls.vue'
 import AgendaTable from '@/components/agenda/AgendaTable.vue'
 import {getDuracaoAgendamento, getGrupoInfusao} from '@/utils/agendaUtils'
-import {type Agendamento, AgendamentoStatusEnum} from '@/types'
+import {type Agendamento, AgendamentoStatusEnum, TipoAgendamento} from '@/types'
 
 const props = defineProps<{
   agendamentos: Agendamento[]
   filtros: FiltrosAgenda
   mostrarFiltrosInfusao?: boolean
+  tipo: TipoAgendamento
 }>()
 
 const emit = defineEmits<{
@@ -97,6 +98,7 @@ const agendamentosProcessados = computed(() => {
     <CardContent class="p-0 mt-0">
       <AgendaTable
           :agendamentos="agendamentosProcessados"
+          :tipo="tipo"
           class="border-0 rounded-none shadow-none"
           @abrir-detalhes="(ag) => emit('abrir-detalhes', ag)"
           @abrir-prescricao="(ag) => emit('abrir-prescricao', ag)"
