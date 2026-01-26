@@ -4,6 +4,7 @@ import {Button} from '@/components/ui/button'
 import {Badge} from '@/components/ui/badge'
 import {AlertCircle, Calendar, Clock, ExternalLink, Tag, User} from 'lucide-vue-next'
 import {type Agendamento} from '@/types'
+import {formatarConsulta, formatarProcedimento} from "@/utils/agendaUtils.ts";
 
 defineProps<{
   open: boolean
@@ -140,9 +141,8 @@ const formatarData = (data: string) => {
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <p class="text-xs text-green-600/80 font-bold uppercase">Tipo de Consulta</p>
-              <!--              TODO: Formatar tipo de consulta-->
               <p class="text-green-900 font-medium capitalize">
-                {{ agendamento.detalhes.consulta.tipoConsulta.replace('_', ' ') || '' }}
+                {{ formatarConsulta(agendamento.detalhes.consulta.tipoConsulta) }}
               </p>
             </div>
             <div v-if="agendamento.detalhes.consulta.observacoes" class="md:col-span-2">
@@ -160,9 +160,8 @@ const formatarData = (data: string) => {
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <p class="text-xs text-orange-600/80 font-bold uppercase">Tipo de Procedimento</p>
-              <!--              TODO: Formatar tipo de procedimento-->
               <p class="text-orange-900 font-medium capitalize">
-                {{ agendamento.detalhes.procedimento.tipoProcedimento.replace('_', ' ') }}
+                {{ formatarProcedimento(agendamento.detalhes.procedimento.tipoProcedimento) }}
               </p>
             </div>
             <div v-if="agendamento.detalhes.procedimento.observacoes" class="md:col-span-2">

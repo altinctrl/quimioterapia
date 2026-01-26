@@ -1,4 +1,11 @@
-import {Agendamento} from '@/types';
+import {Agendamento, opcoesConsulta, opcoesProcedimento} from '@/types';
+import {
+  statusInfusaoPermitidosSemCheckin,
+  statusOutrosPermitidosComCheckin,
+  statusOutrosPermitidosSemCheckin
+} from "@/constants/agendaConstants.ts";
+import {computed} from "vue";
+import {useAppStore} from '@/stores/app'
 
 export type GrupoInfusao = 'rapido' | 'medio' | 'longo' | 'extra_longo' | 'indefinido'
 
@@ -63,4 +70,63 @@ export const somarDias = (dataStr: string, dias: number): string => {
   const mes = String(date.getMonth() + 1).padStart(2, '0')
   const dia = String(date.getDate()).padStart(2, '0')
   return `${ano}-${mes}-${dia}`
+}
+
+export const getPaciente = (id: string) => {
+  const appStore = useAppStore()
+  appStore.getPacienteById(id)
+}
+
+const opcoesStatusPaciente = computed(() => {
+  const appStore = useAppStore()
+  return appStore.statusConfig.filter(s => s.tipo === 'paciente')
+})
+
+export const formatarConsulta = (tipo: string | undefined) => {
+  if (!tipo) return "-"
+  return opcoesConsulta.find(opt => opt.value === tipo)?.label || tipo
+}
+
+export const formatarProcedimento = (tipo: string | undefined) => {
+  if (!tipo) return "-"
+  return opcoesProcedimento.find(opt => opt.value === tipo)?.label || tipo
+}
+
+export const getOpcoesStatus = (ag: Agendamento) => {
+  if (ag.tipo == 'infusao') {
+    if (ag.checkin) return opcoesStatusPaciente.value
+    return opcoesStatusPaciente.value.filter(op => statusInfusaoPermitidosSemCheckin.includes(op.id))
+  }
+  if (ag.checkin) return opcoesStatusPaciente.value.filter(op => statusOutrosPermitidosComCheckin.includes(op.id))
+  return opcoesStatusPaciente.value.filter(op => statusOutrosPermitidosSemCheckin.includes(op.id))
+}
+
+export const getStatusDotColor = (statusId: string) => {
+  const appStore = useAppStore()
+  const config = appStore.getStatusConfig(statusId)
+  return config.cor.split(' ')[0]
+}
+
+export const getAgendamentoInfo = (ag: Agendamento) => {
+  const duracaoMin = getDuracaoAgendamento(ag)
+  const grupo = getGrupoInfusao(duracaoMin)
+  return {
+    duracaoTexto: formatarDuracao(duracaoMin),
+    corBorda: getCorGrupo(grupo),
+    corBadge: getBadgeGrupo(grupo),
+    grupoLabel: grupo === 'rapido' ? 'Rápida' : grupo === 'medio' ? 'Média' : 'Longa'
+  }
+}
+
+export const getObservacoesClinicas = (ag: Agendamento) => {
+  return ag.paciente?.observacoesClinicas
+}
+
+export const getFarmaciaStatusConfig = (statusId: string | undefined) => {
+  const appStore = useAppStore()
+  const id = statusId || 'pendente'
+  return appStore.statusConfig.find(s => s.id === id && s.tipo === 'farmacia') || {
+    label: '-',
+    corBadge: 'bg-gray-100 hover:bg-gray-100 text-gray-800 border-gray-200'
+  }
 }

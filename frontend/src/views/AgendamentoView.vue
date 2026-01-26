@@ -123,6 +123,32 @@ const grupoInfusaoAtual = computed((): GrupoInfusao => {
   return 'medio'
 })
 
+const requisitosTipoOk = computed(() => {
+  if (tipoAgendamento.value === 'infusao') return !!prescricaoSelecionadaId.value
+  if (tipoAgendamento.value === 'consulta') return !!tipoConsulta.value
+  return !!tipoProcedimento.value
+})
+
+watch(tipoAgendamento, () => {
+  dataSelecionada.value = ''
+  horarioInicio.value = ''
+  listaAvisos.value = []
+
+  if (tipoAgendamento.value !== 'consulta') tipoConsulta.value = ''
+  if (tipoAgendamento.value !== 'procedimento') tipoProcedimento.value = ''
+  if (tipoAgendamento.value !== 'infusao') {
+    prescricaoSelecionadaId.value = ''
+    diaCiclo.value = null
+  }
+})
+
+watch([prescricaoSelecionadaId, tipoConsulta, tipoProcedimento], () => {
+  if (!requisitosTipoOk.value) {
+    dataSelecionada.value = ''
+    horarioInicio.value = ''
+  }
+})
+
 const ultimoAgendamento = computed(() => {
   if (!pacienteSelecionado.value) return null
   const agendamentos = appStore.agendamentos
@@ -159,17 +185,36 @@ const handleSelecionarData = (data: string) => {
 }
 
 const getVagasInfo = (data: string) => {
+  const agendamentosNoDia = appStore.getAgendamentosDoDia(data)
+  const limiteVagas = appStore.parametros.vagas
+
+  const isConsideradoNaCapacidade = (ag: any) => {
+    return ag.status !== 'remarcado' && ag.status !== 'suspenso'
+  }
+
   if (tipoAgendamento.value !== 'infusao') {
-    return {count: 99, full: false}
+    const tipo = tipoAgendamento.value
+    const limite = tipo === 'consulta' ? limiteVagas.consultas : limiteVagas.procedimentos
+    const countNoTipo = agendamentosNoDia.reduce((acc, ag) => {
+      if (!isConsideradoNaCapacidade(ag)) return acc
+      return ag.tipo === tipo ? acc + 1 : acc
+    }, 0)
+    const vagasRestantes = limite - countNoTipo
+    return {count: vagasRestantes, full: vagasRestantes <= 0}
   }
 
   const grupo = grupoInfusaoAtual.value
-  const limiteGrupo = appStore.parametros.gruposInfusao[grupo]?.vagas || 4
-  const agendamentosNoDia = appStore.getAgendamentosDoDia(data)
+  const chaveGrupo = `infusao_${grupo}` as keyof typeof limiteVagas
+  const limiteGrupo = limiteVagas[chaveGrupo] || 0
 
   const countNoGrupo = agendamentosNoDia.reduce((acc, ag) => {
+    if (!isConsideradoNaCapacidade(ag)) return acc
     if (ag.tipo !== 'infusao') return acc
-    return acc + 1
+
+    const p = appStore.getPacienteById(ag.pacienteId)
+    const prot = appStore.getProtocoloById((p as any)?.protocoloId || '')
+    const g = (prot as any)?.grupoInfusao || 'medio'
+    return g === grupo ? acc + 1 : acc
   }, 0)
 
   const vagasRestantes = limiteGrupo - countNoGrupo
@@ -214,6 +259,11 @@ const preValidarAgendamento = () => {
     const vagasInfo = getVagasInfo(dataSelecionada.value)
     if (vagasInfo.full) {
       listaAvisos.value.push(`A capacidade para o grupo "${grupoInfusaoAtual.value}" está esgotada neste dia.`)
+    }
+  } else {
+    const vagasInfo = getVagasInfo(dataSelecionada.value)
+    if (vagasInfo.full) {
+      listaAvisos.value.push(`A capacidade para "${tipoAgendamento.value}" está esgotada neste dia.`)
     }
   }
 
@@ -315,10 +365,11 @@ const realizarAgendamento = async () => {
         />
 
         <AgendamentoCalendario
-            v-if="pacienteSelecionado"
+          v-if="pacienteSelecionado"
             v-model:ano="anoSelecionado"
             v-model:mes="mesSelecionado"
             :data-selecionada="dataSelecionada"
+          :tipo-agendamento="tipoAgendamento"
             :grupo-infusao="grupoInfusaoAtual"
             @selecionar-data="handleSelecionarData"
         />
@@ -332,7 +383,7 @@ const realizarAgendamento = async () => {
         />
 
         <AgendamentoForm
-            v-if="dataSelecionada"
+          v-if="pacienteSelecionado"
             v-model:dia-ciclo="diaCiclo"
             v-model:encaixe="encaixe"
             v-model:horario="horarioInicio"
@@ -341,6 +392,7 @@ const realizarAgendamento = async () => {
             v-model:tipo="tipoAgendamento"
             v-model:tipo-consulta="tipoConsulta"
             v-model:tipo-procedimento="tipoProcedimento"
+          :data-selecionada="dataSelecionada"
             :dias-permitidos="diasPermitidosCiclo"
             :horario-abertura="appStore.parametros.horarioAbertura"
             :horario-fechamento="appStore.parametros.horarioFechamento"

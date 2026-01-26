@@ -1,19 +1,26 @@
 <script lang="ts" setup>
-import {computed} from 'vue'
 import {useRouter} from 'vue-router'
-import {useAppStore} from '@/stores/app'
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '@/components/ui/table'
 import {Badge} from '@/components/ui/badge'
 import {Button} from '@/components/ui/button'
 import {ChevronDown, Clock, Tag} from 'lucide-vue-next'
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/components/ui/tooltip'
-import {type Agendamento, isInfusao} from '@/types'
-import {formatarDuracao, getBadgeGrupo, getCorGrupo, getDuracaoAgendamento, getGrupoInfusao} from '@/utils/agendaUtils'
+import {type Agendamento, TipoAgendamento} from '@/types'
+import {
+  formatarConsulta,
+  formatarProcedimento,
+  getAgendamentoInfo,
+  getFarmaciaStatusConfig,
+  getObservacoesClinicas,
+  getOpcoesStatus,
+  getStatusDotColor
+} from '@/utils/agendaUtils'
 import {Checkbox} from "@/components/ui/checkbox";
 import PacienteCell from '@/components/common/PacienteCell.vue'
 
 defineProps<{
   agendamentos: Agendamento[]
+  tipo: TipoAgendamento
 }>()
 
 const emit = defineEmits<{
@@ -25,20 +32,7 @@ const emit = defineEmits<{
   (e: 'alterar-status', agendamento: Agendamento, novoStatus: string): void
 }>()
 
-const statusPermitidosSemCheckin = [
-  'agendado',
-  'aguardando-consulta',
-  'aguardando-exame',
-  'aguardando-medicamento',
-  'internado',
-  'suspenso',
-  'remarcado'
-]
-
 const router = useRouter()
-const appStore = useAppStore()
-
-const getPaciente = (id: string) => appStore.getPacienteById(id)
 
 const irParaProntuario = (pacienteId: string) => {
   router.push({path: '/pacientes', query: {pacienteId}})
@@ -57,44 +51,6 @@ const handleAlterarStatusPaciente = (agendamento: Agendamento, event: Event) => 
   select.value = statusAntigo
 }
 
-const opcoesStatusPaciente = computed(() => {
-  return appStore.statusConfig.filter(s => s.tipo === 'paciente')
-})
-
-const getOpcoesStatus = (ag: Agendamento) => {
-  if (ag.checkin) {
-    return opcoesStatusPaciente.value
-  }
-  return opcoesStatusPaciente.value.filter(op => statusPermitidosSemCheckin.includes(op.id))
-}
-
-const getStatusDotColor = (statusId: string) => {
-  const config = appStore.getStatusConfig(statusId)
-  return config.cor.split(' ')[0]
-}
-
-const getAgendamentoInfo = (ag: Agendamento) => {
-  const duracaoMin = getDuracaoAgendamento(ag)
-  const grupo = getGrupoInfusao(duracaoMin)
-  return {
-    duracaoTexto: formatarDuracao(duracaoMin),
-    corBorda: getCorGrupo(grupo),
-    corBadge: getBadgeGrupo(grupo),
-    grupoLabel: grupo === 'rapido' ? 'Rápida' : grupo === 'medio' ? 'Média' : 'Longa'
-  }
-}
-
-const getObservacoesClinicas = (ag: Agendamento) => {
-  return ag.paciente?.observacoesClinicas || getPaciente(ag.pacienteId)?.observacoesClinicas
-}
-
-const getFarmaciaStatusConfig = (statusId: string | undefined) => {
-  const id = statusId || 'pendente'
-  return appStore.statusConfig.find(s => s.id === id && s.tipo === 'farmacia') || {
-    label: '-',
-    corBadge: 'bg-gray-100 hover:bg-gray-100 text-gray-800 border-gray-200'
-  }
-}
 </script>
 
 <template>
@@ -104,10 +60,12 @@ const getFarmaciaStatusConfig = (statusId: string | undefined) => {
         <TableRow class="hover:bg-transparent">
           <TableHead class="pl-5 w-[100px]">Horário</TableHead>
           <TableHead class="min-w-[150px]">Paciente</TableHead>
-          <TableHead class="min-w-[100px]">Prescrição</TableHead>
+          <TableHead class="min-w-[100px]">
+            {{ tipo == 'infusao' ? 'Prescrição' : tipo == 'consulta' ? 'Consulta' : 'Procedimento'}}
+          </TableHead>
           <TableHead class="w-[80px] text-center">Em Sala</TableHead>
           <TableHead class="min-w-[240px]">Status Paciente</TableHead>
-          <TableHead class="min-w-[140px]">Status Farmácia</TableHead>
+          <TableHead v-if="tipo == 'infusao'" class="min-w-[140px]">Status Farmácia</TableHead>
           <TableHead class="w-fit">Tags</TableHead>
         </TableRow>
       </TableHeader>
@@ -125,7 +83,7 @@ const getFarmaciaStatusConfig = (statusId: string | undefined) => {
             :class="{ 'bg-gray-50 opacity-60 grayscale': ag.status === 'remarcado' }"
         >
           <TableCell class="p-0 relative">
-            <div :class="['h-full w-[4px] absolute left-0 top-0 bottom-0', getAgendamentoInfo(ag).corBorda]"></div>
+            <div v-if="tipo == 'infusao'" :class="['h-full w-[4px] absolute left-0 top-0 bottom-0', getAgendamentoInfo(ag).corBorda]"></div>
             <div class="px-4 pl-5">
               <button
                   class="text-md hover:text-blue-600 hover:underline"
@@ -133,7 +91,7 @@ const getFarmaciaStatusConfig = (statusId: string | undefined) => {
               >
                 {{ ag.horarioInicio }}
               </button>
-              <div class="flex items-center gap-1.5 mt-1">
+              <div v-if="tipo == 'infusao'" class="flex items-center gap-1.5 mt-1">
                 <Clock class="h-3 w-3 text-gray-400"/>
                 <span class="text-xs font-medium text-gray-500">
                   {{ getAgendamentoInfo(ag).duracaoTexto }}
@@ -144,16 +102,16 @@ const getFarmaciaStatusConfig = (statusId: string | undefined) => {
 
           <TableCell>
             <PacienteCell
-                :nome="(ag.paciente?.nome || getPaciente(ag.pacienteId)?.nome) as string"
+                :nome="(ag.paciente?.nome) as string"
                 :observacoesClinicas="getObservacoesClinicas(ag)"
                 :paciente-id="ag.pacienteId"
-                :registro="ag.paciente?.registro || getPaciente(ag.pacienteId)?.registro"
+                :registro="ag.paciente?.registro"
                 @click="irParaProntuario"
             />
           </TableCell>
 
-          <TableCell class="align-top">
-            <div class="flex flex-col truncate">
+          <TableCell class="align-center">
+            <div v-if="tipo == 'infusao'" class="flex flex-col truncate">
               <button
                   :title="ag.prescricao?.conteudo?.protocolo?.nome || '-'"
                   class="font-medium text-gray-700 block hover:text-blue-600 hover:underline text-left truncate"
@@ -163,16 +121,22 @@ const getFarmaciaStatusConfig = (statusId: string | undefined) => {
               </button>
 
               <div class="flex items-center gap-2 mt-1 text-xs text-gray-800">
-                <template v-if="isInfusao(ag)">
-                    <span v-if="ag.detalhes.infusao.cicloAtual"
+                <template>
+                    <span v-if="ag.detalhes?.infusao?.cicloAtual"
                           class="bg-blue-50 text-blue-700 px-1.5 rounded border border-blue-100">
                         Ciclo {{ ag.detalhes.infusao.cicloAtual }}
                     </span>
-                  <span v-if="ag.detalhes.infusao.diaCiclo" class="text-gray-800 px-1.5 rounded border">
+                    <span v-if="ag.detalhes?.infusao?.diaCiclo" class="text-gray-800 px-1.5 rounded border">
                         Dia {{ ag.detalhes.infusao.diaCiclo }}
                     </span>
                 </template>
               </div>
+            </div>
+            <div v-else-if="tipo == 'consulta'">
+              {{ formatarConsulta(ag.detalhes?.consulta?.tipoConsulta) }}
+            </div>
+            <div v-else-if="tipo == 'procedimento'">
+              {{ formatarProcedimento(ag.detalhes?.procedimento?.tipoProcedimento) }}
             </div>
           </TableCell>
 
@@ -213,21 +177,19 @@ const getFarmaciaStatusConfig = (statusId: string | undefined) => {
             </div>
           </TableCell>
 
-          <TableCell class="align-top">
+          <TableCell v-if="tipo=='infusao'" class="align-top">
             <div class="flex flex-col gap-1">
               <Badge
-                  v-if="isInfusao(ag) && ag.detalhes.infusao.statusFarmacia"
-                  :class="[getFarmaciaStatusConfig(ag.detalhes.infusao.statusFarmacia).corBadge]"
+                  :class="[getFarmaciaStatusConfig(ag.detalhes?.infusao?.statusFarmacia).corBadge]"
                   class="w-fit font-semibold px-2 border uppercase hover:bg-opacity-100"
                   variant="secondary"
               >
-                {{ getFarmaciaStatusConfig(ag.detalhes.infusao.statusFarmacia).label }}
+                {{ getFarmaciaStatusConfig(ag.detalhes?.infusao?.statusFarmacia).label }}
               </Badge>
 
               <div class="pl-1 flex items-center gap-1.5 text-xs">
                 <Clock class="h-3.5 w-3.5 text-gray-400"/>
-                <span v-if="isInfusao(ag) && ag.detalhes.infusao.horarioPrevisaoEntrega"
-                      class="text-blue-600 font-medium">
+                <span v-if="ag.detalhes?.infusao?.horarioPrevisaoEntrega" class="text-blue-600 font-medium">
                     {{ ag.detalhes.infusao.horarioPrevisaoEntrega }}
                 </span>
                 <span v-else class="text-gray-400 italic">

@@ -5,12 +5,13 @@ import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card'
 import {Input} from '@/components/ui/input'
 import {Label} from '@/components/ui/label'
 import {Calendar as CalendarIcon, ChevronDown} from 'lucide-vue-next'
-import type {GrupoInfusao} from '@/types'
+import type {Agendamento, GrupoInfusao, TipoAgendamento} from '@/types'
 
 const props = defineProps<{
   mes: string
   ano: string
   dataSelecionada: string
+  tipoAgendamento: TipoAgendamento
   grupoInfusao: GrupoInfusao
 }>()
 
@@ -56,15 +57,47 @@ const isDayDisabled = (date: Date) => {
   return isPastDate || isClosedDay
 }
 
+const isConsideradoNaCapacidade = (ag: Agendamento) => {
+  return ag.status !== 'remarcado' && ag.status !== 'suspenso'
+}
+
+const labelCapacidade = computed(() => {
+  if (props.tipoAgendamento === 'infusao') return `grupo: ${props.grupoInfusao}`
+  if (props.tipoAgendamento === 'consulta') return 'consulta'
+  return 'procedimento'
+})
+
 const getVagasInfo = (data: string) => {
-  const grupo = props.grupoInfusao
-  const limiteGrupo = appStore.parametros.gruposInfusao[grupo]?.vagas || 4
   const agendamentosNoDia = appStore.getAgendamentosDoDia(data)
+  const limiteVagas = appStore.parametros.vagas
+
+  if (props.tipoAgendamento !== 'infusao') {
+    const tipo = props.tipoAgendamento
+    const limite = tipo === 'consulta' ? limiteVagas.consultas : limiteVagas.procedimentos
+    const countNoTipo = agendamentosNoDia.reduce((acc, ag) => {
+      if (!isConsideradoNaCapacidade(ag)) return acc
+      return ag.tipo === tipo ? acc + 1 : acc
+    }, 0)
+
+    const vagasRestantes = limite - countNoTipo
+
+    return {
+      count: vagasRestantes,
+      full: vagasRestantes <= 0
+    }
+  }
+
+  const grupo = props.grupoInfusao
+  const chaveGrupo = `infusao_${grupo}` as keyof typeof limiteVagas
+  const limiteGrupo = limiteVagas[chaveGrupo] || 0
 
   const countNoGrupo = agendamentosNoDia.reduce((acc, ag) => {
+    if (!isConsideradoNaCapacidade(ag)) return acc
+    if (ag.tipo !== 'infusao') return acc
+
     const p = appStore.getPacienteById(ag.pacienteId)
-    const prot = appStore.getProtocoloById(p?.protocoloId || '')
-    const g = prot?.grupoInfusao || 'medio'
+    const prot = appStore.getProtocoloById((p as any)?.protocoloId || '')
+    const g = (prot as any)?.grupoInfusao || 'medio'
     return g === grupo ? acc + 1 : acc
   }, 0)
 
@@ -133,7 +166,7 @@ const getVagasInfo = (data: string) => {
         </button>
       </div>
       <div class="mt-2 text-xs text-gray-500 text-right">
-        Vagas para grupo: <span class="capitalize font-medium">{{ grupoInfusao }}</span>
+        Vagas para <span class="capitalize font-medium">{{ labelCapacidade }}</span>
       </div>
     </CardContent>
   </Card>

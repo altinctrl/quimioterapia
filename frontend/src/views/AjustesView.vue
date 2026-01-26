@@ -33,11 +33,13 @@ const cargos = ref<string[]>([])
 const funcoes = ref<string[]>([])
 const diluentes = ref<string[]>([])
 
-const grupos = reactive({
-  rapido: {vagas: 0 as number | string, duracao: ''},
-  medio: {vagas: 0 as number | string, duracao: ''},
-  longo: {vagas: 0 as number | string, duracao: ''},
-  extra_longo: {vagas: 0 as number | string, duracao: ''}
+const vagas = reactive({
+  infusao_rapido: 0,
+  infusao_medio: 0,
+  infusao_longo: 0,
+  infusao_extra_longo: 0,
+  consultas: 0,
+  procedimentos: 0
 })
 
 const detailsOpen = ref(false)
@@ -79,12 +81,7 @@ const handleSalvar = async () => {
     horarioAbertura: horarioAbertura.value,
     horarioFechamento: horarioFechamento.value,
     diasFuncionamento: [...diasSelecionados.value].sort((a, b) => a - b),
-    gruposInfusao: {
-      rapido: {...grupos.rapido, vagas: Number(grupos.rapido.vagas)},
-      medio: {...grupos.medio, vagas: Number(grupos.medio.vagas)},
-      longo: {...grupos.longo, vagas: Number(grupos.longo.vagas)},
-      extra_longo: {...grupos.extra_longo, vagas: Number(grupos.extra_longo.vagas)}
-    },
+    vagas: { ...vagas },
     tags: [...tags.value],
     cargos: [...cargos.value],
     funcoes: [...funcoes.value],
@@ -110,10 +107,7 @@ const handleDesfazer = async () => {
     cargos.value = [...(dadosSalvos.cargos || [])]
     funcoes.value = [...(dadosSalvos.funcoes || [])]
     diluentes.value = [...(dadosSalvos.diluentes || [])]
-    Object.assign(grupos.rapido, dadosSalvos.gruposInfusao.rapido)
-    Object.assign(grupos.medio, dadosSalvos.gruposInfusao.medio)
-    Object.assign(grupos.longo, dadosSalvos.gruposInfusao.longo)
-    Object.assign(grupos.extra_longo, dadosSalvos.gruposInfusao.extra_longo)
+    Object.assign(vagas, dadosSalvos.vagas)
     await nextTick()
     isDirty.value = false
   }
@@ -185,7 +179,7 @@ onMounted(async () => {
 })
 
 watch(
-    [horarioAbertura, horarioFechamento, diasSelecionados, tags, cargos, funcoes, grupos, diluentes],
+    [horarioAbertura, horarioFechamento, diasSelecionados, vagas, tags, cargos, funcoes, diluentes],
     () => {
       if (!carregando.value) {
         isDirty.value = true
@@ -205,10 +199,7 @@ watch(
         cargos.value = [...(newVal.cargos || [])]
         funcoes.value = [...(newVal.funcoes || [])]
         diluentes.value = [...(newVal.diluentes || [])]
-        Object.assign(grupos.rapido, newVal.gruposInfusao.rapido)
-        Object.assign(grupos.medio, newVal.gruposInfusao.medio)
-        Object.assign(grupos.longo, newVal.gruposInfusao.longo)
-        Object.assign(grupos.extra_longo, newVal.gruposInfusao.extra_longo)
+        Object.assign(vagas, newVal.vagas)
         nextTick(() => {
           isDirty.value = false
         })
@@ -277,7 +268,7 @@ watch(
       </TabsContent>
 
       <TabsContent class="space-y-8 mt-6" value="vagas">
-        <AjustesCapacidade :grupos="grupos"/>
+        <AjustesCapacidade :vagas="vagas"/>
       </TabsContent>
 
       <TabsContent class="space-y-6 mt-6" value="protocolos">
