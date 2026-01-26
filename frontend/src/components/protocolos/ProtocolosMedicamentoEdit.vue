@@ -3,7 +3,7 @@ import {Input} from '@/components/ui/input'
 import {Label} from '@/components/ui/label'
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select'
 import DiluenteSelector from './ProtocolosDiluenteSelector.vue'
-import {DetalhesMedicamento, UnidadeDoseEnum, ViaAdministracaoEnum} from "@/types"
+import {DetalhesMedicamento, UnidadeDoseEnum, ViaAdministracaoEnum} from "@/types/protocoloTypes.ts";
 import {Textarea} from "@/components/ui/textarea";
 import {getUnidadeFinal} from "@/utils/prescricaoUtils.ts";
 

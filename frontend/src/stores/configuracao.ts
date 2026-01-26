@@ -2,7 +2,7 @@ import {defineStore} from 'pinia'
 import {ref} from 'vue'
 import api from '@/services/api'
 import {toast} from 'vue-sonner'
-import type {ConfigStatus, ParametrosAgendamento} from '@/types'
+import {ConfigStatus, ParametrosAgendamento} from "@/types/ajustesTypes.ts";
 
 const defaultStatusConfig: ConfigStatus[] = [
   {

@@ -4,7 +4,7 @@ import {Card, CardContent} from '@/components/ui/card'
 import AgendaControls, {type FiltrosAgenda} from '@/components/agenda/AgendaControls.vue'
 import AgendaTable from '@/components/agenda/AgendaTable.vue'
 import {getDuracaoAgendamento, getGrupoInfusao} from '@/utils/agendaUtils'
-import {type Agendamento, AgendamentoStatusEnum, TipoAgendamento} from '@/types'
+import {Agendamento, AgendamentoStatusEnum, TipoAgendamento} from "@/types/agendamentoTypes.ts";
 
 const props = defineProps<{
   agendamentos: Agendamento[]

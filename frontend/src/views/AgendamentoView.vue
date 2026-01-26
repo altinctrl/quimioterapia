@@ -5,8 +5,14 @@ import {useAppStore} from '@/stores/app'
 import {Button} from '@/components/ui/button'
 import {ArrowLeft} from 'lucide-vue-next'
 import {toast} from 'vue-sonner'
-import type {GrupoInfusao, Paciente, TipoAgendamento, TipoConsultaEnum, TipoProcedimentoEnum, Turno} from '@/types'
-
+import {
+  GrupoInfusao,
+  TipoAgendamento,
+  TipoConsultaEnum,
+  TipoProcedimentoEnum,
+  Turno
+} from "@/types/agendamentoTypes.ts";
+import {Paciente} from "@/types/pacienteTypes.ts";
 import AgendamentoBusca from '@/components/agendamento/AgendamentoBusca.vue'
 import AgendamentoCalendario from '@/components/agendamento/AgendamentoCalendario.vue'
 import AgendamentoResumo from '@/components/agendamento/AgendamentoResumo.vue'

@@ -3,7 +3,7 @@ import {computed, defineEmits, defineProps, ref, watchEffect} from 'vue'
 import {addDays, format} from 'date-fns'
 import {ptBR} from 'date-fns/locale'
 import {type DateValue, fromDate, getLocalTimeZone} from '@internationalized/date'
-import type {EscalaPlantao, Profissional} from '@/types'
+import {EscalaPlantao, Profissional} from "@/types/equipeTypes.ts";
 import {Button} from '@/components/ui/button'
 import {Calendar} from '@/components/ui/calendar'
 import {Popover, PopoverContent, PopoverTrigger} from '@/components/ui/popover'

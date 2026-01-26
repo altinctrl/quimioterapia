@@ -2,7 +2,7 @@ import {defineStore} from 'pinia'
 import {ref} from 'vue'
 import api from '@/services/api'
 import {toast} from 'vue-sonner'
-import type {Protocolo} from '@/types'
+import {Protocolo} from "@/types/protocoloTypes.ts";
 
 export const useProtocoloStore = defineStore('protocolo', () => {
   const protocolos = ref<Protocolo[]>([])

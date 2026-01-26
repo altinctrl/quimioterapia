@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card'
 import {Label} from '@/components/ui/label'
-import {type Paciente} from '@/types'
+import {Paciente} from "@/types/pacienteTypes.ts";
 
 defineProps<{
   paciente: Paciente

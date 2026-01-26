@@ -1,6 +1,6 @@
 import {defineStore} from 'pinia'
 import api from '@/services/api'
-import type {AusenciaProfissional, EscalaPlantao, Profissional} from '@/types'
+import {AusenciaProfissional, EscalaPlantao, Profissional} from "@/types/equipeTypes.ts";
 
 export const useEquipeStore = defineStore('equipe', {
   state: () => ({

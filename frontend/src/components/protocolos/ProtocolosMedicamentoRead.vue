@@ -2,7 +2,7 @@
 import {Badge} from '@/components/ui/badge'
 import {HoverCard, HoverCardContent, HoverCardTrigger} from '@/components/ui/hover-card'
 import {formatDiasCiclo, getUnidadeFinal} from "@/utils/prescricaoUtils.ts"
-import {DetalhesMedicamento} from "@/types";
+import {DetalhesMedicamento} from "@/types/protocoloTypes.ts";
 import {useAppStore} from "@/stores/app.ts";
 
 defineProps<{

@@ -7,7 +7,7 @@ import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/c
 import {Badge} from '@/components/ui/badge'
 import {ArrowDown, ArrowUp, Copy, Plus, Trash2} from 'lucide-vue-next'
 import {categoriasBloco} from '@/utils/protocoloConstants.ts'
-import {DetalhesMedicamento, UnidadeDoseEnum, ViaAdministracaoEnum} from "@/types";
+import {DetalhesMedicamento, UnidadeDoseEnum, ViaAdministracaoEnum} from "@/types/protocoloTypes.ts";
 import {cn} from "@/lib/utils.ts";
 import {Checkbox} from "@/components/ui/checkbox";
 import ProtocolosMedicamentoEdit from "@/components/protocolos/ProtocolosMedicamentoEdit.vue";

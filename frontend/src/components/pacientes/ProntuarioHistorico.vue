@@ -3,7 +3,8 @@ import {Card} from '@/components/ui/card'
 import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs'
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '@/components/ui/table'
 import {useAppStore} from '@/stores/app'
-import {Agendamento, PrescricaoMedica} from "@/types";
+import {Agendamento} from "@/types/agendamentoTypes.ts";
+import {PrescricaoMedica} from "@/types/prescricaoTypes.ts";
 
 defineProps<{
   agendamentos: Agendamento[]

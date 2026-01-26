@@ -1,6 +1,6 @@
 import {ref} from 'vue'
 import {toast} from 'vue-sonner'
-import type {Bloco, Protocolo, TemplateCiclo} from '@/types'
+import {Bloco, Protocolo, TemplateCiclo} from "@/types/protocoloTypes.ts";
 
 export function useProtocoloImport() {
   const isProcessing = ref(false)

@@ -3,7 +3,7 @@ import {Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle} from '@/
 import {Button} from '@/components/ui/button'
 import {Badge} from '@/components/ui/badge'
 import {AlertCircle, Calendar, Clock, ExternalLink, Tag, User} from 'lucide-vue-next'
-import {type Agendamento} from '@/types'
+import {Agendamento} from "@/types/agendamentoTypes.ts";
 import {formatarConsulta, formatarProcedimento} from "@/utils/agendaUtils.ts";
 
 defineProps<{

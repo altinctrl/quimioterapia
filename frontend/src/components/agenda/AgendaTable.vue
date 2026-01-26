@@ -5,7 +5,7 @@ import {Badge} from '@/components/ui/badge'
 import {Button} from '@/components/ui/button'
 import {ChevronDown, Clock, Tag} from 'lucide-vue-next'
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/components/ui/tooltip'
-import {type Agendamento, TipoAgendamento} from '@/types'
+import {Agendamento, TipoAgendamento} from "@/types/agendamentoTypes.ts";
 import {
   formatarConsulta,
   formatarProcedimento,
