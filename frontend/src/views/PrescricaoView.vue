@@ -11,7 +11,7 @@ import PrescricaoProtocolo from '@/components/prescricao/PrescricaoProtocolo.vue
 import PrescricaoFooter from '@/components/prescricao/PrescricaoFooter.vue'
 import PrescricaoBlocos from '@/components/prescricao/PrescricaoBlocos.vue'
 import api from "@/services/api.ts";
-import ScrollableTabs from "@/components/common/ScrollableTabs.vue";
+import {Card} from "@/components/ui/card";
 
 const router = useRouter()
 const route = useRoute()
@@ -373,23 +373,25 @@ const handleBaixar = async () => {
       </div>
 
       <div class="flex flex-col gap-1 mb-2">
-  <Label class="text-sm font-semibold text-gray-700">Selecione a Variante do Protocolo</Label>
-</div>
+        <Label class="text-sm font-semibold text-gray-700">Selecione a Variante do Protocolo</Label>
+      </div>
 
-      <ScrollableTabs
-          v-if="templatesDisponiveis.length > 1"
-          :items="templatesDisponiveis"
-      >
-        <template #item="{ item }">
+      <Card v-if="templatesDisponiveis.length > 1" class="p-4 flex items-center gap-1 mb-4 w-full">
+        <div
+            class="flex items-center gap-2 overflow-x-auto flex-1 px-1 w-0"
+            style="scrollbar-width: thin; -ms-overflow-style: -ms-autohiding-scrollbar;"
+        >
           <Button
-              :variant="templateSelecionadoId === item.idTemplate ? 'default' : 'outline'"
+              v-for="(template, idx) in templatesDisponiveis"
+              :key="idx"
+              :variant="templateSelecionadoId === template.idTemplate ? 'default' : 'outline'"
               class="h-8 text-sm whitespace-nowrap flex-shrink-0"
-              @click="templateSelecionadoId = item.idTemplate"
+              @click="templateSelecionadoId = template.idTemplate"
           >
-            {{ item.idTemplate }}
+            {{ template.idTemplate || `Template ${idx + 1}` }}
           </Button>
-        </template>
-      </ScrollableTabs>
+        </div>
+      </Card>
 
       <PrescricaoBlocos
           :blocos="blocosPrescricao"
