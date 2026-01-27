@@ -1,12 +1,13 @@
 <script lang="ts" setup>
-import {computed, watch} from 'vue'
+import {computed, onMounted, ref, watch} from 'vue'
 import {Input} from '@/components/ui/input'
 import {Label} from '@/components/ui/label'
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select'
 import {AlertTriangle} from 'lucide-vue-next'
-import {UnidadeDoseEnum} from "@/types/protocoloTypes.ts";
-import {formatDiasCiclo, getUnidadeFinal} from "@/utils/prescricaoUtils.ts";
-import {useAppStore} from "@/stores/app.ts";
+import {UnidadeDoseEnum} from '@/types/protocoloTypes.ts'
+import {formatDiasCiclo, getUnidadeFinal, isDiluenteDisponivel} from '@/utils/prescricaoUtils.ts'
+import {usePrescricaoCalculos} from '@/composables/prescricao/usePrescricaoCalculos'
+import {formatNumber, parseNumber} from '@/utils/commonUtils.ts'
 
 const props = defineProps<{
   item: any
@@ -16,203 +17,202 @@ const props = defineProps<{
     sc: number,
     creatinina: number,
     idade?: number,
-    sexo?: string }
+    sexo?: string
+  }
+  errors?: Record<string, string>
 }>()
 
 const emit = defineEmits(['update:item'])
 
-const appStore = useAppStore()
+const {calcularDoseTeorica, calcularDoseFinal} = usePrescricaoCalculos()
 
-const doseCalculadaInicial = computed(() => {
-  const ref = parseFloat(props.item.doseReferencia) || 0
-  const un = props.item.unidade
-  if (un === UnidadeDoseEnum.MG_M2) return ref * (props.dadosPaciente.sc || 0)
-  if (un === UnidadeDoseEnum.MG_KG || un === UnidadeDoseEnum.MCG_KG) return ref * (props.dadosPaciente.peso || 0)
-  if (un === UnidadeDoseEnum.AUC) {
-    const {creatinina, peso, idade, sexo} = props.dadosPaciente
-    if (!creatinina || !peso || !idade || !sexo) return 0
-    const pisoCreatinina = props.item.pisoCreatinina ?? 0.7
-    const tetoGfr = props.item.tetoGfr ?? 125
-    const creatininaFinal = creatinina < pisoCreatinina ? pisoCreatinina : creatinina
-    let gfr = ((140 - idade) * peso) / (72 * creatininaFinal)
-    if (['F', 'FEMININO'].includes(sexo.toUpperCase())) gfr = gfr * 0.85
-    if (gfr > tetoGfr) gfr = tetoGfr
-    return ref * (gfr + 25)
-  }
-  return ref
-})
-
-const doseFinal = computed(() => {
-  let calc = doseCalculadaInicial.value
-  const ajuste = props.item.percentualAjuste || 100
-  calc = calc * (ajuste / 100)
-  if (props.item.doseMaxima && calc > props.item.doseMaxima) calc = props.item.doseMaxima
-  return calc
-})
-
-watch(doseCalculadaInicial, (val) => {
-  const precisao = val < 1 ? 3 : 2;
-  props.item.doseTeorica = parseFloat(val.toFixed(precisao));
-}, { immediate: true });
-
-watch(doseFinal, (val) => {
-  const precisao = val < 1 ? 3 : 2;
-  props.item.doseFinal = parseFloat(val.toFixed(precisao));
-}, { immediate: true });
+const localItem = ref({...props.item})
 
 const diluentesPermitidos = computed(() => {
-  return props.item.configuracaoDiluicao?.opcoesPermitidas || []
+  return localItem.value?.configuracaoDiluicao?.opcoesPermitidas || []
 })
 
-watch(() => props.item.unidade, (newUnidade) => {
-  if (newUnidade === UnidadeDoseEnum.AUC) {
-    if (props.item.pisoCreatinina === undefined) props.item.pisoCreatinina = 0.7
-    if (props.item.tetoGfr === undefined) props.item.tetoGfr = 125
-  }
-}, { immediate: true })
+const atualizarCalculos = () => {
+  if (!localItem.value) return
 
-watch(() => props.item.configuracaoDiluicao, (cfg) => {
-  if (cfg?.selecionada && !props.item.diluicaoFinal) {
-    props.item.diluicaoFinal = cfg.selecionada
+  const itemNumerico = {
+    ...localItem.value,
+    pisoCreatinina: parseNumber(localItem.value.pisoCreatinina),
+    tetoGfr: parseNumber(localItem.value.tetoGfr),
+    percentualAjuste: parseNumber(localItem.value.percentualAjuste),
+    doseMaxima: parseNumber(localItem.value.doseMaxima)
   }
-}, {immediate: true})
 
-const formatNumber = (val: number) => {
-  if (isNaN(val)) return '0,00';
-  const casasDecimais = val < 1 ? 3 : 2;
-  return val.toLocaleString('pt-BR', {
-    minimumFractionDigits: casasDecimais,
-    maximumFractionDigits: casasDecimais
-  });
+  const novaDoseTeorica = calcularDoseTeorica(itemNumerico, props.dadosPaciente as any)
+
+  if (localItem.value.doseTeorica !== novaDoseTeorica) {
+    localItem.value.doseTeorica = novaDoseTeorica
+  }
+
+  const novaDoseFinal = calcularDoseFinal(
+      novaDoseTeorica,
+      itemNumerico.percentualAjuste,
+      itemNumerico.doseMaxima
+  )
+
+  if (localItem.value.doseFinal !== novaDoseFinal) {
+    localItem.value.doseFinal = novaDoseFinal
+  }
 }
 
-const isDiluenteDisponivel = (nome: string) => {
-  return !appStore.parametros.diluentes?.includes(nome)
-}
+watch(localItem, (novoValor) => {
+  emit('update:item', JSON.parse(JSON.stringify(novoValor)))
+}, {deep: true})
+
+watch(() => props.item, (novoItemProp) => {
+  if (novoItemProp && novoItemProp.idItem !== localItem.value.idItem) {
+    localItem.value = {...novoItemProp}
+    atualizarCalculos()
+  }
+}, {deep: true})
+
+watch(() => props.dadosPaciente, () => {
+  atualizarCalculos()
+}, {deep: true})
+
+onMounted(() => {
+  atualizarCalculos()
+})
 </script>
 
 <template>
-  <div class="bg-white border rounded-lg p-3 shadow-sm">
+  <div
+      :class="{'border-red-500': Object.keys(errors || {}).length > 0}"
+      class="bg-white border rounded-lg p-3 shadow-sm"
+  >
     <div class="flex flex-wrap items-start justify-between gap-2 mb-3 border-b pb-2">
       <div class="flex flex-col">
-        <span class="font-bold text-sm text-gray-800">{{ item.medicamento }}</span>
+        <span class="font-bold text-sm text-gray-800">{{ localItem.medicamento }}</span>
         <span class="text-sm text-gray-500">
-           Referência: {{ item.doseReferencia }} {{ item.unidade }} ({{ item.via }})
-           <span v-if="item.doseMaxima" class="text-red-500 font-medium ml-1">
-             Máximo: {{ item.doseMaxima + ' ' + getUnidadeFinal(item.unidade)}}
+           Referência: {{ localItem.doseReferencia }} {{ localItem.unidade }} ({{ localItem.via }})
+           <span v-if="parseNumber(localItem.doseMaxima) > 0" class="text-red-500 font-medium ml-1">
+             Máximo: {{ localItem.doseMaxima + ' ' + getUnidadeFinal(localItem.unidade) }}
            </span>
         </span>
       </div>
 
       <div class="flex items-center gap-2">
-        <div v-if="props.item.doseMaxima && doseFinal >= props.item.doseMaxima"
-             class="flex items-center text-sm text-amber-700 bg-amber-100 px-2 py-1 rounded"
+        <div
+            v-if="parseNumber(localItem.doseMaxima) > 0 && localItem.doseFinal >= parseNumber(localItem.doseMaxima)"
+            class="flex items-center text-sm text-amber-700 bg-amber-100 px-2 py-1 rounded"
         >
           <AlertTriangle class="h-3 w-3 mr-1"/>
-          Teto
+          Teto Atingido
         </div>
         <div class="font-bold text-sm text-gray-700 bg-gray-100 px-2 py-1 rounded">
-          Dias do Ciclo: {{ formatDiasCiclo(item.diasDoCiclo) }}
+          Dias do Ciclo: {{ formatDiasCiclo(localItem.diasDoCiclo) }}
         </div>
       </div>
     </div>
 
-    <div v-if="item.unidade === 'AUC'" class="grid grid-cols-2 md:grid-cols-12 gap-3 items-end">
+    <div v-if="localItem.unidade === UnidadeDoseEnum.AUC" class="grid grid-cols-2 md:grid-cols-12 gap-3 items-start">
       <div class="col-span-1 md:col-span-6">
-        <Label class="text-xs text-gray-500 uppercase">
+        <Label :class="errors?.pisoCreatinina ? 'text-red-500' : 'text-gray-500'" class="text-xs uppercase">
           Piso Creatinina
         </Label>
         <div class="relative">
           <Input
-              v-model.number="item.pisoCreatinina"
+              v-model="localItem.pisoCreatinina"
+              :class="{'border-red-500': errors?.pisoCreatinina}"
               class="h-8 pr-6"
-              min="0"
-              step="0.1"
-              type="number"
+              inputmode="decimal"
+              type="text"
+              @update:model-value="atualizarCalculos"
           />
-          <span class="absolute right-12 top-1.5 text-sm pointer-events-none">mg/dL</span>
+          <span class="absolute right-2 top-1.5 text-sm pointer-events-none">mg/dL</span>
         </div>
+        <span v-if="errors?.pisoCreatinina" class="text-xs text-red-500">{{ errors.pisoCreatinina }}</span>
       </div>
 
       <div class="col-span-1 md:col-span-6">
-        <Label class="text-xs text-gray-500 uppercase">
+        <Label :class="errors?.tetoGfr ? 'text-red-500' : 'text-gray-500'" class="text-xs uppercase">
           Teto GFR
         </Label>
         <div class="relative">
           <Input
-              v-model.number="item.tetoGfr"
+              v-model="localItem.tetoGfr"
+              :class="{'border-red-500': errors?.tetoGfr}"
               class="h-8 pr-6"
-              min="0"
-              step="1"
-              type="number"
+              inputmode="decimal"
+              type="text"
+              @update:model-value="atualizarCalculos"
           />
-          <span class="absolute right-12 top-1.5 text-sm pointer-events-none">mL/min</span>
+          <span class="absolute right-2 top-1.5 text-sm pointer-events-none">mL/min</span>
         </div>
+        <span v-if="errors?.tetoGfr" class="text-xs text-red-500">{{ errors.tetoGfr }}</span>
       </div>
     </div>
 
-    <div class="grid grid-cols-2 md:grid-cols-12 gap-3 items-end">
+    <div class="grid grid-cols-2 md:grid-cols-12 gap-3 items-start">
       <div class="col-span-1 md:col-span-4">
-        <Label class="text-xs text-gray-500 uppercase">
-          Dose Calculada
-        </Label>
+        <Label class="text-xs text-gray-500 uppercase">Dose Teórica</Label>
         <div class="relative">
           <Input
-              :model-value="formatNumber(doseCalculadaInicial)"
-              class="h-8 bg-gray-50 border-dashed disabled:opacity-100 disabled:cursor-default"
+              :model-value="formatNumber(localItem.doseTeorica)"
+              class="h-8 bg-gray-50 border-dashed"
               disabled
           />
           <span class="absolute right-2 top-1.5 text-sm font-medium pointer-events-none bg-gray-50">
-            {{ getUnidadeFinal(item.unidade) }}
+            {{ getUnidadeFinal(localItem.unidade) }}
           </span>
         </div>
       </div>
 
       <div class="col-span-1 md:col-span-4">
-        <Label class="text-xs  font-bold uppercase">
+        <Label :class="{'text-red-500': errors?.percentualAjuste}" class="text-xs font-bold uppercase">
           Ajuste
         </Label>
         <div class="relative">
           <Input
-              v-model="item.percentualAjuste"
+              v-model="localItem.percentualAjuste"
+              :class="{'border-red-500': errors?.percentualAjuste}"
               class="h-8 pr-6 font-bold"
-              min="0"
-              type="number"
+              inputmode="decimal"
+              type="text"
+              @update:model-value="atualizarCalculos"
           />
-          <span class="absolute right-12 top-1.5 text-sm pointer-events-none">%</span>
+          <span class="absolute right-2 top-1.5 text-sm pointer-events-none">%</span>
         </div>
+        <span v-if="errors?.percentualAjuste" class="text-xs text-red-500">{{ errors?.percentualAjuste }}</span>
       </div>
 
       <div class="col-span-2 md:col-span-4">
-        <Label class="text-xs text-green-600 font-bold uppercase">
+        <Label :class="errors?.doseFinal ? 'text-red-500' : 'text-green-600'" class="text-xs font-bold uppercase">
           Dose Final
         </Label>
         <div class="relative">
           <Input
-              :model-value="formatNumber(doseFinal)"
+              :class="{'border-red-500 bg-red-50': errors?.doseFinal}"
+              :model-value="formatNumber(localItem.doseFinal)"
               class="h-8 bg-green-50 text-green-800 font-bold border-green-200 disabled:opacity-100 disabled:cursor-default"
               disabled
           />
           <span class="absolute right-2 top-1.5 text-sm font-medium pointer-events-none bg-green-50 text-green-800">
-            {{ getUnidadeFinal(item.unidade) }}
+            {{ getUnidadeFinal(localItem.unidade) }}
           </span>
         </div>
+        <span v-if="errors?.doseFinal" class="text-xs text-red-500 font-bold">{{ errors.doseFinal }}</span>
       </div>
     </div>
-    <div class="grid grid-cols-2 md:grid-cols-12 gap-3 items-end">
+    <div class="grid grid-cols-2 md:grid-cols-12 gap-3 items-start">
       <div class="col-span-2 md:col-span-8">
-        <Label class="text-xs text-gray-500 uppercase flex items-center gap-1">
+        <Label :class="errors?.diluicaoFinal ? 'text-red-500' : 'text-gray-500'" class="text-xs uppercase">
           Diluição
         </Label>
-        <Select
-            v-model="item.diluicaoFinal"
-            :disabled="!diluentesPermitidos || diluentesPermitidos.length === 0"
-        >
+        <Select v-model="localItem.diluicaoFinal" :disabled="!diluentesPermitidos.length">
           <SelectTrigger
-              :class="diluentesPermitidos.length > 0 && isDiluenteDisponivel(item.diluicaoFinal) ? 'border-red-300 bg-red-50 text-red-900' : ''"
+              :class="{
+                'border-red-500': errors?.diluicaoFinal,
+                'border-red-300 text-red-900': diluentesPermitidos.length > 0 && isDiluenteDisponivel(localItem.diluicaoFinal)
+              }"
               class="h-8 text-sm"
           >
-            <SelectValue :placeholder="(!diluentesPermitidos || diluentesPermitidos.length === 0) ? 'Sem opções' : 'Selecione...'"/>
+            <SelectValue :placeholder="diluentesPermitidos.length ? 'Selecione...' : 'Sem opções'"/>
           </SelectTrigger>
           <SelectContent>
             <SelectItem
@@ -225,31 +225,34 @@ const isDiluenteDisponivel = (nome: string) => {
               </span>
               <span
                   v-if="isDiluenteDisponivel(dil)"
-                  class="text-[10px] text-red-500 font-bold bg-red-50 px-1 rounded ml-auto"
+                  class="text-xs text-red-500 font-bold bg-red-50 px-1 rounded ml-auto"
               >
                 INDISPONÍVEL
               </span>
             </SelectItem>
           </SelectContent>
         </Select>
+        <span v-if="errors?.diluicaoFinal" class="text-xs text-red-500">{{ errors.diluicaoFinal }}</span>
       </div>
 
       <div class="col-span-1 md:col-span-4">
-        <Label class="text-xs font-bold uppercase">Tempo</Label>
+        <Label :class="{'text-red-500': errors?.tempoMinutos}" class="text-xs font-bold uppercase">Tempo</Label>
         <div class="relative">
           <Input
-              v-model="item.tempoMinutos"
+              v-model="localItem.tempoMinutos"
+              :class="{'border-red-500': errors?.tempoMinutos}"
               class="h-8 pr-6"
-              min="0"
-              type="number"
+              inputmode="decimal"
+              type="text"
           />
-          <span class="absolute right-12 top-1.5 text-sm pointer-events-none">minutos</span>
+          <span class="absolute right-2 top-1.5 text-sm pointer-events-none">minutos</span>
         </div>
+        <span v-if="errors?.tempoMinutos" class="text-xs text-red-500">{{ errors?.tempoMinutos }}</span>
       </div>
     </div>
     <div class="col-span-2 md:col-span-3">
       <Label class="text-xs text-gray-500 uppercase">Notas</Label>
-      <Input v-model="item.notasEspecificas" class="h-8 text-sm"/>
+      <Input v-model="localItem.notasEspecificas" class="h-8 text-sm"/>
     </div>
   </div>
 </template>

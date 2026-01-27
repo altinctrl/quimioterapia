@@ -1,4 +1,9 @@
-import {CategoriaBlocoEnum, UnidadeDoseEnum, ViaAdministracaoEnum} from "@/types/protocoloTypes.ts";
+import {
+  CategoriaBlocoEnum,
+  DetalhesMedicamento,
+  UnidadeDoseEnum,
+  ViaAdministracaoEnum
+} from "@/types/protocoloTypes.ts";
 
 export enum PrescricaoStatusEnum {
   PENDENTE = 'pendente',
@@ -6,6 +11,25 @@ export enum PrescricaoStatusEnum {
   CONCLUIDA = 'concluida',
   SUSPENSA = 'suspensa',
   CANCELADA = 'cancelada'
+}
+
+export interface ItemMedicamentoForm extends ItemPrescricaoConteudo {
+  tipo: 'medicamento_unico';
+}
+
+export interface ItemGrupoForm {
+  tipo: 'grupo_alternativas';
+  labelGrupo: string;
+  itemSelecionado: ItemPrescricaoConteudo | null;
+  opcoes: DetalhesMedicamento[];
+}
+
+export type ItemBlocoForm = ItemMedicamentoForm | ItemGrupoForm;
+
+export interface BlocoForm {
+  ordem: number;
+  categoria: CategoriaBlocoEnum;
+  itens: ItemBlocoForm[];
 }
 
 export interface MedicoSnapshot {
@@ -30,19 +54,19 @@ export interface ProtocoloRef {
 }
 
 export interface ItemPrescricaoConteudo {
-  idItem: string;
+  idItem?: string;
   medicamento: string;
-  doseReferencia: string;
+  doseReferencia: number;
   unidade: UnidadeDoseEnum;
-  doseMaxima?: number;
-  doseTeorica?: number;
+  doseMaxima?: number | null;
+  doseTeorica?: number | null;
   percentualAjuste: number;
   doseFinal: number;
   via: ViaAdministracaoEnum;
   tempoMinutos: number;
   diluicaoFinal?: string;
   diasDoCiclo: number[];
-  notasEspecificas?: string;
+  notasEspecificas?: string | null;
 }
 
 export interface BlocoPrescricao {

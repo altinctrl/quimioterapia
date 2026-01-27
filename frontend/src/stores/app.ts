@@ -45,7 +45,8 @@ export const useAppStore = defineStore('app', () => {
   const {
     getPrescricoesPorPaciente,
     fetchPrescricoes,
-    adicionarPrescricao
+    adicionarPrescricao,
+    baixarPrescricao,
   } = prescricaoStore
 
   const {
@@ -99,6 +100,7 @@ export const useAppStore = defineStore('app', () => {
     importarProtocolos,
     atualizarProtocolo,
     desativarProtocolo,
-    adicionarPrescricao
+    adicionarPrescricao,
+    baixarPrescricao,
   }
 })
