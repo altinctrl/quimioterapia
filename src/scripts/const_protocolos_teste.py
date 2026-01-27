@@ -612,6 +612,10 @@ PROTOCOLOS_DATA = [
                                 "via": ViaAdministracaoEnum.IV,
                                 "tempo_minutos": 1140,
                                 "dias_do_ciclo": [1],
+                                "configuracao_diluicao": {
+                                    "opcoes_permitidas": ["N/A"],
+                                    "selecionada": "N/A"
+                                },
                                 "notas_especificas": "Instalar na bomba elastomérica para 24h"
                             }
                         }

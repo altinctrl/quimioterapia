@@ -10,14 +10,15 @@ import {Popover, PopoverContent, PopoverTrigger} from '@/components/ui/popover'
 import {AlertTriangle, Check, ChevronsUpDown, Copy, Info} from 'lucide-vue-next'
 
 const props = defineProps<{
-  protocolo: string
-  numeroCiclo: string
-  ultimaPrescricao: any
+  protocolo?: string
+  numeroCiclo?: number | string
+  ultimaPrescricao?: any
+  errors?: Record<string, string | undefined>
 }>()
 
 const emit = defineEmits<{
   (e: 'update:protocolo', value: string): void
-  (e: 'update:numeroCiclo', value: string): void
+  (e: 'update:numeroCiclo', value: number): void
   (e: 'repetir'): void
 }>()
 
@@ -25,13 +26,13 @@ const appStore = useAppStore()
 const openCombobox = ref(false)
 
 const localProtocolo = computed({
-  get: () => props.protocolo,
+  get: () => props.protocolo || '',
   set: (val) => emit('update:protocolo', val)
 })
 
 const localNumeroCiclo = computed({
-  get: () => props.numeroCiclo,
-  set: (val) => emit('update:numeroCiclo', val)
+  get: () => props.numeroCiclo?.toString() || '1',
+  set: (val) => emit('update:numeroCiclo', parseInt(val))
 })
 
 const protocoloSelecionadoObj = computed(() => {
@@ -53,9 +54,11 @@ const opcoesCiclo = computed(() => {
 <template>
   <Card class="p-6">
     <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
-      <div v-if="ultimaPrescricao && ultimaPrescricao.conteudo && ultimaPrescricao.conteudo.protocolo"
-           class="col-span-1 sm:col-span-4 bg-blue-50 border border-blue-200 rounded-md p-3 flex items-center
-           justify-between mb-2 animate-in fade-in">
+      <div
+          v-if="ultimaPrescricao?.conteudo?.protocolo"
+          class="col-span-1 sm:col-span-4 bg-blue-50 border border-blue-200 rounded-md p-3 flex items-center
+           justify-between mb-2 animate-in fade-in"
+      >
         <div class="flex items-center gap-3">
           <Info class="h-5 w-5 text-blue-600 shrink-0"/>
           <div class="text-sm">
@@ -70,7 +73,6 @@ const opcoesCiclo = computed(() => {
           </div>
         </div>
         <Button
-            v-if="ultimaPrescricao"
             class="border bg-white text-blue-700 uppercase font-bold"
             variant="secondary"
             @click="emit('repetir')"
@@ -81,15 +83,18 @@ const opcoesCiclo = computed(() => {
       </div>
 
       <div class="col-span-1 sm:col-span-3 flex flex-col gap-2">
-        <Label>Protocolo *</Label>
+        <Label :class="{'text-red-500': errors?.protocoloNome}">Protocolo *</Label>
         <Popover v-model:open="openCombobox">
           <PopoverTrigger as-child>
             <Button :aria-expanded="openCombobox" class="w-full justify-between h-14 px-3 text-left font-normal"
                     role="combobox" type="button" variant="outline">
-              <div v-if="localProtocolo" class="flex flex-col items-start text-left overflow-hidden w-full">
+              <div
+                  v-if="localProtocolo" :class="{'border-red-500': errors?.protocoloNome}"
+                  class="flex flex-col items-start text-left overflow-hidden w-full"
+              >
                 <span class="font-semibold leading-tight truncate w-full">{{ localProtocolo }}</span>
                 <span class="text-xs text-muted-foreground leading-tight truncate w-full">
-                  {{ appStore.protocolos.find(p => p.nome === localProtocolo)?.indicacao }}
+                  {{ protocoloSelecionadoObj?.indicacao || 'Sem indicação definida' }}
                 </span>
               </div>
               <span v-else class="text-muted-foreground">Selecione o protocolo...</span>
@@ -98,7 +103,7 @@ const opcoesCiclo = computed(() => {
           </PopoverTrigger>
           <PopoverContent align="start" class="w-[--reka-popover-trigger-width] p-0">
             <Command class="h-auto w-full">
-              <CommandInput placeholder="Buscar..."/>
+              <CommandInput placeholder="Buscar protocolo..."/>
               <CommandEmpty>Nenhum protocolo encontrado.</CommandEmpty>
               <CommandList>
                 <CommandGroup>
@@ -120,12 +125,13 @@ const opcoesCiclo = computed(() => {
             </Command>
           </PopoverContent>
         </Popover>
+        <span v-if="errors?.protocoloNome" class="text-xs text-red-500 font-medium">{{ errors.protocoloNome }}</span>
       </div>
 
       <div class="col-span-1 sm:col-span-1 flex flex-col gap-2">
-        <Label>Ciclo Atual</Label>
+        <Label :class="{'text-red-500': errors?.numeroCiclo}">Ciclo Atual</Label>
         <Select v-model="localNumeroCiclo" :disabled="!localProtocolo">
-          <SelectTrigger class="h-14">
+          <SelectTrigger :class="{'border-red-500': errors?.numeroCiclo}" class="h-14">
             <SelectValue placeholder="Ciclo"/>
           </SelectTrigger>
           <SelectContent class="max-h-60">
@@ -134,14 +140,16 @@ const opcoesCiclo = computed(() => {
             </SelectItem>
           </SelectContent>
         </Select>
+        <span v-if="errors?.numeroCiclo" class="text-xs text-red-500 font-medium">{{ errors.numeroCiclo }}</span>
       </div>
+    </div>
 
-      </div> <div v-if="protocoloSelecionadoObj && (protocoloSelecionadoObj.observacoes || protocoloSelecionadoObj.precaucoes)"
+    <div v-if="protocoloSelecionadoObj && (protocoloSelecionadoObj.observacoes || protocoloSelecionadoObj.precaucoes)"
          class="mt-6 space-y-4 border-t pt-4 animate-in slide-in-from-top-2">
 
       <div v-if="protocoloSelecionadoObj.observacoes" class="flex flex-col gap-1 px-3">
         <h4 class="text-sm font-bold flex items-center gap-2 text-slate-700">
-          <Info class="h-4 w-4" />
+          <Info class="h-4 w-4"/>
           Observações do Protocolo
         </h4>
         <p class="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
@@ -149,9 +157,12 @@ const opcoesCiclo = computed(() => {
         </p>
       </div>
 
-      <div v-if="protocoloSelecionadoObj.precaucoes" class="flex flex-col gap-1 p-3 bg-amber-50 border border-amber-100 rounded-md">
+      <div
+          v-if="protocoloSelecionadoObj.precaucoes"
+          class="flex flex-col gap-1 p-3 bg-amber-50 border border-amber-100 rounded-md"
+      >
         <h4 class="text-sm font-bold flex items-center gap-2 text-amber-800">
-          <AlertTriangle class="h-4 w-4" />
+          <AlertTriangle class="h-4 w-4"/>
           Precauções
         </h4>
         <p class="text-sm text-amber-700 whitespace-pre-line">

@@ -2,27 +2,68 @@
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select'
 import {AlertCircle, Info} from 'lucide-vue-next'
 import PrescricaoItemRow from './PrescricaoItemRow.vue'
-import {Card} from "@/components/ui/card";
+import {Card} from "@/components/ui/card"
+import {getCategoriaColor, getCategoriaLabel} from "@/utils/prescricaoUtils.ts";
 
-defineProps<{
+const props = defineProps<{
   blocos: any[]
   dadosPaciente: any
+  errors?: Record<string, string>
 }>()
 
-const getCategoriaLabel = (cat: string) => {
-  const map: Record<string, string> = {
-    'pre_med': 'Pré-Medicação',
-    'qt': 'Terapia',
-    'pos_med_hospitalar': 'Pós-Medicação (Hospitalar)',
-    'pos_med_domiciliar': 'Pós-Medicação (Domiciliar)',
-  }
-  return map[cat] || cat
+const emit = defineEmits(['update:blocos'])
+
+const getGrupoError = (bIndex: number, iIndex: number) => {
+  if (!props.errors) return undefined;
+  return props.errors[`blocos[${bIndex}].itens[${iIndex}].itemSelecionado`];
 }
 
-const getCategoriaColor = (cat: string) => {
-  if (cat === 'qt') return 'border-blue-200 bg-blue-50/20'
-  if (cat === 'pre_med') return 'border-gray-200 bg-gray-50/20'
-  return 'border-gray-200 bg-white'
+const getItemErrors = (bIndex: number, iIndex: number, isGroup = false) => {
+  if (!props.errors) return {};
+  const prefix = `blocos[${bIndex}].itens[${iIndex}]${isGroup ? '.itemSelecionado' : ''}.`;
+  const result: Record<string, string> = {};
+  Object.entries(props.errors).forEach(([key, message]) => {
+    if (key.startsWith(prefix)) {
+      const fieldName = key.replace(prefix, '');
+      result[fieldName] = message;
+    }
+  });
+  return result;
+}
+
+const hasBlockError = (bIndex: number) => {
+  if (!props.errors) return false;
+  if (typeof props.errors?.['blocos'] === 'string') return true;
+  return Object.keys(props.errors).some(key =>
+      key.startsWith(`blocos[${bIndex}]`) && !key.includes('.itens')
+  );
+}
+
+const atualizarBlocos = (bIndex: number, iIndex: number, novoItem: any) => {
+  const novosBlocos = JSON.parse(JSON.stringify(props.blocos))
+  novosBlocos[bIndex].itens[iIndex] = novoItem
+  emit('update:blocos', novosBlocos)
+}
+
+const onSelecionarMedicamento = (bIndex: number, iIndex: number, nomeMedicamento: string) => {
+  const novosBlocos = JSON.parse(JSON.stringify(props.blocos))
+  const itemDoLoop = novosBlocos[bIndex].itens[iIndex]
+  const opcao = itemDoLoop.opcoes.find((op: any) => op.medicamento === nomeMedicamento);
+
+  if (opcao) {
+    itemDoLoop.itemSelecionado = {
+      ...opcao,
+      percentualAjuste: 100,
+      doseTeorica: 0,
+      doseFinal: 0,
+      tipo: 'medicamento_unico',
+      pisoCreatinina: opcao.pisoCreatinina || undefined,
+      tetoGfr: opcao.tetoGfr || undefined,
+      diluicaoFinal: '',
+      configuracaoDiluicao: opcao.configuracaoDiluicao || undefined,
+    };
+    emit('update:blocos', novosBlocos)
+  }
 }
 </script>
 
@@ -37,8 +78,19 @@ const getCategoriaColor = (cat: string) => {
         </div>
       </div>
 
+      <div
+          v-if="typeof props.errors?.['blocos'] === 'string'"
+          class="bg-red-50 border border-red-500 p-4 rounded-lg flex items-center gap-3 animate-in shake"
+      >
+        <AlertCircle class="h-5 w-5 text-red-600 shrink-0"/>
+        <div class="flex flex-col">
+          <span class="text-sm text-red-800 font-bold">Erro na Estrutura dos Blocos</span>
+          <span class="text-xs text-red-700">{{ errors?.blocos }}</span>
+        </div>
+      </div>
+
       <div v-for="(bloco, bIndex) in blocos" :key="bIndex"
-           :class="getCategoriaColor(bloco.categoria)"
+           :class="[hasBlockError(bIndex) ? 'border-red-500 ring-2 ring-red-500/20' : getCategoriaColor(bloco.categoria)]"
            class="border rounded-xl overflow-hidden shadow-sm"
       >
         <div class="bg-gray-50/80 px-4 py-3 border-b flex items-center justify-between">
@@ -48,49 +100,66 @@ const getCategoriaColor = (cat: string) => {
               {{ bloco.ordem }}
             </div>
             <div>
-              <h3 class="font-bold text-gray-800 uppercase text-sm tracking-wide">{{
-                  getCategoriaLabel(bloco.categoria)
-                }}</h3>
+              <h3 class="font-bold text-gray-800 uppercase text-sm tracking-wide">
+                {{ getCategoriaLabel(bloco.categoria) }}
+              </h3>
             </div>
           </div>
         </div>
 
         <div class="p-4 space-y-4">
-          <div v-for="(item, iIndex) in bloco.itens" :key="iIndex">
-            <div v-if="item.tipo === 'grupo_alternativas'" class="bg-orange-50 border border-orange-200 rounded-lg p-4">
+          <div v-for="(item, iIndex) in bloco.itens" :key="item.idItem || iIndex">
+
+            <div
+                v-if="item.tipo === 'grupo_alternativas'"
+                :class="getGrupoError(bIndex, iIndex) ? 'border-red-500' : ''"
+                class="border rounded-lg p-4"
+            >
               <div class="flex items-center gap-2 mb-3">
-                <AlertCircle class="h-5 w-5 text-orange-600"/>
-                <span class="font-bold text-orange-800 text-sm">Seleção Obrigatória: {{ item.labelGrupo }}</span>
+                <span class="font-bold text-gray-800 text-sm">{{ item.labelGrupo }}</span>
               </div>
+
               <Select
-                  :model-value="item.selectedOptionIndex?.toString()"
-                  @update:model-value="(val) => {
-                 item.selectedOptionIndex = parseInt(val);
-                 item.itemSelecionado = JSON.parse(JSON.stringify(item.opcoes[parseInt(val)]));
-                 item.itemSelecionado.percentualAjuste = 100;
-               }"
+                  :model-value="item.itemSelecionado?.medicamento || ''"
+                  @update:model-value="(val) => onSelecionarMedicamento(bIndex, iIndex, val as string)"
               >
-                <SelectTrigger class="bg-white border-orange-300">
+                <SelectTrigger
+                    :class="getGrupoError(bIndex, iIndex) ? 'border-red-500 text-red-700' : ''">
                   <SelectValue placeholder="Selecione a medicação..."/>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem v-for="(opt, optIdx) in item.opcoes" :key="optIdx" :value="optIdx.toString()">
+                  <SelectItem v-for="(opt, optIdx) in item.opcoes" :key="optIdx" :value="opt.medicamento">
                     {{ opt.medicamento }} ({{ opt.doseReferencia }} {{ opt.unidade }})
                   </SelectItem>
                 </SelectContent>
               </Select>
+
+              <span v-if="getGrupoError(bIndex, iIndex)" class="text-xs text-red-600 font-bold mt-1 block">
+                {{ getGrupoError(bIndex, iIndex) }}
+              </span>
+
               <div v-if="item.itemSelecionado"
-                   class="mt-4 pl-4 border-l-2 border-orange-300 animate-in fade-in slide-in-from-top-2">
+                   class="mt-4 pl-4 border-l-2  animate-in fade-in slide-in-from-top-2">
                 <PrescricaoItemRow
+                    :key="item.itemSelecionado.medicamento"
                     :dados-paciente="dadosPaciente"
+                    :errors="getItemErrors(bIndex, iIndex, true)"
                     :item="item.itemSelecionado"
+                    @update:item="(novoItemSelecionado) => {
+                        const novoGrupo = { ...item, itemSelecionado: novoItemSelecionado };
+                        atualizarBlocos(bIndex, iIndex, novoGrupo);
+                    }"
                 />
               </div>
             </div>
+
             <div v-else>
               <PrescricaoItemRow
+                  :key="item.idItem || iIndex"
                   :dados-paciente="dadosPaciente"
-                  :item="item.dados"
+                  :errors="getItemErrors(bIndex, iIndex, false)"
+                  :item="item"
+                  @update:item="(novoItem) => atualizarBlocos(bIndex, iIndex, novoItem)"
               />
             </div>
           </div>

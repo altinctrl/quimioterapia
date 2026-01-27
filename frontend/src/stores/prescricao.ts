@@ -40,10 +40,27 @@ export const usePrescricaoStore = defineStore('prescricao', () => {
     }
   }
 
+  async function baixarPrescricao(id: string) {
+    toast.info('Gerando PDF...');
+    try {
+      const {data} = await api.get(`/api/prescricoes/${id}/pdf`, {responseType: 'blob'});
+      const url = window.URL.createObjectURL(data);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `prescricao_${id}.pdf`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      toast.error("Erro ao gerar PDF.");
+      console.error(e);
+    }
+  }
+
   return {
     prescricoes,
     getPrescricoesPorPaciente,
     fetchPrescricoes,
-    adicionarPrescricao
+    adicionarPrescricao,
+    baixarPrescricao,
   }
 })

@@ -37,6 +37,8 @@ export interface ConfiguracaoDiluicao {
 }
 
 export interface DetalhesMedicamento {
+  tetoGfr: number;
+  pisoCreatinina: number;
   medicamento: string;
   doseReferencia: number;
   unidade: UnidadeDoseEnum;
