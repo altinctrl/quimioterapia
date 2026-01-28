@@ -1,11 +1,11 @@
 <script lang="ts" setup>
 import {computed} from 'vue'
-import {useAppStore} from '@/stores/app'
+import {useAppStore} from '@/stores/storeGeral.ts'
 import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card'
 import {Input} from '@/components/ui/input'
 import {Label} from '@/components/ui/label'
 import {Calendar as CalendarIcon, ChevronDown} from 'lucide-vue-next'
-import {Agendamento, GrupoInfusao, TipoAgendamento} from "@/types/agendamentoTypes.ts";
+import {Agendamento, GrupoInfusao, TipoAgendamento} from "@/types/typesAgendamento.ts";
 
 const props = defineProps<{
   mes: string

@@ -1,9 +1,9 @@
 <script lang="ts" setup>
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select'
 import {AlertCircle, Info} from 'lucide-vue-next'
-import PrescricaoItemRow from './PrescricaoItemRow.vue'
+import PrescricaoItem from './PrescricaoItem.vue'
 import {Card} from "@/components/ui/card"
-import {getCategoriaColor, getCategoriaLabel} from "@/utils/prescricaoUtils.ts";
+import {getCategoriaColor, getCategoriaLabel} from "@/utils/utilsPrescricao.ts";
 
 const props = defineProps<{
   blocos: any[]
@@ -140,7 +140,7 @@ const onSelecionarMedicamento = (bIndex: number, iIndex: number, nomeMedicamento
 
               <div v-if="item.itemSelecionado"
                    class="mt-4 pl-4 border-l-2  animate-in fade-in slide-in-from-top-2">
-                <PrescricaoItemRow
+                <PrescricaoItem
                     :key="item.itemSelecionado.medicamento"
                     :dados-paciente="dadosPaciente"
                     :errors="getItemErrors(bIndex, iIndex, true)"
@@ -154,7 +154,7 @@ const onSelecionarMedicamento = (bIndex: number, iIndex: number, nomeMedicamento
             </div>
 
             <div v-else>
-              <PrescricaoItemRow
+              <PrescricaoItem
                   :key="item.idItem || iIndex"
                   :dados-paciente="dadosPaciente"
                   :errors="getItemErrors(bIndex, iIndex, false)"

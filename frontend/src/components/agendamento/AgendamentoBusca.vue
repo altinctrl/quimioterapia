@@ -3,7 +3,7 @@ import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card'
 import {Input} from '@/components/ui/input'
 import {Label} from '@/components/ui/label'
 import {Search} from 'lucide-vue-next'
-import {Paciente} from "@/types/pacienteTypes.ts";
+import {Paciente} from "@/types/typesPaciente.ts";
 
 const props = defineProps<{
   busca: string

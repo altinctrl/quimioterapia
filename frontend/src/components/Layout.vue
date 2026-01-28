@@ -1,11 +1,11 @@
 <script lang="ts" setup>
 import {computed, onMounted, ref, watch} from 'vue'
 import {useRouter} from 'vue-router'
-import {useAuthStore} from '@/stores/auth'
+import {useAuthStore} from '@/stores/storeAuth.ts'
 import {useMediaQuery} from '@vueuse/core'
 import {Calendar, FileText, LogOut, Menu, Pill, Settings, Stethoscope, Users, X} from 'lucide-vue-next'
 import {Button} from '@/components/ui/button'
-import {useConfiguracaoStore} from "@/stores/configuracao.ts";
+import {useConfiguracaoStore} from "@/stores/storeAjustes.ts";
 
 const router = useRouter()
 const authStore = useAuthStore()

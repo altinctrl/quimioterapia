@@ -6,11 +6,11 @@ import {Label} from '@/components/ui/label'
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select'
 import {Badge} from '@/components/ui/badge'
 import {ArrowDown, ArrowUp, Copy, Plus, Trash2} from 'lucide-vue-next'
-import {categoriasBloco} from '@/utils/protocoloConstants.ts'
-import {DetalhesMedicamento, UnidadeDoseEnum, ViaAdministracaoEnum} from "@/types/protocoloTypes.ts";
+import {categoriasBloco} from '@/constants/constProtocolos.ts'
+import {DetalhesMedicamento, UnidadeDoseEnum, ViaAdministracaoEnum} from "@/types/typesProtocolo.ts";
 import {cn} from "@/lib/utils.ts";
 import {Checkbox} from "@/components/ui/checkbox";
-import ProtocolosMedicamentoEdit from "@/components/protocolos/ProtocolosMedicamentoEdit.vue";
+import ProtocolosMedicamentoEditavel from "@/components/protocolos/ProtocolosMedicamentoEditavel.vue";
 
 const props = defineProps<{
   bloco: any,
@@ -192,7 +192,7 @@ const mergeSelected = () => {
         </div>
 
         <div v-if="item.tipo === 'medicamento_unico'">
-          <ProtocolosMedicamentoEdit v-model="item.dados"/>
+          <ProtocolosMedicamentoEditavel v-model="item.dados"/>
         </div>
 
         <div v-else class="space-y-3">
@@ -211,7 +211,7 @@ const mergeSelected = () => {
                   <Trash2 class="h-3 w-3"/>
                 </Button>
               </div>
-              <ProtocolosMedicamentoEdit v-model="item.opcoes[opIdx]"/>
+              <ProtocolosMedicamentoEditavel v-model="item.opcoes[opIdx]"/>
             </div>
 
             <Button class="w-full h-8 text-sm border-dashed" size="sm" variant="outline"
