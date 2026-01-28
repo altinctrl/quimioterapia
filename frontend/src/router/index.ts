@@ -1,34 +1,34 @@
 import {createRouter, createWebHistory} from 'vue-router'
-import {useAuthStore} from '@/stores/auth'
-import LoginView from '@/views/LoginView.vue'
+import {useAuthStore} from '@/stores/storeAuth.ts'
+import ViewLogin from '@/views/ViewLogin.vue'
 import Layout from '@/components/Layout.vue'
-import PacientesView from '@/views/PacientesView.vue'
-import ProntuarioView from "@/views/ProntuarioView.vue";
-import AgendaView from '@/views/AgendaView.vue'
-import AgendamentoView from '@/views/AgendamentoView.vue'
-import FarmaciaView from '@/views/FarmaciaView.vue'
-import RelatoriosView from '@/views/RelatoriosView.vue'
-import ProtocolosView from '@/views/ProtocolosView.vue'
-import AjustesView from '@/views/AjustesView.vue'
-import PrescricaoView from '@/views/PrescricaoView.vue'
-import EquipeView from '@/views/EquipeView.vue';
+import ViewPacientes from '@/views/ViewPacientes.vue'
+import ViewProntuario from "@/views/ViewProntuario.vue";
+import ViewAgenda from '@/views/ViewAgenda.vue'
+import ViewAgendamento from '@/views/ViewAgendamento.vue'
+import ViewFarmacia from '@/views/ViewFarmacia.vue'
+import ViewRelatorios from '@/views/ViewRelatorios.vue'
+import ViewProtocolos from '@/views/ViewProtocolos.vue'
+import ViewAjustes from '@/views/ViewAjustes.vue'
+import ViewPrescricao from '@/views/ViewPrescricao.vue'
+import ViewEquipe from '@/views/ViewEquipe.vue';
 
 const router = createRouter({
   history: createWebHistory(), routes: [
-    {path: '/login', name: 'Login', component: LoginView},
+    {path: '/login', name: 'Login', component: ViewLogin},
     {path: '/', component: Layout, meta: {requiresAuth: true},
       children: [{path: '', redirect: '/agenda'},
-        {path: 'pacientes', name: 'Pacientes', component: PacientesView },
-        {path: 'pacientes/:id', name: 'Prontuario', component: ProntuarioView},
-        {path: 'agenda', name: 'Agenda', component: AgendaView},
-        {path: 'agendamento', name: 'Agendamento', component: AgendamentoView},
-        {path: 'farmacia', name: 'Farmacia', component: FarmaciaView},
-        {path: 'relatorios', name: 'Relatorios', component: RelatoriosView},
-        {path: 'protocolos/novo', name: 'NovoProtocolo', component: ProtocolosView},
-        {path: 'protocolos/:id', name: 'EditarProtocolo', component: ProtocolosView},
-        {path: 'ajustes', name: 'Ajustes', component: AjustesView},
-        {path: 'prescricao', name: 'Prescricao', component: PrescricaoView},
-        {path: 'equipe', name: 'Equipe', component: EquipeView}
+        {path: 'pacientes', name: 'Pacientes', component: ViewPacientes },
+        {path: 'pacientes/:id', name: 'Prontuario', component: ViewProntuario},
+        {path: 'agenda', name: 'Agenda', component: ViewAgenda},
+        {path: 'agendamento', name: 'Agendamento', component: ViewAgendamento},
+        {path: 'farmacia', name: 'Farmacia', component: ViewFarmacia},
+        {path: 'relatorios', name: 'Relatorios', component: ViewRelatorios},
+        {path: 'protocolos/novo', name: 'NovoProtocolo', component: ViewProtocolos},
+        {path: 'protocolos/:id', name: 'EditarProtocolo', component: ViewProtocolos},
+        {path: 'ajustes', name: 'Ajustes', component: ViewAjustes},
+        {path: 'prescricao', name: 'Prescricao', component: ViewPrescricao},
+        {path: 'equipe', name: 'Equipe', component: ViewEquipe}
       ]
     }]
 })

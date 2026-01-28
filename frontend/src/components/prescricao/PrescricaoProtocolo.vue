@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import {computed, ref} from 'vue'
-import {useAppStore} from '@/stores/app'
+import {useAppStore} from '@/stores/storeGeral.ts'
 import {Card} from '@/components/ui/card'
 import {Button} from '@/components/ui/button'
 import {Label} from '@/components/ui/label'

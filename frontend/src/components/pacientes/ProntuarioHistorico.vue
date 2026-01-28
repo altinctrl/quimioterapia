@@ -2,9 +2,9 @@
 import {Card} from '@/components/ui/card'
 import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs'
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '@/components/ui/table'
-import {useAppStore} from '@/stores/app'
-import {Agendamento} from "@/types/agendamentoTypes.ts";
-import {PrescricaoMedica} from "@/types/prescricaoTypes.ts";
+import {useAppStore} from '@/stores/storeGeral.ts'
+import {Agendamento} from "@/types/typesAgendamento.ts";
+import {PrescricaoMedica} from "@/types/typesPrescricao.ts";
 
 defineProps<{
   agendamentos: Agendamento[]

@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import {computed, ref, watch} from 'vue'
 import {useRoute} from 'vue-router'
-import {useAppStore} from '@/stores/app'
+import {useAppStore} from '@/stores/storeGeral.ts'
 import {Card} from '@/components/ui/card'
 import {Input} from '@/components/ui/input'
 import {Label} from '@/components/ui/label'

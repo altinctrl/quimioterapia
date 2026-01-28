@@ -61,7 +61,7 @@ O frontend é uma SPA reativa construída com Vue 3, Pinia para gerenciamento de
 
 ### Estrutura de Diretórios
 
--   `src/views/`: As páginas da aplicação (ex: `AgendaView.vue`, `LoginView.vue`).
+-   `src/views/`: As páginas da aplicação (ex: `ViewAgenda.vue`, `ViewLogin.vue`).
 -   `src/components/`: Componentes reutilizáveis (botões, cards, modais, tabelas).
 -   `src/stores/`: Gerenciamento de estado global (Pinia).
 -   `src/services/`: Comunicação com a API (Axios).
@@ -70,8 +70,8 @@ O frontend é uma SPA reativa construída com Vue 3, Pinia para gerenciamento de
 
 Pinia é utilizado para compartilhar dados entre componentes e evitar "prop drilling".
 
--   **`auth.ts`:** Armazena o usuário logado, permissões e controla o token JWT.
--   **`agendamento.ts`, `paciente.ts`, etc.:** Stores específicas de domínio que armazenam as listas de dados buscados da API.
+-   **`storeAuth.ts`:** Armazena o usuário logado, permissões e controla o token JWT.
+-   **`storeAgendamento.ts`, `storePaciente.ts`, etc.:** Stores específicas de domínio que armazenam as listas de dados buscados da API.
 
 ### Camada de Serviço e Axios
 
