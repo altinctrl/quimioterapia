@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {computed, ref, watch} from 'vue'
+import {ref, toRef, watch} from 'vue'
 import {Button} from '@/components/ui/button'
 import {Input} from '@/components/ui/input'
 import {Label} from '@/components/ui/label'
@@ -10,140 +10,36 @@ import {Card, CardContent} from '@/components/ui/card'
 import {ClipboardList, Copy, Info, Layers, Plus, Trash2} from 'lucide-vue-next'
 import {diasSemanaOptions} from '@/constants/constProtocolos.ts'
 import ProtocolosBlocoMedicamentos from './ProtocolosBlocoMedicamentos.vue'
-import {CategoriaBlocoEnum, FaseEnum} from "@/types/typesProtocolo.ts";
+import {FaseEnum, type Protocolo} from "@/types/typesProtocolo.ts";
+
+import {useProtocoloModelos} from '@/composables/useProtocoloModelos.ts'
+import {useProtocoloBlocos} from '@/composables/useProtocoloBlocos.ts'
 
 const props = defineProps<{
-  modelValue: any
+  modelValue: Partial<Protocolo>
 }>()
 
-const activeTemplateIndex = ref(0)
+const protocoloRef = toRef(props, 'modelValue')
 const tabsContainerRef = ref<HTMLElement | null>(null)
 
-watch(() => props.modelValue.templatesCiclo.length, (newLen) => {
-  if (activeTemplateIndex.value >= newLen) {
-    activeTemplateIndex.value = Math.max(0, newLen - 1)
-  }
-})
+const {
+  activeTemplateIndex,
+  currentTemplate,
+  addTemplate,
+  duplicateTemplate,
+  removeTemplate,
+  handleNameBlur
+} = useProtocoloModelos(protocoloRef)
 
-watch(() => props.modelValue, (newVal) => {
-  if (newVal && (!newVal.diasSemanaPermitidos || newVal.diasSemanaPermitidos.length === 0)) {
-    newVal.diasSemanaPermitidos = [1, 2, 3, 4, 5]
-  }
-}, { immediate: true })
+const {
+  addBlocoToTemplate,
+  removeBlocoFromTemplate,
+  moveBlocoInTemplate
+} = useProtocoloBlocos()
 
-const currentTemplate = computed(() => {
-  if (!props.modelValue.templatesCiclo || props.modelValue.templatesCiclo.length === 0) {
-    props.modelValue.templatesCiclo = [{
-      idTemplate: 'Padrão',
-      aplicavelAosCiclos: '',
-      blocos: []
-    }]
-  }
-  return props.modelValue.templatesCiclo[activeTemplateIndex.value]
-})
-
-const getUniqueName = (baseName: string, isCopy = false, excludeIndex = -1) => {
-  const existingNames = props.modelValue.templatesCiclo
-      .filter((_: any, idx: number) => idx !== excludeIndex)
-      .map((t: any) => t.idTemplate)
-
-  let candidate = baseName
-  if (isCopy && existingNames.includes(candidate)) {
-    candidate = `${baseName} (Cópia)`
-  }
-
-  let counter = 1
-  const baseForCounter = isCopy ? `${baseName} (Cópia` : baseName.replace(/\s\d+$/, '')
-
-  while (existingNames.includes(candidate)) {
-    if (isCopy) {
-      counter++
-      candidate = `${baseName} (Cópia ${counter})`
-    } else {
-      candidate = `${baseForCounter} ${counter}`
-      counter++
-    }
-  }
-  return candidate
-}
-
-const handleNameBlur = () => {
-  if (!currentTemplate.value) return
-  const currentName = currentTemplate.value.idTemplate || 'Sem Nome'
-  const uniqueName = getUniqueName(currentName, false, activeTemplateIndex.value)
-  if (uniqueName !== currentName) {
-    currentTemplate.value.idTemplate = uniqueName
-  }
-}
-
-const addTemplate = () => {
-  const newName = getUniqueName('Variante', false)
-
-  props.modelValue.templatesCiclo.push({
-    idTemplate: newName,
-    aplicavelAosCiclos: '',
-    blocos: []
-  })
-
-  activeTemplateIndex.value = props.modelValue.templatesCiclo.length - 1
-}
-
-const duplicateTemplate = () => {
-  const original = currentTemplate.value
-  const newName = getUniqueName(original.idTemplate, true)
-
-  const clone = JSON.parse(JSON.stringify(original))
-  clone.idTemplate = newName
-
-  props.modelValue.templatesCiclo.push(clone)
-
-  activeTemplateIndex.value = props.modelValue.templatesCiclo.length - 1
-}
-
-const removeTemplate = () => {
-  if (props.modelValue.templatesCiclo.length <= 1) return
-  props.modelValue.templatesCiclo.splice(activeTemplateIndex.value, 1)
-}
-
-const handleFaseChange = (value: string) => {
-  if (value === 'none') {
-    props.modelValue.fase = null
-  } else {
-    props.modelValue.fase = value
-  }
-}
-
-const createEmptyBloco = (ordem: number) => ({
-  ordem,
-  categoria: CategoriaBlocoEnum.QT,
-  itens: []
-})
-
-const addBloco = () => {
-  const template = currentTemplate.value
-  const novaOrdem = (template.blocos.length || 0) + 1
-  template.blocos.push(createEmptyBloco(novaOrdem))
-}
-
-const removeBloco = (index: number) => {
-  currentTemplate.value.blocos.splice(index, 1)
-  reorderBlocos()
-}
-
-const moveBloco = (index: number, direction: 'up' | 'down') => {
-  const blocos = currentTemplate.value.blocos
-  if (direction === 'up' && index > 0) {
-    [blocos[index], blocos[index - 1]] = [blocos[index - 1], blocos[index]]
-  } else if (direction === 'down' && index < blocos.length - 1) {
-    [blocos[index], blocos[index + 1]] = [blocos[index + 1], blocos[index]]
-  }
-  reorderBlocos()
-}
-
-const reorderBlocos = () => {
-  currentTemplate.value.blocos.forEach((b: any, idx: number) => {
-    b.ordem = idx + 1
-  })
+const handleFaseChange = (value: unknown) => {
+  const valString = String(value)
+  props.modelValue.fase = valString === 'none' ? undefined : valString as FaseEnum
 }
 
 const toggleDia = (dia: number, isChecked: boolean) => {
@@ -155,6 +51,12 @@ const toggleDia = (dia: number, isChecked: boolean) => {
   }
   props.modelValue.diasSemanaPermitidos = current.sort((a: number, b: number) => a - b)
 }
+
+watch(() => props.modelValue, (newVal) => {
+  if (newVal && (!newVal.diasSemanaPermitidos || newVal.diasSemanaPermitidos.length === 0)) {
+    newVal.diasSemanaPermitidos = [1, 2, 3, 4, 5]
+  }
+}, {immediate: true})
 </script>
 
 <template>
@@ -258,7 +160,7 @@ const toggleDia = (dia: number, isChecked: boolean) => {
             style="scrollbar-width: thin; -ms-overflow-style: -ms-autohiding-scrollbar;"
         >
           <Button
-              v-for="(template, idx) in modelValue.templatesCiclo"
+              v-for="(template, idx) in modelValue.templatesCiclo || []"
               :key="idx"
               :variant="activeTemplateIndex === idx ? 'default' : 'outline'"
               class="h-8 text-sm whitespace-nowrap flex-shrink-0"
@@ -282,7 +184,7 @@ const toggleDia = (dia: number, isChecked: boolean) => {
       </Card>
 
       <Card class="p-6">
-        <div class=" bg-white space-y-4 relative">
+        <div v-if="currentTemplate" class="bg-white space-y-4 relative">
           <div class="flex justify-between items-start gap-4 pb-4 border-b">
             <div class="grid grid-cols-12 gap-4 flex-1">
               <div class="col-span-12 md:col-span-8">
@@ -306,7 +208,7 @@ const toggleDia = (dia: number, isChecked: boolean) => {
                   <Copy class="h-4 w-4 text-blue-600"/>
                 </Button>
                 <Button
-                    :disabled="modelValue.templatesCiclo.length <= 1"
+                    :disabled="(modelValue.templatesCiclo?.length || 0) <= 1"
                     class="hover:bg-red-50 hover:text-red-600 border-red-100"
                     size="icon"
                     title="Remover Template"
@@ -340,18 +242,21 @@ const toggleDia = (dia: number, isChecked: boolean) => {
                 :index="bIndex"
                 :isFirst="bIndex === 0"
                 :isLast="bIndex === currentTemplate.blocos.length - 1"
-                @remove="removeBloco(bIndex)"
-                @move-up="moveBloco(bIndex, 'up')"
-                @move-down="moveBloco(bIndex, 'down')"
+                @remove="removeBlocoFromTemplate(currentTemplate!, bIndex)"
+                @move-up="moveBlocoInTemplate(currentTemplate!, bIndex, 'up')"
+                @move-down="moveBlocoInTemplate(currentTemplate!, bIndex, 'down')"
             />
           </div>
 
           <div class="flex justify-center pt-2">
-            <Button class="w-full border-dashed py-6" variant="outline" @click="addBloco">
+            <Button class="w-full border-dashed py-6" variant="outline" @click="addBlocoToTemplate(currentTemplate!)">
               <Plus class="h-5 w-5 mr-2"/>
               Adicionar Novo Bloco ao Template "{{ currentTemplate.idTemplate }}"
             </Button>
           </div>
+        </div>
+        <div v-else class="text-center py-8 text-muted-foreground">
+          Nenhum template selecionado.
         </div>
       </Card>
     </div>

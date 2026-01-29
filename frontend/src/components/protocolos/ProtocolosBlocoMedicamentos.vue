@@ -1,5 +1,4 @@
 <script lang="ts" setup>
-import {ref} from 'vue'
 import {Button} from '@/components/ui/button'
 import {Input} from '@/components/ui/input'
 import {Label} from '@/components/ui/label'
@@ -7,13 +6,14 @@ import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/c
 import {Badge} from '@/components/ui/badge'
 import {ArrowDown, ArrowUp, Copy, Plus, Trash2} from 'lucide-vue-next'
 import {categoriasBloco} from '@/constants/constProtocolos.ts'
-import {DetalhesMedicamento, UnidadeDoseEnum, ViaAdministracaoEnum} from "@/types/typesProtocolo.ts";
-import {cn} from "@/lib/utils.ts";
-import {Checkbox} from "@/components/ui/checkbox";
-import ProtocolosMedicamentoEditavel from "@/components/protocolos/ProtocolosMedicamentoEditavel.vue";
+import {cn} from "@/lib/utils.ts"
+import {Checkbox} from "@/components/ui/checkbox"
+import ProtocolosMedicamentoEditavel from "@/components/protocolos/ProtocolosMedicamentoEditavel.vue"
+import type {Bloco} from "@/types/typesProtocolo.ts"
+import {useProtocoloBlocos} from '@/composables/useProtocoloBlocos.ts'
 
-const props = defineProps<{
-  bloco: any,
+defineProps<{
+  bloco: Bloco,
   index: number,
   isFirst: boolean,
   isLast: boolean
@@ -21,88 +21,16 @@ const props = defineProps<{
 
 const emit = defineEmits(['remove', 'move-up', 'move-down'])
 
-const selectedIndexes = ref<number[]>([])
-
-const createEmptyMedicamento = (): DetalhesMedicamento => ({
-  medicamento: '',
-  doseReferencia: 0,
-  doseMaxima: undefined,
-  unidade: UnidadeDoseEnum.MG_M2,
-  via: ViaAdministracaoEnum.IV,
-  tempoMinutos: 0,
-  diasDoCiclo: [1],
-  notasEspecificas: '',
-  configuracaoDiluicao: {opcoesPermitidas: [], selecionada: ''}
-})
-
-const createEmptyItem = () => ({
-  tipo: 'medicamento_unico',
-  dados: createEmptyMedicamento(),
-  labelGrupo: '',
-  opcoes: []
-})
-
-const addItem = () => props.bloco.itens.push(createEmptyItem())
-const removeItem = (idx: number) => props.bloco.itens.splice(idx, 1)
-const addOptionToGroup = (item: any) => item.opcoes.push(createEmptyMedicamento())
-const removeOptionFromGroup = (item: any, idx: number) => item.opcoes.splice(idx, 1)
-const toggleSelection = (idx: number, checked: boolean) => {
-  if (checked) selectedIndexes.value.push(idx)
-  else selectedIndexes.value = selectedIndexes.value.filter(i => i !== idx)
-}
-
-const toggleItemType = (item: any, index: number) => {
-  const novosItensNoBloco = [...props.bloco.itens];
-  if (item.tipo === 'medicamento_unico') {
-    const novoGrupo = {
-      tipo: 'grupo_alternativas',
-      labelGrupo: item.dados.medicamento || 'Nova Escolha',
-      opcoes: [JSON.parse(JSON.stringify(item.dados))]
-    };
-    novosItensNoBloco.splice(index, 1, novoGrupo);
-  } else {
-    const opcoes = item.opcoes || [];
-    if (opcoes.length === 0) opcoes.push(createEmptyMedicamento())
-    const itensSeparados = opcoes.map((op: any) => ({
-      tipo: 'medicamento_unico',
-      dados: JSON.parse(JSON.stringify(op))
-    }));
-    novosItensNoBloco.splice(index, 1, ...itensSeparados);
-  }
-  props.bloco.itens = novosItensNoBloco;
-  selectedIndexes.value = [];
-};
-
-const mergeSelected = () => {
-  if (selectedIndexes.value.length < 2) return;
-  const targetIndex = Math.min(...selectedIndexes.value);
-  const indexesAsc = [...selectedIndexes.value].sort((a, b) => a - b);
-  const novasOpcoes: any[] = [];
-
-  indexesAsc.forEach(idx => {
-    const item = props.bloco.itens[idx];
-    if (item.tipo === 'medicamento_unico') {
-      novasOpcoes.push(JSON.parse(JSON.stringify(item.dados)));
-    } else {
-      novasOpcoes.push(...JSON.parse(JSON.stringify(item.opcoes)));
-    }
-  });
-
-  const copiaItens = [...props.bloco.itens];
-  const indexesDesc = [...selectedIndexes.value].sort((a, b) => b - a);
-  indexesDesc.forEach(idx => {
-    copiaItens.splice(idx, 1);
-  });
-
-  const novoGrupo = {
-    tipo: 'grupo_alternativas',
-    labelGrupo: 'Grupo Mesclado',
-    opcoes: novasOpcoes
-  };
-  copiaItens.splice(targetIndex, 0, novoGrupo);
-  props.bloco.itens = copiaItens;
-  selectedIndexes.value = [];
-};
+const {
+  selectedIndexes,
+  addItemToBloco,
+  removeItemFromBloco,
+  addOptionToGroup,
+  removeOptionFromGroup,
+  toggleItemType,
+  toggleSelection,
+  mergeSelected
+} = useProtocoloBlocos()
 </script>
 
 <template>
@@ -175,7 +103,7 @@ const mergeSelected = () => {
                 class="h-6 text-xs text-blue-600 px-2"
                 size="sm"
                 variant="ghost"
-                @click="toggleItemType(item, iIndex)"
+                @click="toggleItemType(bloco, item, iIndex)"
             >
               <Copy class="h-3 w-3 mr-1"/>
               {{ item.tipo === 'medicamento_unico' ? 'Converter em Grupo de Opções' : 'Separar em Itens Únicos' }}
@@ -185,7 +113,7 @@ const mergeSelected = () => {
               class="h-6 w-6 text-gray-400 hover:text-red-500"
               size="icon"
               variant="ghost"
-              @click="removeItem(iIndex)"
+              @click="removeItemFromBloco(bloco, iIndex)"
           >
             <Trash2 class="h-3 w-3"/>
           </Button>
@@ -223,7 +151,7 @@ const mergeSelected = () => {
         </div>
       </div>
 
-      <Button class="text-sm w-full mt-2" size="sm" variant="secondary" @click="addItem">
+      <Button class="text-sm w-full mt-2" size="sm" variant="secondary" @click="addItemToBloco">
         <Plus class="h-4 w-4 mr-2"/>
         Adicionar Medicamento ao Bloco
       </Button>

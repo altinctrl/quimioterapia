@@ -37,8 +37,8 @@ export interface ConfiguracaoDiluicao {
 }
 
 export interface DetalhesMedicamento {
-  tetoGfr: number;
-  pisoCreatinina: number;
+  tetoGfr: number | undefined;
+  pisoCreatinina: number | undefined;
   medicamento: string;
   doseReferencia: number;
   unidade: UnidadeDoseEnum;
@@ -90,4 +90,11 @@ export interface Protocolo {
   diasSemanaPermitidos?: number[];
   templatesCiclo: TemplateCiclo[];
   createdAt?: string;
+}
+
+export interface ProtocoloFiltros {
+  sortOrder: 'nome' | 'duracao';
+  status: 'todos' | 'ativos' | 'inativos';
+  restricao: 'todos' | 'com' | 'sem';
+  grupoInfusao: string[];
 }

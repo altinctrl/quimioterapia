@@ -6,6 +6,7 @@ import ProtocolosSeletorDiluente from './ProtocolosSeletorDiluente.vue'
 import {DetalhesMedicamento, UnidadeDoseEnum, ViaAdministracaoEnum} from "@/types/typesProtocolo.ts";
 import {Textarea} from "@/components/ui/textarea";
 import {getUnidadeFinal} from "@/utils/utilsPrescricao.ts";
+import {formatDiasCicloToString, parseDiasCicloFromString} from "@/utils/utilsComuns.ts";
 
 const props = defineProps<{
   modelValue: DetalhesMedicamento
@@ -22,13 +23,9 @@ const updateField = (field: keyof DetalhesMedicamento, value: any) => {
   })
 }
 
-const updateDias = (val: string | number) => {
-  const strVal = String(val)
-  const dias = strVal.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n))
-  updateField('diasDoCiclo', dias)
+const handleDiasUpdate = (val: string | number) => {
+  updateField('diasDoCiclo', parseDiasCicloFromString(val))
 }
-
-const formattedDias = (arr: number[]) => arr?.join(', ') || ''
 </script>
 
 <template>
@@ -45,10 +42,10 @@ const formattedDias = (arr: number[]) => arr?.join(', ') || ''
       <div class="col-span-4">
         <Label class="text-sm">Dias do Ciclo</Label>
         <Input
-            :model-value="formattedDias(modelValue.diasDoCiclo)"
+            :model-value="formatDiasCicloToString(modelValue.diasDoCiclo)"
             class="h-8"
             placeholder="Ex: 1, 8, 15"
-            @update:model-value="updateDias"
+            @update:model-value="handleDiasUpdate"
         />
       </div>
     </div>

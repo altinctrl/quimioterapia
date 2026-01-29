@@ -6,8 +6,9 @@ import {ScrollArea} from '@/components/ui/scroll-area'
 import {Separator} from '@/components/ui/separator'
 import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from '@/components/ui/dialog'
 import {AlertTriangle, CalendarDays, ChevronLeft, ChevronRight, Info, Layers} from 'lucide-vue-next'
-import {diasSemanaOptions} from '@/constants/constProtocolos.ts'
 import ProtocolosMedicamentoLeitura from "@/components/ajustes/ProtocolosMedicamentoLeitura.vue";
+import {categoriasBloco} from "@/constants/constProtocolos.ts";
+import {formatDiasSemana} from "@/utils/utilsComuns.ts";
 
 const props = defineProps<{
   open: boolean
@@ -40,23 +41,9 @@ const scrollTabs = (direction: 'left' | 'right') => {
   })
 }
 
-const formatarDiasSemana = (dias: number[]) => {
-  if (!dias || !dias.length) return ''
-  const nomes = dias.map(dia => diasSemanaOptions.find(o => o.value === dia)?.label || '')
-  if (nomes.length === 1) return nomes[0]
-  const ultimoNome = nomes.pop()
-  return `${nomes.join(', ')} e ${ultimoNome}`
-}
-
-const getCategoriaLabel = (cat: string) => {
-  const map: Record<string, string> = {
-    'pre_med': 'Pré-Medicação',
-    'qt': 'Terapia',
-    'pos_med_hospitalar': 'Pós-Med (Hosp)',
-    'pos_med_domiciliar': 'Pós-Med (Casa)',
-  }
-  return map[cat] || cat
-}
+const categoriaLabelMap = Object.fromEntries(
+    categoriasBloco.map(c => [c.value, c.label])
+);
 
 watch(() => props.protocolo, () => {
   activeTemplateIndex.value = 0
@@ -101,7 +88,7 @@ watch(() => props.protocolo, () => {
               </h4>
               <div class="flex flex-wrap gap-1">
                 <div class="text-xs">
-                  {{ formatarDiasSemana(protocolo.diasSemanaPermitidos) }}
+                  {{ formatDiasSemana(protocolo.diasSemanaPermitidos) }}
                 </div>
               </div>
             </div>
@@ -211,7 +198,7 @@ watch(() => props.protocolo, () => {
                       {{ bloco.ordem }}
                     </div>
                     <Badge class="uppercase text-sm tracking-wider" variant="secondary">
-                      {{ getCategoriaLabel(bloco.categoria) }}
+                      {{ categoriaLabelMap[bloco.categoria] || bloco.categoria }}
                     </Badge>
                   </div>
 

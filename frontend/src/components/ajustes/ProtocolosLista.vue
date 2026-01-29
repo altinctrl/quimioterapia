@@ -1,85 +1,34 @@
 <script lang="ts" setup>
-import {computed, ref} from 'vue'
+import {toRefs} from 'vue'
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card'
 import {Button} from '@/components/ui/button'
 import {Badge} from '@/components/ui/badge'
 import {Clock, Edit, Hash, Layers, Repeat, XCircle} from 'lucide-vue-next'
-import {diasSemanaOptions} from "@/constants/constProtocolos.ts";
-import ProtocolosListaControles, {type ProtocoloFiltros} from "@/components/ajustes/ProtocolosListaControles.vue";
+import ProtocolosListaControles from "@/components/ajustes/ProtocolosListaControles.vue"
+import {useProtocoloLista} from "@/composables/useProtocoloLista.ts"
+import type {Protocolo} from "@/types/typesProtocolo.ts"
 
 const props = defineProps<{
   diasFuncionamento: number[],
-  protocolos: any[]
+  protocolos: Protocolo[]
 }>()
 
 const emit = defineEmits<{
   (e: 'criar'): void
   (e: 'importar', lista: any[], ignored: number): void
-  (e: 'edit', protocolo: any): void
-  (e: 'details', protocolo: any): void
-  (e: 'toggleStatus', protocolo: any): void
+  (e: 'edit', protocolo: Protocolo): void
+  (e: 'details', protocolo: Protocolo): void
+  (e: 'toggleStatus', protocolo: Protocolo): void
 }>()
 
-const searchTerm = ref('')
-const filtros = ref<ProtocoloFiltros>({
-  sortOrder: 'nome',
-  status: 'todos',
-  restricao: 'todos',
-  grupoInfusao: ['rapido', 'medio', 'longo', 'extra_longo']
-})
+const {protocolos, diasFuncionamento} = toRefs(props)
 
-const inferirGrupoInfusao = (duracao: number): 'rapido' | 'medio' | 'longo' | 'extra_longo' => {
-  if (duracao <= 30) return 'rapido'
-  if (duracao <= 120) return 'medio'
-  if (duracao <= 240) return 'longo'
-  return 'extra_longo'
-}
-
-const checkRestricao = (protocolo: any) => {
-  const diasPermitidos = protocolo.diasSemanaPermitidos || []
-  const diasClinica = props.diasFuncionamento || []
-  if (!diasPermitidos.length || !diasClinica.length) {
-    return {isRestricted: false, text: 'Permitido todos os dias.'}
-  }
-
-  const diasFaltantes = diasClinica.filter((d: number) => !diasPermitidos.includes(d))
-  if (diasFaltantes.length === 0) {
-    return {isRestricted: false, text: 'Permitido todos os dias.'}
-  }
-
-  const labels = diasPermitidos
-      .sort((a: number, b: number) => a - b)
-      .map((d: number) => diasSemanaOptions.find(opt => opt.value === d)?.label)
-      .filter(Boolean)
-      .join(', ')
-
-  return {isRestricted: true, text: `Permitido nos dias: ${labels}.`}
-}
-
-const filteredProtocolos = computed(() => {
-  let result = props.protocolos.filter(p => {
-    const matchesSearch = p.nome.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
-        (p.indicacao && p.indicacao.toLowerCase().includes(searchTerm.value.toLowerCase()))
-    if (!matchesSearch) return false
-
-    if (filtros.value.status === 'ativos' && !p.ativo) return false
-    if (filtros.value.status === 'inativos' && p.ativo) return false
-
-    const {isRestricted} = checkRestricao(p)
-    if (filtros.value.restricao === 'com' && !isRestricted) return false
-    if (filtros.value.restricao === 'sem' && isRestricted) return false
-
-    const grupo = p.grupoInfusao || inferirGrupoInfusao(p.tempoTotalMinutos || 0)
-    return filtros.value.grupoInfusao.includes(grupo);
-  })
-
-  return result.sort((a: any, b: any) => {
-    if (filtros.value.sortOrder === 'duracao') {
-      return (a.tempoTotalMinutos || 0) - (b.tempoTotalMinutos || 0)
-    }
-    return a.nome.localeCompare(b.nome)
-  })
-})
+const {
+  searchTerm,
+  filtros,
+  filteredProtocolos,
+  checkRestricao
+} = useProtocoloLista(protocolos, diasFuncionamento)
 </script>
 
 <template>
