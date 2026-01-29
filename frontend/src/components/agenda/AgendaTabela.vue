@@ -51,6 +51,34 @@ const handleAlterarStatusPaciente = (agendamento: Agendamento, event: Event) => 
   select.value = statusAntigo
 }
 
+const getChecklistLabel = (agendamento: Agendamento) => {
+  if (agendamento.tipo !== 'infusao') return ''
+  const infoInfusao = agendamento.detalhes?.infusao
+  if (!infoInfusao) return ''
+
+  const itensPreparados = new Set(infoInfusao.itensPreparados || [])
+  const diaCicloAtual = infoInfusao.diaCiclo || 1
+  const prescricao = agendamento.prescricao
+
+  let totalMeds = 0
+  let totalChecked = 0
+
+  if (prescricao?.conteudo?.blocos?.length) {
+    prescricao.conteudo.blocos.forEach(bloco => {
+      bloco.itens.forEach(item => {
+        if (item.diasDoCiclo.includes(diaCicloAtual)) {
+          totalMeds += 1
+          const key = item.idItem || `${bloco.ordem}-${item.medicamento}`
+          if (itensPreparados.has(key)) totalChecked += 1
+        }
+      })
+    })
+  }
+
+  if (totalMeds === 0) return ''
+  return `${totalChecked}/${totalMeds}`
+}
+
 </script>
 
 <template>
@@ -194,6 +222,12 @@ const handleAlterarStatusPaciente = (agendamento: Agendamento, event: Event) => 
                 </span>
                 <span v-else class="text-gray-400 italic">
                   --:--
+                </span>
+                <span
+                    v-if="getChecklistLabel(ag)"
+                    class="ml-1 rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 border border-blue-100"
+                >
+                  {{ getChecklistLabel(ag) }}
                 </span>
               </div>
             </div>
