@@ -12,6 +12,17 @@ import {
 import {computed} from "vue";
 import {useAppStore} from '@/stores/storeGeral.ts'
 
+export function somarMinutosAoHorario(horario: string, minutos: number): string {
+  if (!horario) return ''
+  const [h, m] = horario.split(':').map(Number)
+  const dataBase = new Date()
+  dataBase.setHours(h, m, 0, 0)
+  dataBase.setMinutes(dataBase.getMinutes() + minutos)
+  const hFinal = String(dataBase.getHours()).padStart(2, '0')
+  const mFinal = String(dataBase.getMinutes()).padStart(2, '0')
+  return `${hFinal}:${mFinal}`
+}
+
 export function calcularDuracaoMinutos(inicio: string, fim: string): number {
   if (!inicio || !fim) return 0
   const [h1, m1] = inicio.split(':').map(Number)

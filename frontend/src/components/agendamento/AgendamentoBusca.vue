@@ -5,7 +5,7 @@ import {Label} from '@/components/ui/label'
 import {Search} from 'lucide-vue-next'
 import {Paciente} from "@/types/typesPaciente.ts";
 
-const props = defineProps<{
+defineProps<{
   busca: string
   resultados: Paciente[]
   mostrarResultados: boolean
