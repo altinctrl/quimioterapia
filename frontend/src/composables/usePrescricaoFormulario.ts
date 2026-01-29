@@ -1,6 +1,6 @@
 import {computed, nextTick, ref, watch} from 'vue'
 import {useForm} from 'vee-validate'
-import {useRoute} from 'vue-router'
+import {onBeforeRouteLeave, useRoute} from 'vue-router'
 import {toast} from 'vue-sonner'
 import {useAppStore} from '@/stores/storeGeral.ts'
 import {usePrescricaoCalculos} from './usePrescricaoCalculos'
@@ -33,7 +33,8 @@ export function usePrescricaoFormulario() {
     setValues,
     setFieldValue,
     defineField,
-    validate
+    validate,
+    meta,
   } = useForm<PrescricaoFormValues>({
     initialValues: {
       pacienteId: '',
@@ -389,6 +390,21 @@ export function usePrescricaoFormulario() {
   watch(values, () => {
     executarValidacao();
   }, {deep: true});
+
+  onBeforeRouteLeave((_to, _from, next) => {
+    if (prescricaoConcluida.value) {
+      next();
+      return;
+    }
+
+    if (meta.value.dirty) {
+      const answer = window.confirm('Você tem dados não salvos na prescrição. Deseja sair e perder o progresso?');
+      if (answer) next();
+      else next(false);
+    } else {
+      next();
+    }
+  });
 
   return {
     values,

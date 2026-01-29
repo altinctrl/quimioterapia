@@ -1,5 +1,5 @@
 import {computed, ref} from 'vue';
-import {useRouter} from 'vue-router';
+import {onBeforeRouteLeave, useRouter} from 'vue-router';
 import {toast} from 'vue-sonner';
 import {useAppStore} from '@/stores/storeGeral.ts';
 import {createEmptyProtocolo} from '@/utils/factoriesProtocolo.ts';
@@ -11,6 +11,8 @@ export function useProtocoloFormulario(protocoloId?: string) {
 
   const loading = ref(false);
   const formData = ref<Partial<Protocolo>>(createEmptyProtocolo());
+  const savedSnapshot = ref('');
+  const isSaving = ref(false);
 
   const isEditMode = computed(() => !!protocoloId);
 
@@ -36,6 +38,7 @@ export function useProtocoloFormulario(protocoloId?: string) {
           await router.push({name: 'Ajustes', query: {tab: 'protocolos'}});
         }
       }
+      savedSnapshot.value = JSON.stringify(formData.value);
     } catch (error) {
       console.error(error);
       toast.error("Erro ao carregar dados do protocolo");
@@ -86,6 +89,7 @@ export function useProtocoloFormulario(protocoloId?: string) {
         toast.success('Protocolo criado com sucesso');
       }
 
+      isSaving.value = true;
       await router.push({name: 'Ajustes', query: {tab: 'protocolos'}});
     } catch (error) {
       console.error(error);
@@ -101,6 +105,7 @@ export function useProtocoloFormulario(protocoloId?: string) {
       loading.value = true;
       await appStore.excluirProtocolo(protocoloId);
       toast.success('Protocolo removido com sucesso');
+      isSaving.value = true;
       await router.push({name: 'Ajustes', query: {tab: 'protocolos'}});
     } catch (error) {
       console.error(error);
@@ -113,6 +118,22 @@ export function useProtocoloFormulario(protocoloId?: string) {
   const cancelEdit = () => {
     void router.push({name: 'Ajustes', query: {tab: 'protocolos'}});
   };
+
+  onBeforeRouteLeave((_to, _from, next) => {
+    if (isSaving.value) {
+      next();
+      return;
+    }
+
+    const currentSnapshot = JSON.stringify(formData.value);
+    if (currentSnapshot !== savedSnapshot.value) {
+      const answer = window.confirm('Você tem alterações não salvas. Deseja realmente sair?');
+      if (answer) next();
+      else next(false);
+    } else {
+      next();
+    }
+  });
 
   return {
     formData,
