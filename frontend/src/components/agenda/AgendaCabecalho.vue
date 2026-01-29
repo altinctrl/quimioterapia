@@ -3,7 +3,7 @@ import {computed} from 'vue'
 import {Card, CardContent} from '@/components/ui/card'
 import {Button} from '@/components/ui/button'
 import {Input} from '@/components/ui/input'
-import {CalendarArrowDown, ChevronLeft, ChevronRight, Eye, EyeOff, Plus} from 'lucide-vue-next'
+import {ChevronLeft, ChevronRight, Eye, EyeOff, Plus} from 'lucide-vue-next'
 
 const props = defineProps<{
   modelValue: string

@@ -2,7 +2,7 @@
 import {Card, CardContent} from '@/components/ui/card'
 import {Button} from '@/components/ui/button'
 import {Input} from '@/components/ui/input'
-import {CalendarArrowDown, ChevronLeft, ChevronRight, Eye, EyeOff} from 'lucide-vue-next'
+import {ChevronLeft, ChevronRight, Eye, EyeOff} from 'lucide-vue-next'
 
 defineProps<{
   modelValue: string
