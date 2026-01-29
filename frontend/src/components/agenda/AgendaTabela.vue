@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import {computed} from 'vue'
 import {useRouter} from 'vue-router'
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '@/components/ui/table'
 import {Badge} from '@/components/ui/badge'
@@ -18,9 +19,10 @@ import {
 import {Checkbox} from "@/components/ui/checkbox";
 import PacienteCelula from '@/components/comuns/PacienteCelula.vue'
 
-defineProps<{
+const props = defineProps<{
   agendamentos: Agendamento[]
   tipo: TipoAgendamento
+  selectedIds: string[]
 }>()
 
 const emit = defineEmits<{
@@ -30,9 +32,31 @@ const emit = defineEmits<{
   (e: 'abrir-remarcar', agendamento: Agendamento): void
   (e: 'alterar-checkin', agendamento: Agendamento, checkin: boolean): void
   (e: 'alterar-status', agendamento: Agendamento, novoStatus: string): void
+  (e: 'update:selectedIds', value: string[]): void
 }>()
 
 const router = useRouter()
+
+const selectedSet = computed(() => new Set(props.selectedIds))
+
+const areAllSelected = computed(() => {
+  return props.agendamentos.length > 0 && props.agendamentos.every(ag => selectedSet.value.has(ag.id))
+})
+
+const toggleAll = (checked: boolean) => {
+  if (!checked) {
+    emit('update:selectedIds', [])
+    return
+  }
+  emit('update:selectedIds', props.agendamentos.map(a => a.id))
+}
+
+const toggleSelect = (id: string, checked: boolean) => {
+  const next = new Set(props.selectedIds)
+  if (checked) next.add(id)
+  else next.delete(id)
+  emit('update:selectedIds', [...next])
+}
 
 const irParaProntuario = (pacienteId: string) => {
   router.push({path: '/pacientes', query: {pacienteId}})
@@ -86,6 +110,14 @@ const getChecklistLabel = (agendamento: Agendamento) => {
     <Table>
       <TableHeader>
         <TableRow class="hover:bg-transparent">
+          <TableHead class="w-[40px] text-center">
+            <div class="flex items-center justify-center">
+              <Checkbox
+                  :checked="areAllSelected"
+                  @update:checked="(val) => toggleAll(val as boolean)"
+              />
+            </div>
+          </TableHead>
           <TableHead class="pl-5 w-[100px]">Horário</TableHead>
           <TableHead class="min-w-[150px]">Paciente</TableHead>
           <TableHead class="min-w-[100px]">
@@ -99,7 +131,10 @@ const getChecklistLabel = (agendamento: Agendamento) => {
       </TableHeader>
       <TableBody>
         <TableRow v-if="agendamentos.length === 0">
-          <TableCell class="text-center py-12 text-gray-500" colspan="9">
+          <TableCell
+              class="text-center py-12 text-gray-500"
+              :colspan="tipo == 'infusao' ? 8 : 7"
+          >
             Nenhum agendamento corresponde aos filtros.
           </TableCell>
         </TableRow>
@@ -110,6 +145,14 @@ const getChecklistLabel = (agendamento: Agendamento) => {
             :key="ag.id"
             :class="{ 'bg-gray-50 opacity-60 grayscale': ag.status === 'remarcado' }"
         >
+          <TableCell class="text-center p-0 align-middle">
+            <div class="flex items-center justify-center">
+              <Checkbox
+                  :checked="selectedSet.has(ag.id)"
+                  @update:checked="(val) => toggleSelect(ag.id, val as boolean)"
+              />
+            </div>
+          </TableCell>
           <TableCell class="p-0 relative">
             <div v-if="tipo == 'infusao'" :class="['h-full w-[4px] absolute left-0 top-0 bottom-0', getAgendamentoInfo(ag).corBorda]"></div>
             <div class="px-4 pl-5">
