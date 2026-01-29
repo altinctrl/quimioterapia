@@ -1,100 +1,30 @@
 <script lang="ts" setup>
-import {onMounted, ref, watch} from 'vue'
+import {onMounted} from 'vue'
 import {storeToRefs} from 'pinia'
-import {endOfMonth, format, startOfMonth} from 'date-fns'
-import {useEquipeStore} from '@/stores/storeEquipe.ts'
-import {useConfiguracaoStore} from '@/stores/storeAjustes.ts'
 import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs'
+import {useEquipeStore} from '@/stores/storeEquipe'
+import {useConfiguracaoStore} from '@/stores/storeAjustes'
+import {useEquipeProfissionais} from '@/composables/useEquipeProfissionais.ts'
+import {useEquipeEscala} from '@/composables/useEquipeEscala.ts'
+import {useEquipeAusencias} from '@/composables/useEquipeAusencias.ts'
 import EquipeEscala from '@/components/equipe/EquipeEscala.vue'
 import EquipeLista from '@/components/equipe/EquipeLista.vue'
 import EquipeAusencias from '@/components/equipe/EquipeAusencias.vue'
-import {toast} from 'vue-sonner'
-import {AusenciaProfissional, EscalaPlantao, Profissional} from "@/types/typesEquipe.ts";
 
 const equipeStore = useEquipeStore()
 const configStore = useConfiguracaoStore()
-
-const {profissionais, escalaDia, ausencias} = storeToRefs(equipeStore)
-const dataEscala = ref<Date>(new Date())
-const mesAusencia = ref<Date>(new Date())
+const {profissionais} = storeToRefs(equipeStore)
 
 onMounted(async () => {
   await Promise.all([
     configStore.fetchConfiguracoes(),
-    equipeStore.fetchProfissionais(false),
-    carregarEscala(),
-    carregarAusencias()
+    equipeStore.fetchProfissionais(false)
   ])
 })
 
-async function carregarEscala() {
-  await equipeStore.fetchEscalaDia(format(dataEscala.value, 'yyyy-MM-dd'))
-}
-
-async function carregarAusencias() {
-  const start = format(startOfMonth(mesAusencia.value), 'yyyy-MM-dd')
-  const end = format(endOfMonth(mesAusencia.value), 'yyyy-MM-dd')
-  await equipeStore.fetchAusencias(start, end)
-}
-
-watch(dataEscala, carregarEscala)
-watch(mesAusencia, carregarAusencias)
-
-async function handleCriarProfissional(dados: Partial<Profissional>) {
-  try {
-    await equipeStore.criarProfissional(dados)
-    toast.success('Profissional cadastrado')
-  } catch (e: any) {
-    toast.error(e.message)
-  }
-}
-
-async function handleAtualizarProfissional(dados: Partial<Profissional>) {
-  try {
-    if (!dados.username) return
-    await equipeStore.atualizarProfissional(dados.username, dados)
-    toast.success('Profissional atualizado')
-  } catch (e: any) {
-    toast.error(e.message)
-  }
-}
-
-async function handleAdicionarEscala(dados: Partial<EscalaPlantao>) {
-  try {
-    await equipeStore.adicionarEscala(dados)
-    toast.success('Adicionado à escala')
-  } catch (e: any) {
-    toast.error(e.message)
-  }
-}
-
-async function handleRemoverEscala(id: string) {
-  try {
-    await equipeStore.removerEscala(id)
-    toast.success('Removido da escala')
-  } catch (e: any) {
-    toast.error('Erro ao remover')
-  }
-}
-
-async function handleRegistrarAusencia(dados: Partial<AusenciaProfissional>) {
-  try {
-    await equipeStore.registrarAusencia(dados)
-    toast.success('Ausência registrada')
-    await carregarAusencias()
-  } catch (e: any) {
-    toast.error(e.message)
-  }
-}
-
-async function handleRemoverAusencia(id: string) {
-  try {
-    await equipeStore.removerAusencia(id)
-    toast.success('Ausência removida')
-  } catch (e: any) {
-    toast.error('Erro ao remover')
-  }
-}
+const logicaProfissionais = useEquipeProfissionais()
+const logicaEscala = useEquipeEscala(configStore.parametros.funcoes)
+const logicaAusencias = useEquipeAusencias()
 </script>
 
 <template>
@@ -112,31 +42,44 @@ async function handleRemoverAusencia(id: string) {
 
       <TabsContent class="space-y-4" value="escala">
         <EquipeEscala
-            v-model:data="dataEscala"
-            :escala="escalaDia"
+            v-model:data="logicaEscala.dataSelecionada.value"
+            :escala="logicaEscala.escalaOrdenada.value"
+            :form-state="logicaEscala.formState"
             :funcoes="configStore.parametros.funcoes"
-            :profissionais="profissionais"
-            @adicionar="handleAdicionarEscala"
-            @remover="handleRemoverEscala"
+            :profissionais="logicaEscala.profissionaisDisponiveis.value"
+            @adicionar="logicaEscala.adicionarEscala"
+            @remover="logicaEscala.removerEscala"
+            @prev-day="logicaEscala.mudarDia(-1)"
+            @next-day="logicaEscala.mudarDia(1)"
         />
       </TabsContent>
 
       <TabsContent class="space-y-4" value="ausencias">
         <EquipeAusencias
-            v-model:mesReferencia="mesAusencia"
-            :ausencias="ausencias"
+            v-model:mes="logicaAusencias.mesReferencia.value"
+            v-model:modal-open="logicaAusencias.isModalOpen.value"
+            :ausencias="logicaAusencias.ausenciasOrdenadas.value"
+            :form-state="logicaAusencias.formState"
             :profissionais="profissionais"
-            @registrar="handleRegistrarAusencia"
-            @remover="handleRemoverAusencia"
+            @remover="logicaAusencias.removerAusencia"
+            @salvar="logicaAusencias.registrarAusencia"
+            @abrir-modal="logicaAusencias.abrirModalNovo"
+            @prev-month="logicaAusencias.mudarMes(-1)"
+            @next-month="logicaAusencias.mudarMes(1)"
         />
       </TabsContent>
 
       <TabsContent class="space-y-4" value="profissionais">
         <EquipeLista
+            v-model:modal-open="logicaProfissionais.isModalOpen.value"
             :cargos="configStore.parametros.cargos"
-            :profissionais="profissionais"
-            @atualizar="handleAtualizarProfissional"
-            @criar="handleCriarProfissional"
+            :filtros="logicaProfissionais.filtros"
+            :form-state="logicaProfissionais.formState"
+            :is-editing="logicaProfissionais.isEditing.value"
+            :profissionais="logicaProfissionais.profissionaisFiltrados.value"
+            @editar="logicaProfissionais.prepararEdicao"
+            @novo="() => logicaProfissionais.prepararNovoCadastro(configStore.parametros.cargos[0])"
+            @salvar="logicaProfissionais.salvarProfissional"
         />
       </TabsContent>
     </Tabs>

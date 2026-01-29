@@ -1,8 +1,6 @@
 <script lang="ts" setup>
-import {computed, ref} from 'vue'
-import {addMonths, format} from 'date-fns'
+import {format} from 'date-fns'
 import {ptBR} from 'date-fns/locale'
-import {AusenciaProfissional, Profissional} from "@/types/typesEquipe.ts";
 import {Button} from '@/components/ui/button'
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '@/components/ui/table'
 import {Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle} from '@/components/ui/dialog'
@@ -11,76 +9,26 @@ import {Input} from '@/components/ui/input'
 import {Label} from '@/components/ui/label'
 import {Textarea} from '@/components/ui/textarea'
 import {ChevronLeft, ChevronRight, Trash2} from "lucide-vue-next";
-import {toast} from 'vue-sonner'
 import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
+import {AusenciaProfissional, Profissional} from "@/types/typesEquipe.ts";
+import {motivos} from "@/constants/constEquipe.ts";
 
-const props = defineProps<{
+defineProps<{
   ausencias: AusenciaProfissional[]
   profissionais: Profissional[]
-  mesReferencia: Date
+  mes: Date
+  modalOpen: boolean
+  formState: { profissional_id: string, data_inicio: string, data_fim: string, motivo: string, observacao: string }
 }>()
 
-const emits = defineEmits<{
-  (e: 'update:mesReferencia', value: Date): void
-  (e: 'registrar', dados: Partial<AusenciaProfissional>): void
+defineEmits<{
+  (e: 'update:modalOpen', value: boolean): void
+  (e: 'abrirModal'): void
+  (e: 'salvar'): void
   (e: 'remover', id: string): void
+  (e: 'prev-month'): void
+  (e: 'next-month'): void
 }>()
-
-const isModalOpen = ref(false)
-const motivos = ['Folga', 'LTS', 'Banco de Horas', 'Férias', 'Atestado', 'Outro']
-
-const form = ref({
-  profissional_id: '',
-  data_inicio: format(new Date(), 'yyyy-MM-dd'),
-  data_fim: format(new Date(), 'yyyy-MM-dd'),
-  motivo: 'Folga',
-  observacao: ''
-})
-
-function mudarMes(delta: number) {
-  const novaData = addMonths(props.mesReferencia, delta)
-  emits('update:mesReferencia', novaData)
-}
-
-function onSubmit() {
-  if (!form.value.profissional_id || !form.value.data_inicio || !form.value.data_fim || !form.value.motivo) {
-    toast.error('Preencha os campos obrigatórios.')
-    return
-  }
-
-  emits('registrar', {...form.value})
-  isModalOpen.value = false
-  // Reset form
-  form.value = {
-    profissional_id: '',
-    data_inicio: format(new Date(), 'yyyy-MM-dd'),
-    data_fim: format(new Date(), 'yyyy-MM-dd'),
-    motivo: 'Folga',
-    observacao: ''
-  }
-}
-
-function onRemove(id: string) {
-  if (confirm('Tem certeza que deseja remover este registro?')) {
-    emits('remover', id)
-  }
-}
-
-const ausenciasOrdenadas = computed(() => {
-  return [...props.ausencias].sort((a, b) => {
-    const dateA = new Date(a.data_inicio).getTime()
-    const dateB = new Date(b.data_inicio).getTime()
-    if (dateA !== dateB) return dateA - dateB
-
-    const dateFimA = new Date(a.data_fim).getTime()
-    const dateFimB = new Date(b.data_fim).getTime()
-    if (dateFimA !== dateFimB) return dateFimA - dateFimB
-
-    const nomeA = a.profissional?.nome || ''
-    const nomeB = b.profissional?.nome || ''
-    return nomeA.localeCompare(nomeB)
-  })
-})
 </script>
 
 <template>
@@ -88,17 +36,17 @@ const ausenciasOrdenadas = computed(() => {
     <Card>
       <div class="flex justify-between items-center gap-4 p-4">
         <div class="flex items-center space-x-2">
-          <Button size="icon" variant="outline" @click="mudarMes(-1)">
+          <Button size="icon" variant="outline" @click="$emit('prev-month')">
             <ChevronLeft class="h-4 w-4"/>
           </Button>
           <span class="font-medium min-w-[150px] text-center capitalize">
-            {{ format(props.mesReferencia, 'MMMM yyyy', {locale: ptBR}) }}
+            {{ format(mes, 'MMMM yyyy', {locale: ptBR}) }}
         </span>
-          <Button size="icon" variant="outline" @click="mudarMes(1)">
+          <Button size="icon" variant="outline" @click="$emit('next-month')">
             <ChevronRight class="h-4 w-4"/>
           </Button>
         </div>
-        <Button @click="isModalOpen = true">Novo Registro</Button>
+        <Button @click="$emit('abrirModal')">Novo Registro</Button>
       </div>
     </Card>
 
@@ -120,7 +68,7 @@ const ausenciasOrdenadas = computed(() => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow v-for="item in ausenciasOrdenadas" :key="item.id">
+              <TableRow v-for="item in ausencias" :key="item.id">
                 <TableCell class="font-medium pl-4">{{ item.profissional?.nome }}</TableCell>
                 <TableCell>{{ format(new Date(item.data_inicio), 'dd/MM/yyyy') }}</TableCell>
                 <TableCell>{{ format(new Date(item.data_fim), 'dd/MM/yyyy') }}</TableCell>
@@ -131,12 +79,12 @@ const ausenciasOrdenadas = computed(() => {
                       class="h-6 w-6 hover:text-destructive hover:bg-transparent"
                       size="icon"
                       variant="ghost"
-                      @click="onRemove(item.id)">
+                      @click="$emit('remover', item.id)">
                     <Trash2 class="h-4 w-4"/>
                   </Button>
                 </TableCell>
               </TableRow>
-              <TableRow v-if="props.ausencias.length === 0">
+              <TableRow v-if="ausencias.length === 0">
                 <TableCell class="text-center h-24" colspan="6">
                   Nenhuma ausência registrada neste mês.
                 </TableCell>
@@ -147,7 +95,7 @@ const ausenciasOrdenadas = computed(() => {
       </CardContent>
     </Card>
 
-    <Dialog :open="isModalOpen" @update:open="isModalOpen = $event">
+    <Dialog :open="modalOpen" @update:open="$emit('update:modalOpen', $event)">
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Registrar Ausência</DialogTitle>
@@ -155,12 +103,12 @@ const ausenciasOrdenadas = computed(() => {
         <div class="grid gap-4 py-4">
           <div class="grid gap-2">
             <Label>Profissional *</Label>
-            <Select v-model="form.profissional_id">
+            <Select v-model="formState.profissional_id">
               <SelectTrigger>
                 <SelectValue placeholder="Selecione"/>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem v-for="p in props.profissionais" :key="p.username" :value="p.username">
+                <SelectItem v-for="p in profissionais" :key="p.username" :value="p.username">
                   {{ p.nome }}
                 </SelectItem>
               </SelectContent>
@@ -169,16 +117,16 @@ const ausenciasOrdenadas = computed(() => {
           <div class="grid grid-cols-2 gap-4">
             <div class="grid gap-2">
               <Label>Data Início *</Label>
-              <Input v-model="form.data_inicio" type="date"/>
+              <Input v-model="formState.data_inicio" type="date"/>
             </div>
             <div class="grid gap-2">
               <Label>Data Fim *</Label>
-              <Input v-model="form.data_fim" type="date"/>
+              <Input v-model="formState.data_fim" type="date"/>
             </div>
           </div>
           <div class="grid gap-2">
             <Label>Motivo *</Label>
-            <Select v-model="form.motivo">
+            <Select v-model="formState.motivo">
               <SelectTrigger>
                 <SelectValue placeholder="Selecione"/>
               </SelectTrigger>
@@ -189,11 +137,11 @@ const ausenciasOrdenadas = computed(() => {
           </div>
           <div class="grid gap-2">
             <Label>Observações</Label>
-            <Textarea v-model="form.observacao"/>
+            <Textarea v-model="formState.observacao"/>
           </div>
         </div>
         <DialogFooter>
-          <Button @click="onSubmit">Salvar</Button>
+          <Button @click="$emit('salvar')">Salvar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
