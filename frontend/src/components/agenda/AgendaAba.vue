@@ -1,10 +1,18 @@
 <script lang="ts" setup>
-import {computed} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {Card, CardContent} from '@/components/ui/card'
+import {Button} from '@/components/ui/button'
+import {Checkbox} from '@/components/ui/checkbox'
+import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle} from '@/components/ui/dialog'
+import {Input} from '@/components/ui/input'
+import {Label} from '@/components/ui/label'
+import {Textarea} from '@/components/ui/textarea'
 import AgendaControles, {type FiltrosAgenda} from '@/components/agenda/AgendaControles.vue'
 import AgendaTabela from '@/components/agenda/AgendaTabela.vue'
-import {getDuracaoAgendamento, getGrupoInfusao} from '@/utils/utilsAgenda.ts'
+import {getDuracaoAgendamento, getGrupoInfusao, getOpcoesStatus} from '@/utils/utilsAgenda.ts'
 import {Agendamento, AgendamentoStatusEnum, TipoAgendamento} from "@/types/typesAgendamento.ts";
+import {useAppStore} from '@/stores/storeGeral.ts'
+import {toast} from 'vue-sonner'
 
 const props = defineProps<{
   agendamentos: Agendamento[]
@@ -16,6 +24,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'update:filtros', value: FiltrosAgenda): void
   (e: 'reset'): void
+  (e: 'remarcado'): void
 
   (e: 'abrir-detalhes', agendamento: Agendamento): void
   (e: 'abrir-prescricao', agendamento: Agendamento): void
@@ -24,6 +33,8 @@ const emit = defineEmits<{
   (e: 'alterar-checkin', agendamento: Agendamento, checkin: boolean): void
   (e: 'alterar-status', agendamento: Agendamento, novoStatus: string): void
 }>()
+
+const appStore = useAppStore()
 
 const filtrosModel = computed({
   get: () => props.filtros,
@@ -82,6 +93,104 @@ const agendamentosProcessados = computed(() => {
     }
   })
 })
+
+const selectedIds = ref<string[]>([])
+const bulkRemarcarOpen = ref(false)
+const bulkStatusPaciente = ref('')
+const bulkForm = ref({
+  novaData: '',
+  novoHorario: '',
+  motivo: '',
+  manterHorario: true
+})
+
+const selectedAgendamentos = computed(() => {
+  const ids = new Set(selectedIds.value)
+  return agendamentosProcessados.value.filter(a => ids.has(a.id))
+})
+
+const limparSelecao = () => {
+  selectedIds.value = []
+  bulkStatusPaciente.value = ''
+}
+
+watch(agendamentosProcessados, (lista) => {
+  const idsVisiveis = new Set(lista.map(a => a.id))
+  selectedIds.value = selectedIds.value.filter(id => idsVisiveis.has(id))
+})
+
+const abrirRemarcacaoLote = () => {
+  if (selectedIds.value.length === 0) return
+  bulkForm.value = {
+    novaData: '',
+    novoHorario: '',
+    motivo: '',
+    manterHorario: true
+  }
+  bulkRemarcarOpen.value = true
+}
+
+const confirmarRemarcacaoLote = async () => {
+  if (!bulkForm.value.novaData || !bulkForm.value.motivo) {
+    toast.error('Preencha data e motivo.')
+    return
+  }
+
+  if (!bulkForm.value.manterHorario && !bulkForm.value.novoHorario) {
+    toast.error('Informe o novo horário ou mantenha o horário original.')
+    return
+  }
+
+  const selecionados = selectedAgendamentos.value
+  if (selecionados.length === 0) return
+
+  selecionados.forEach(ag => {
+    const horario = bulkForm.value.manterHorario ? ag.horarioInicio : bulkForm.value.novoHorario
+    appStore.remarcarAgendamento(ag.id, bulkForm.value.novaData, horario, bulkForm.value.motivo)
+  })
+
+  toast.success(`${selecionados.length} agendamentos remarcados.`)
+  bulkRemarcarOpen.value = false
+  limparSelecao()
+  emit('remarcado')
+}
+
+const opcoesStatusLote = computed<Array<{ id: string; label: string }>>(() => {
+  const selecionados = selectedAgendamentos.value
+  if (selecionados.length === 0) return []
+
+  const bloqueados = new Set(['suspenso', 'intercorrencia'])
+  let comuns: Array<{ id: string; label: string }> | null = null
+
+  selecionados.forEach(ag => {
+    const opcoes = getOpcoesStatus(ag).filter(opt => !bloqueados.has(opt.id))
+    if (!comuns) {
+      comuns = opcoes
+      return
+    }
+    const ids = new Set(opcoes.map(o => o.id))
+    comuns = comuns.filter(o => ids.has(o.id))
+  })
+
+  return comuns || []
+})
+
+const aplicarStatusPacienteLote = () => {
+  if (!bulkStatusPaciente.value) {
+    toast.error('Selecione um status para aplicar.')
+    return
+  }
+
+  const selecionados = selectedAgendamentos.value
+  if (selecionados.length === 0) return
+
+  selecionados.forEach(ag => {
+    emit('alterar-status', ag, bulkStatusPaciente.value)
+  })
+
+  toast.success(`${selecionados.length} agendamentos atualizados.`)
+  limparSelecao()
+}
 </script>
 
 <template>
@@ -95,10 +204,45 @@ const agendamentosProcessados = computed(() => {
       />
     </div>
 
+    <div v-if="selectedIds.length" class="px-4 pb-3">
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between bg-blue-50 border border-blue-100 rounded-md p-3">
+        <span class="text-sm font-medium text-blue-700">
+          {{ selectedIds.length }} agendamentos selecionados
+        </span>
+        <div class="flex flex-wrap gap-2">
+          <select
+              v-model="bulkStatusPaciente"
+              class="flex h-8 min-w-[220px] items-center justify-between rounded-md border border-input bg-transparent
+              px-2 py-1 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none
+              focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          >
+            <option disabled value="">Selecionar status do paciente</option>
+            <option
+                v-for="opcao in opcoesStatusLote"
+                :key="opcao.id"
+                :value="opcao.id"
+            >
+              {{ opcao.label }}
+            </option>
+          </select>
+          <Button class="h-8" size="sm" variant="outline" @click="limparSelecao">
+            Limpar seleção
+          </Button>
+          <Button class="h-8" size="sm" variant="outline" @click="aplicarStatusPacienteLote">
+            Alterar status
+          </Button>
+          <Button class="h-8" size="sm" @click="abrirRemarcacaoLote">
+            Remarcar selecionados
+          </Button>
+        </div>
+      </div>
+    </div>
+
     <CardContent class="p-0 mt-0">
       <AgendaTabela
           :agendamentos="agendamentosProcessados"
           :tipo="tipo"
+          v-model:selected-ids="selectedIds"
           class="border-0 rounded-none shadow-none"
           @abrir-detalhes="(ag) => emit('abrir-detalhes', ag)"
           @abrir-prescricao="(ag) => emit('abrir-prescricao', ag)"
@@ -109,4 +253,52 @@ const agendamentosProcessados = computed(() => {
       />
     </CardContent>
   </Card>
+
+  <Dialog :open="bulkRemarcarOpen" @update:open="bulkRemarcarOpen = $event">
+    <DialogContent class="sm:max-w-[460px]">
+      <DialogHeader>
+        <DialogTitle>Remarcar em lote</DialogTitle>
+        <DialogDescription>
+          {{ selectedIds.length }} agendamentos serão remarcados para a nova data.
+        </DialogDescription>
+      </DialogHeader>
+
+      <div class="grid gap-4 py-4">
+        <div class="space-y-2">
+          <Label>Nova Data</Label>
+          <Input v-model="bulkForm.novaData" type="date"/>
+        </div>
+
+        <div class="flex items-start gap-2">
+          <Checkbox
+              :checked="bulkForm.manterHorario"
+              class="mt-1"
+              @update:checked="(val) => bulkForm.manterHorario = val as boolean"
+          />
+          <div class="space-y-1">
+            <Label class="text-sm">Manter horário original</Label>
+            <p class="text-xs text-muted-foreground">Desmarque para aplicar um horário único para todos.</p>
+          </div>
+        </div>
+
+        <div v-if="!bulkForm.manterHorario" class="space-y-2">
+          <Label>Novo Horário</Label>
+          <Input v-model="bulkForm.novoHorario" type="time"/>
+        </div>
+
+        <div class="space-y-2">
+          <Label>Motivo</Label>
+          <Textarea
+              v-model="bulkForm.motivo"
+              placeholder="Ex: Ajuste de agenda, indisponibilidade de recurso..."
+          />
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2">
+        <Button variant="outline" @click="bulkRemarcarOpen = false">Cancelar</Button>
+        <Button @click="confirmarRemarcacaoLote">Remarcar</Button>
+      </div>
+    </DialogContent>
+  </Dialog>
 </template>
