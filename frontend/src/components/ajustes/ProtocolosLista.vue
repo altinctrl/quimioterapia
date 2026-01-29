@@ -18,7 +18,6 @@ const emit = defineEmits<{
   (e: 'importar', lista: any[], ignored: number): void
   (e: 'edit', protocolo: Protocolo): void
   (e: 'details', protocolo: Protocolo): void
-  (e: 'toggleStatus', protocolo: Protocolo): void
 }>()
 
 const {protocolos, diasFuncionamento} = toRefs(props)

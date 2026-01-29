@@ -3,7 +3,7 @@ import {onMounted} from 'vue'
 import {useRoute} from 'vue-router'
 import ProtocolosFormulario from '@/components/protocolos/ProtocolosFormulario.vue'
 import {Button} from "@/components/ui/button"
-import {Save} from 'lucide-vue-next'
+import {Save, Trash2} from 'lucide-vue-next'
 import {useProtocoloFormulario} from '@/composables/useProtocoloFormulario.ts'
 
 const route = useRoute()
@@ -15,6 +15,7 @@ const {
   isEditMode,
   initForm,
   saveProtocolo,
+  excluirProtocolo,
   cancelEdit
 } = useProtocoloFormulario(id)
 
@@ -38,6 +39,15 @@ onMounted(() => {
         </div>
 
         <div class="flex items-center gap-3">
+          <Button
+            v-if="isEditMode"
+            variant="destructive"
+            size="icon"
+            @click="excluirProtocolo"
+            title="Excluir Protocolo"
+          >
+            <Trash2 class="h-4 w-4" />
+          </Button>
           <Button variant="outline" @click="cancelEdit">
             Cancelar
           </Button>

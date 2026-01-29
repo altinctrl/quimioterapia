@@ -145,21 +145,6 @@ const handleViewDetails = (p: any) => {
   detailsOpen.value = true
 }
 
-const handleToggleStatusProtocolo = async (p: any) => {
-  try {
-    if (p.ativo) {
-      await appStore.desativarProtocolo(p.id)
-      toast.success('Protocolo desativado')
-    } else {
-      await appStore.atualizarProtocolo(p.id, {ativo: true})
-      toast.success('Protocolo reativado')
-    }
-  } catch (error) {
-    console.error(error)
-    toast.error('Erro ao alterar status do protocolo')
-  }
-}
-
 onMounted(async () => {
   try {
     carregando.value = true
@@ -279,7 +264,6 @@ watch(
             @details="handleViewDetails"
             @edit="handleEditProtocolo"
             @importar="handleImportarRequest"
-            @toggle-status="handleToggleStatusProtocolo"
         />
       </TabsContent>
 
