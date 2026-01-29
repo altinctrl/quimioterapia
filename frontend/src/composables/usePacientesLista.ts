@@ -1,6 +1,7 @@
 import {computed, ref, watch} from 'vue'
 import {useAppStore} from '@/stores/storeGeral.ts'
 import type {FiltrosPacientes} from '@/components/pacientes/PacientesControles.vue'
+import {useLocalStorage} from "@vueuse/core";
 
 export function usePacientesLista() {
   const appStore = useAppStore()
@@ -8,7 +9,7 @@ export function usePacientesLista() {
   const loading = ref(false)
   const page = ref(1)
   const termoBusca = ref('')
-  const filtros = ref<FiltrosPacientes>({
+  const filtros = useLocalStorage<FiltrosPacientes>('app_pacientes_filtros', {
     ordenacao: 'recentes',
     perPage: 20
   })

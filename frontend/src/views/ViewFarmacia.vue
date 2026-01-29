@@ -12,10 +12,11 @@ import {getDataLocal} from '@/lib/utils.ts'
 import {isInfusao, somarDias} from '@/utils/utilsAgenda.ts'
 import AgendamentoModalDetalhes from "@/components/comuns/AgendamentoModalDetalhes.vue";
 import PrescricaoModalDetalhes from "@/components/comuns/PrescricaoModalDetalhes.vue";
+import {useLocalStorage, useSessionStorage} from "@vueuse/core";
 
 const router = useRouter()
 const appStore = useAppStore()
-const dataSelecionada = ref(getDataLocal())
+const dataSelecionada = useSessionStorage('farmacia_data_selecionada', getDataLocal())
 
 onMounted(() => {
   appStore.fetchConfiguracoes()
@@ -34,14 +35,14 @@ const STATUS_ORDER: Record<string, number> = {
   [FarmaciaStatusEnum.PRESCRICAO_DEVOLVIDA]: 9,
 }
 
-const filtros = ref<FiltrosFarmacia>({
+const filtros = useLocalStorage<FiltrosFarmacia>('farmacia_filtros', {
   ordenacao: 'horario',
   turno: 'todos',
   status: []
 })
 
-const mostrarMetricas = ref(true)
-const expandedIds = ref<string[]>([])
+const mostrarMetricas = useLocalStorage('farmacia_mostrar_metricas', true)
+const expandedIdsMap = useSessionStorage<Record<string, string[]>>('farmacia_listas_expandidas_map', {})
 
 const detalhesModalOpen = ref(false)
 const agendamentoSelecionado = ref<Agendamento | null>(null)
@@ -172,6 +173,18 @@ const viewRows = computed(() => {
   })
 })
 
+const expandedIdsDoDia = computed({
+  get: () => {
+    return expandedIdsMap.value[dataSelecionada.value] || []
+  },
+  set: (novosIds: string[]) => {
+    expandedIdsMap.value = {
+      ...expandedIdsMap.value,
+      [dataSelecionada.value]: novosIds
+    }
+  }
+})
+
 const handleDiaAnterior = () => {
   dataSelecionada.value = somarDias(dataSelecionada.value, -1)
 }
@@ -205,6 +218,7 @@ const handleToggleCheckItem = async (agId: string, itemKey: string, statusAtual:
   if (!agendamento || !isInfusao(agendamento)) return
 
   const rowAtual = tableRows.value.find(r => r.id === agId)
+  if (!rowAtual) return
   const currentChecklist = new Set(agendamento.detalhes.infusao.itensPreparados || [])
 
   if (currentChecklist.has(itemKey)) {
@@ -260,11 +274,6 @@ const opcoesStatusFarmacia = computed(() => {
 watch(dataSelecionada, async (novaData) => {
   await appStore.fetchAgendamentos(novaData, novaData)
 }, {immediate: true})
-
-watch(viewRows, (lista) => {
-  const idsVisiveis = new Set(lista.map(r => r.id))
-  expandedIds.value = expandedIds.value.filter(id => idsVisiveis.has(id))
-})
 </script>
 
 <template>
@@ -307,7 +316,7 @@ watch(viewRows, (lista) => {
 
       <CardContent class="p-0 mt-0">
         <FarmaciaTabela
-            v-model:expanded-ids="expandedIds"
+            v-model:expanded-ids="expandedIdsDoDia"
             :opcoes-status="opcoesStatusFarmacia"
             :rows="viewRows"
             @alterar-status="handleAlterarStatus"

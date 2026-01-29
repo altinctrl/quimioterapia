@@ -10,6 +10,7 @@ import {useEquipeAusencias} from '@/composables/useEquipeAusencias.ts'
 import EquipeEscala from '@/components/equipe/EquipeEscala.vue'
 import EquipeLista from '@/components/equipe/EquipeLista.vue'
 import EquipeAusencias from '@/components/equipe/EquipeAusencias.vue'
+import {useSessionStorage} from "@vueuse/core";
 
 const equipeStore = useEquipeStore()
 const configStore = useConfiguracaoStore()
@@ -25,6 +26,8 @@ onMounted(async () => {
 const logicaProfissionais = useEquipeProfissionais()
 const logicaEscala = useEquipeEscala(configStore.parametros.funcoes)
 const logicaAusencias = useEquipeAusencias()
+
+const abaAtiva = useSessionStorage('equipe_aba_ativa', 'escala')
 </script>
 
 <template>
@@ -33,7 +36,7 @@ const logicaAusencias = useEquipeAusencias()
       <h1 class="text-3xl font-bold tracking-tight">Gestão de Equipe</h1>
     </div>
 
-    <Tabs class="space-y-4" default-value="escala">
+    <Tabs v-model="abaAtiva" class="space-y-4" default-value="escala">
       <TabsList>
         <TabsTrigger value="escala">Escala</TabsTrigger>
         <TabsTrigger value="ausencias">Ausências</TabsTrigger>
@@ -73,7 +76,7 @@ const logicaAusencias = useEquipeAusencias()
         <EquipeLista
             v-model:modal-open="logicaProfissionais.isModalOpen.value"
             :cargos="configStore.parametros.cargos"
-            :filtros="logicaProfissionais.filtros"
+            :filtros="logicaProfissionais.filtros.value"
             :form-state="logicaProfissionais.formState"
             :is-editing="logicaProfissionais.isEditing.value"
             :profissionais="logicaProfissionais.profissionaisFiltrados.value"

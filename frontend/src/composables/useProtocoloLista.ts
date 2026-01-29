@@ -1,6 +1,7 @@
 import {computed, ref, type Ref} from 'vue';
 import {diasSemanaOptions} from '@/constants/constProtocolos.ts';
 import type {Protocolo, ProtocoloFiltros} from "@/types/typesProtocolo.ts";
+import {useLocalStorage} from "@vueuse/core";
 
 export function useProtocoloLista(
   protocolos: Ref<Protocolo[]>,
@@ -8,7 +9,7 @@ export function useProtocoloLista(
 ) {
   const searchTerm = ref('');
 
-  const filtros = ref<ProtocoloFiltros>({
+  const filtros = useLocalStorage<ProtocoloFiltros>('app_protocolos_filtros', {
     sortOrder: 'nome',
     status: 'todos',
     restricao: 'todos',

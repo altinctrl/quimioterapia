@@ -1,14 +1,15 @@
-import {computed, reactive, ref, watch} from 'vue'
+import {computed, reactive, watch} from 'vue'
 import {storeToRefs} from 'pinia'
 import {addDays, format} from 'date-fns'
 import {useEquipeStore} from '@/stores/storeEquipe'
 import {toast} from 'vue-sonner'
+import {useSessionStorage} from "@vueuse/core";
 
 export function useEquipeEscala(funcoesDisponiveis: string[]) {
   const store = useEquipeStore()
   const {escalaDia, profissionais} = storeToRefs(store)
 
-  const dataSelecionada = ref<Date>(new Date())
+  const dataSelecionada = useSessionStorage<Date>('equipe_escala_data_selecionada', new Date())
 
   const formState = reactive({
     profissional_id: '',

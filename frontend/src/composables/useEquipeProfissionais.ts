@@ -3,6 +3,7 @@ import {storeToRefs} from 'pinia'
 import {useEquipeStore} from '@/stores/storeEquipe'
 import {Profissional} from '@/types/typesEquipe'
 import {toast} from 'vue-sonner'
+import {useLocalStorage} from "@vueuse/core";
 
 export function useEquipeProfissionais() {
   const store = useEquipeStore()
@@ -11,7 +12,7 @@ export function useEquipeProfissionais() {
   const isModalOpen = ref(false)
   const isEditing = ref(false)
 
-  const filtros = reactive({
+  const filtros = useLocalStorage('equipe_filtros', {
     cargo: 'Todos',
     ativo: 'Todos'
   })
@@ -27,10 +28,10 @@ export function useEquipeProfissionais() {
   const profissionaisFiltrados = computed(() => {
     return profissionais.value
       .filter(p => {
-        const matchCargo = filtros.cargo === 'Todos' || p.cargo === filtros.cargo
-        const matchAtivo = filtros.ativo === 'Todos'
+        const matchCargo = filtros.value.cargo === 'Todos' || p.cargo === filtros.value.cargo
+        const matchAtivo = filtros.value.ativo === 'Todos'
           ? true
-          : filtros.ativo === 'Ativos' ? p.ativo : !p.ativo
+          : filtros.value.ativo === 'Ativos' ? p.ativo : !p.ativo
         return matchCargo && matchAtivo
       })
       .sort((a, b) => a.nome.localeCompare(b.nome))
