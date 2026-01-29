@@ -17,6 +17,7 @@ import {getDataLocal} from '@/lib/utils.ts';
 import {toast} from "vue-sonner";
 import AgendamentoModalDetalhes from "@/components/comuns/AgendamentoModalDetalhes.vue";
 import PrescricaoModalDetalhes from "@/components/comuns/PrescricaoModalDetalhes.vue";
+import {useLocalStorage, useSessionStorage} from "@vueuse/core";
 
 const router = useRouter()
 const appStore = useAppStore()
@@ -28,7 +29,7 @@ onMounted(async () => {
   ])
 })
 
-const dataSelecionada = ref(getDataLocal())
+const dataSelecionada = useSessionStorage('agenda_data_selecionada', getDataLocal())
 
 const detalhesModalOpen = ref(false)
 const agendamentoSelecionado = ref<Agendamento | null>(null)
@@ -41,7 +42,7 @@ const agendamentoParaRemarcar = ref<Agendamento | null>(null)
 const statusModalOpen = ref(false)
 const statusPendingData = ref<{ id: string; novoStatus: AgendamentoStatusEnum; pacienteNome: string } | null>(null)
 
-const activeTipo = ref<TipoAgendamento>('infusao')
+const abaAtiva = useSessionStorage<TipoAgendamento>('agenda_aba_ativa', 'infusao')
 
 const agendamentosDoDia = computed(() => {
   return appStore.getAgendamentosDoDia(dataSelecionada.value)
@@ -56,9 +57,9 @@ const defaultFiltros = (): FiltrosAgenda => ({
   esconderRemarcados: true
 })
 
-const filtrosInfusao = ref<FiltrosAgenda>(defaultFiltros())
-const filtrosConsulta = ref<FiltrosAgenda>(defaultFiltros())
-const filtrosProcedimento = ref<FiltrosAgenda>(defaultFiltros())
+const filtrosInfusao = useLocalStorage<FiltrosAgenda>('agenda_filtros_infusao', defaultFiltros())
+const filtrosConsulta = useLocalStorage<FiltrosAgenda>('agenda_filtros_consulta', defaultFiltros())
+const filtrosProcedimento = useLocalStorage<FiltrosAgenda>('agenda_filtros_procedimento', defaultFiltros())
 
 const resetFiltros = (tipo: TipoAgendamento) => {
   if (tipo === 'infusao') filtrosInfusao.value = defaultFiltros()
@@ -75,9 +76,9 @@ const agendamentosPorTipo = computed(() => {
   } satisfies Record<TipoAgendamento, Agendamento[]>
 })
 
-const agendamentosTipoAtivo = computed(() => agendamentosPorTipo.value[activeTipo.value])
+const agendamentosTipoAtivo = computed(() => agendamentosPorTipo.value[abaAtiva.value])
 
-const mostrarMetricas = ref(true)
+const mostrarMetricas = useLocalStorage('agenda_mostrar_metricas', true)
 
 const metricas = computed(() => {
   const list = agendamentosTipoAtivo.value
@@ -243,7 +244,7 @@ const handleRemarcado = () => {
         @confirm="confirmarAlteracaoStatus"
     />
 
-    <Tabs v-model="activeTipo" class="space-y-4">
+    <Tabs v-model="abaAtiva" class="space-y-4">
       <TabsList>
         <TabsTrigger value="infusao">Infusão</TabsTrigger>
         <TabsTrigger value="consulta">Consulta</TabsTrigger>

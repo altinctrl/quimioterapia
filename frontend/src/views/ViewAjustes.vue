@@ -16,13 +16,14 @@ import ProtocolosLista from '@/components/ajustes/ProtocolosLista.vue'
 import ProtocolosDetalhes from '@/components/ajustes/ProtocolosDetalhes.vue'
 import AjustesDiluentes from "@/components/ajustes/AjustesDiluentes.vue";
 import ProtocolosModalImportacao from "@/components/ajustes/ProtocolosModalImportacao.vue";
+import {useSessionStorage} from "@vueuse/core";
 
 const appStore = useAppStore()
 const router = useRouter()
 const route = useRoute()
 
 const carregando = ref(true)
-const activeTab = ref('administrativo')
+const activeTab = useSessionStorage('ajustes_aba_ativa', 'administrativo')
 const isDirty = ref(false)
 
 const horarioAbertura = ref('')
