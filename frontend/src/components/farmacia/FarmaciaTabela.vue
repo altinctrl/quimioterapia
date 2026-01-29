@@ -37,6 +37,7 @@ const props = defineProps<{
   rows: FarmaciaTableRow[]
   expandedIds: string[]
   opcoesStatus: { id: string, label: string }[]
+  selectedIds: string[]
 }>()
 
 const emit = defineEmits<{
@@ -45,11 +46,13 @@ const emit = defineEmits<{
   (e: 'alterarStatus', id: string, novoStatus: FarmaciaStatusEnum): void
   (e: 'alterarHorario', id: string, novoHorario: string): void
   (e: 'update:expandedIds', value: string[]): void
+  (e: 'update:selectedIds', value: string[]): void
   (e: 'clickPaciente', pacienteId: string): void
   (e: 'toggleCheckItem', id: string, itemKey: string, statusAtual: FarmaciaStatusEnum): void
 }>()
 
 const expandedSet = computed(() => new Set(props.expandedIds))
+const selectedSet = computed(() => new Set(props.selectedIds))
 
 const areAllExpanded = computed(() => {
   return props.rows.length === 0 ? false : props.rows.every(row => expandedSet.value.has(row.id))
@@ -70,6 +73,25 @@ const toggleExpand = (id: string) => {
   emit('update:expandedIds', [...next])
 }
 
+const areAllSelected = computed(() => {
+  return props.rows.length > 0 && props.rows.every(row => selectedSet.value.has(row.id))
+})
+
+const toggleAllSelected = (checked: boolean) => {
+  if (!checked) {
+    emit('update:selectedIds', [])
+    return
+  }
+  emit('update:selectedIds', props.rows.map(r => r.id))
+}
+
+const toggleSelected = (id: string, checked: boolean) => {
+  const next = new Set(props.selectedIds)
+  if (checked) next.add(id)
+  else next.delete(id)
+  emit('update:selectedIds', [...next])
+}
+
 const onStatusChange = (id: string, event: Event) => {
   const val = (event.target as HTMLSelectElement).value as FarmaciaStatusEnum
   emit('alterarStatus', id, val)
@@ -81,6 +103,14 @@ const onStatusChange = (id: string, event: Event) => {
     <Table>
       <TableHeader>
         <TableRow class="hover:bg-transparent">
+          <TableHead class="w-[40px] text-center">
+            <div class="flex items-center justify-center">
+              <Checkbox
+                  :checked="areAllSelected"
+                  @update:checked="(val) => toggleAllSelected(val as boolean)"
+              />
+            </div>
+          </TableHead>
           <TableHead class="w-[50px] p-2 text-center">
             <Button
                 :title="areAllExpanded ? 'Recolher todos' : 'Expandir todos'"
@@ -104,7 +134,7 @@ const onStatusChange = (id: string, event: Event) => {
       </TableHeader>
       <TableBody>
         <TableRow v-if="rows.length === 0">
-          <TableCell class="text-center py-12 text-gray-500" colspan="7">
+          <TableCell class="text-center py-12 text-gray-500" colspan="9">
             Nenhuma preparação corresponde aos filtros.
           </TableCell>
         </TableRow>
@@ -113,6 +143,14 @@ const onStatusChange = (id: string, event: Event) => {
               :class="{'bg-gray-50 opacity-75': row.statusBloqueado}"
               class="group transition-colors hover:bg-gray-50/50"
           >
+            <TableCell class="p-2 text-center">
+              <div class="flex items-center justify-center">
+                <Checkbox
+                    :checked="selectedSet.has(row.id)"
+                    @update:checked="(val) => toggleSelected(row.id, val as boolean)"
+                />
+              </div>
+            </TableCell>
             <TableCell class="p-2 text-center">
               <Button
                   class="h-8 w-8 text-gray-400 hover:text-gray-900"
@@ -225,7 +263,7 @@ const onStatusChange = (id: string, event: Event) => {
               :class="{'bg-gray-50 opacity-75': row.statusBloqueado}"
               class="bg-gray-50/80 border-t-0 shadow-inner"
           >
-            <TableCell class="p-0" colspan="3"></TableCell>
+            <TableCell class="p-0" colspan="4"></TableCell>
             <TableCell class="p-0" colspan="1">
               <div class="pt-4 pb-4 animate-in slide-in-from-top-1 duration-200">
                 <div
