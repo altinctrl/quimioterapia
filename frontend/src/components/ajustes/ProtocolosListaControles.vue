@@ -12,13 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import {ArrowUpDown, CalendarOff, ChevronDown, Clock, FileUp, Filter, Plus, Search, X} from 'lucide-vue-next'
 import {useProtocoloImportacao} from "@/composables/useProtocoloImportacao.ts";
-
-export interface ProtocoloFiltros {
-  sortOrder: 'nome' | 'duracao'
-  status: 'todos' | 'ativos' | 'inativos'
-  restricao: 'todos' | 'com' | 'sem'
-  grupoInfusao: string[]
-}
+import {ProtocoloFiltros} from "@/types/typesProtocolo.ts";
 
 const props = defineProps<{
   searchTerm: string

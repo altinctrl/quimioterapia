@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {computed} from 'vue'
+import {toRef} from 'vue'
 import {Button} from '@/components/ui/button'
 import {Label} from '@/components/ui/label'
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select'
@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import {ChevronDown} from 'lucide-vue-next'
 import {ConfiguracaoDiluicao} from "@/types/typesProtocolo.ts";
-import {useConfiguracaoStore} from "@/stores/storeAjustes.ts"
+import {useProtocoloDiluentes} from "@/composables/useProtocoloDiluentes.ts";
 
 const props = defineProps<{
   modelValue: ConfiguracaoDiluicao | undefined
@@ -21,65 +21,16 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: ConfiguracaoDiluicao): void
 }>()
 
-const configStore = useConfiguracaoStore()
+const modelValueRef = toRef(props, 'modelValue')
 
-const listaGlobalDiluentes = computed(() => {
-  return configStore.parametros?.diluentes || []
-})
-
-const safeModelValue = computed((): ConfiguracaoDiluicao => {
-  return props.modelValue || { selecionada: '', opcoesPermitidas: [] }
-})
-
-const diluentesUnificados = computed(() => {
-  const globais = listaGlobalDiluentes.value
-  const locais = safeModelValue.value.opcoesPermitidas || []
-  const unicos = new Set([...globais, ...locais])
-  return Array.from(unicos).sort((a, b) => a.localeCompare(b))
-})
-
-const isIndisponivel = (diluente: string) => {
-  if (listaGlobalDiluentes.value.length === 0) return false
-  return !listaGlobalDiluentes.value.includes(diluente)
-}
-
-const labelResumido = computed(() => {
-  if (diluentesUnificados.value.length === 0) return 'Sem opções'
-  const permitidos = safeModelValue.value.opcoesPermitidas || []
-  if (permitidos.length === 0) return 'Selecione...'
-  if (permitidos.length === 1) return permitidos[0]
-  return `${permitidos.length} selecionados`
-})
-
-const toggleDiluente = (diluente: string, checked: boolean) => {
-  const novoConfig: ConfiguracaoDiluicao = props.modelValue
-    ? {...props.modelValue}
-    : { selecionada: '', opcoesPermitidas: [] }
-
-  if (!novoConfig.opcoesPermitidas) novoConfig.opcoesPermitidas = []
-
-  if (checked) {
-    if (!novoConfig.opcoesPermitidas.includes(diluente)) {
-      novoConfig.opcoesPermitidas.push(diluente)
-    }
-    if (novoConfig.opcoesPermitidas.length === 1) {
-      novoConfig.selecionada = diluente
-    }
-  } else {
-    novoConfig.opcoesPermitidas = novoConfig.opcoesPermitidas.filter(d => d !== diluente)
-    if (novoConfig.selecionada === diluente) {
-      novoConfig.selecionada = novoConfig.opcoesPermitidas[0] || ''
-    }
-  }
-  emit('update:modelValue', novoConfig)
-}
-
-const updateSelecionada = (val: string) => {
-  const novoConfig: ConfiguracaoDiluicao = props.modelValue
-      ? {...props.modelValue, selecionada: val}
-      : {selecionada: val, opcoesPermitidas: [val]}
-  emit('update:modelValue', novoConfig)
-}
+const {
+  safeModelValue,
+  diluentesUnificados,
+  isIndisponivel,
+  labelResumido,
+  toggleDiluente,
+  updateSelecionada
+} = useProtocoloDiluentes(modelValueRef, emit)
 </script>
 
 <template>
@@ -89,9 +40,9 @@ const updateSelecionada = (val: string) => {
       <DropdownMenu>
         <DropdownMenuTrigger as-child>
           <Button
-            class="w-full justify-between font-normal px-2 bg-white h-8 text-sm"
-            variant="outline"
-            :disabled="diluentesUnificados.length === 0"
+              :disabled="diluentesUnificados.length === 0"
+              class="w-full justify-between font-normal px-2 bg-white h-8 text-sm"
+              variant="outline"
           >
             <span class="truncate">{{ labelResumido }}</span>
             <ChevronDown class="h-3 w-3 opacity-50"/>
@@ -132,10 +83,10 @@ const updateSelecionada = (val: string) => {
         </SelectTrigger>
         <SelectContent>
           <SelectItem
-            v-for="d in safeModelValue.opcoesPermitidas || []"
-            :key="d"
-            :value="d"
-            class="text-sm hover:bg-neutral-100 flex items-center justify-between gap-2"
+              v-for="d in safeModelValue.opcoesPermitidas || []"
+              :key="d"
+              :value="d"
+              class="text-sm hover:bg-neutral-100 flex items-center justify-between gap-2"
           >
             <span :class="isIndisponivel(d) ? 'text-red-600 line-through decoration-red-600/50' : ''">
               {{ d }}
