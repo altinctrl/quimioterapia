@@ -93,6 +93,23 @@ export function useProtocoloFormulario(protocoloId?: string) {
     }
   };
 
+  const excluirProtocolo = async () => {
+    if (!protocoloId) return;
+    if (!confirm('Tem certeza que deseja excluir este protocolo? Esta ação não pode ser desfeita.')) return;
+
+    try {
+      loading.value = true;
+      await appStore.excluirProtocolo(protocoloId);
+      toast.success('Protocolo removido com sucesso');
+      await router.push({name: 'Ajustes', query: {tab: 'protocolos'}});
+    } catch (error) {
+      console.error(error);
+      toast.error('Erro ao remover protocolo');
+    } finally {
+      loading.value = false;
+    }
+  };
+
   const cancelEdit = () => {
     void router.push({name: 'Ajustes', query: {tab: 'protocolos'}});
   };
@@ -103,6 +120,7 @@ export function useProtocoloFormulario(protocoloId?: string) {
     isEditMode,
     initForm,
     saveProtocolo,
+    excluirProtocolo,
     cancelEdit
   };
 }

@@ -11,9 +11,10 @@ export const useProtocoloStore = defineStore('protocolo', () => {
     return protocolos.value.find(p => p.id === id)
   }
 
-  async function fetchProtocolos(ativo: boolean = true) {
+  async function fetchProtocolos(ativo?: boolean) {
     try {
-      const res = await api.get('/api/protocolos', {params: {ativo}})
+      const params = ativo !== undefined ? { ativo } : {};
+      const res = await api.get('/api/protocolos', {params})
       protocolos.value = res.data
     } catch (e) {
       console.error(e)
@@ -51,13 +52,12 @@ export const useProtocoloStore = defineStore('protocolo', () => {
     }
   }
 
-  async function desativarProtocolo(id: string) {
+  async function excluirProtocolo(id: string) {
     try {
       await api.delete(`/api/protocolos/${id}`)
-      const idx = protocolos.value.findIndex(p => p.id === id)
-      if (idx !== -1) protocolos.value[idx].ativo = false
+      await fetchProtocolos()
     } catch (e) {
-      toast.error("Erro ao desativar")
+      toast.error("Erro ao excluir")
       throw e
     }
   }
@@ -69,6 +69,6 @@ export const useProtocoloStore = defineStore('protocolo', () => {
     adicionarProtocolo,
     importarProtocolos,
     atualizarProtocolo,
-    desativarProtocolo
+    excluirProtocolo,
   }
 })
