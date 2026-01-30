@@ -10,6 +10,7 @@ class Protocolo(Base):
     id = Column(String, primary_key=True)
     nome = Column(String, nullable=False, index=True)
     indicacao = Column(String, nullable=True)
+    tipo_terapia = Column(String, nullable=True)
     tempo_total_minutos = Column(Integer, nullable=False)
     duracao_ciclo_dias = Column(Integer, nullable=False)
     total_ciclos = Column(Integer, nullable=True)

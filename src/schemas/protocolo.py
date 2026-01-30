@@ -5,6 +5,17 @@ from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
 
+class TipoTerapiaEnum(str, Enum):
+    QUIMIOTERAPIA = "quimioterapia"
+    IMUNOTERAPIA = "imunoterapia"
+    TERAPIA_ALVO = "terapia_alvo"
+    HORMONIOTERAPIA = "hormonioterapia"
+    ANTICORPO_MONOCLONAL = "anticorpo_monoclonal"
+    IMUNOGLOBULINA = "imunoglobulina"
+    MEDICACAO_SUPORTE = "medicacao_suporte"
+    HEMATOLOGIA = "hematologia"
+
+
 class FaseEnum(str, Enum):
     NA = "NA"
     ADJUVANTE = "Adjuvante"
@@ -98,6 +109,7 @@ class ProtocoloBase(BaseSchema):
     fase: Optional[FaseEnum] = None
     linha: Optional[int] = None
     indicacao: Optional[str] = None
+    tipo_terapia: Optional[str] = None
     precaucoes: Optional[str] = None
     observacoes: Optional[str] = None
     tempo_total_minutos: int = None
@@ -117,6 +129,7 @@ class ProtocoloUpdate(BaseSchema):
     fase: Optional[FaseEnum] = None
     linha: Optional[int] = None
     indicacao: Optional[str] = None
+    tipo_terapia: Optional[str] = None
     precaucoes: Optional[str] = None
     observacoes: Optional[str] = None
     tempo_total_minutos: Optional[int] = None

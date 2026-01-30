@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.resources.database import app_engine, aghu_engine
-from src.routers import auth, agendamento, configuracao, paciente, prescricao, protocolo, equipe
+from src.routers import auth, agendamento, configuracao, paciente, prescricao, protocolo, equipe, relatorio
 
 
 @asynccontextmanager
@@ -40,6 +40,7 @@ app.include_router(equipe.router)
 app.include_router(paciente.router)
 app.include_router(prescricao.router)
 app.include_router(protocolo.router)
+app.include_router(relatorio.router)
 
 if __name__ == "__main__":
     import uvicorn
