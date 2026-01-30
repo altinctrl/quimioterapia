@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Relatório de Medicações</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 1.5cm;
+        }
+
+        body {
+            font-family: sans-serif;
+            font-size: 11px;
+            color: #333;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 5px;
+            font-size: 16px;
+        }
+
+        .meta {
+            text-align: center;
+            margin-bottom: 25px;
+            color: #666;
+            font-size: 12px;
+        }
+
+        .med-block {
+            border: 1px solid #ccc;
+            margin-bottom: 15px;
+            page-break-inside: avoid;
+            border-radius: 4px;
+        }
+
+        .med-header {
+            background-color: #f0f0f0;
+            padding: 8px;
+            border-bottom: 1px solid #ccc;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .med-title {
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .med-meta {
+            font-size: 11px;
+            color: #555;
+        }
+
+        .med-content {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .med-content td {
+            width: 50%;
+            vertical-align: top;
+            padding: 0;
+            border: none;
+        }
+
+        .med-content td:first-child {
+            border-right: 1px solid #eee;
+        }
+
+        .column-header {
+            background-color: #fafafa;
+            padding: 5px;
+            font-weight: bold;
+            font-size: 10px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+            color: #555;
+        }
+
+        .patient-list {
+            padding: 5px;
+        }
+
+        .patient-item {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px dotted #eee;
+            padding: 2px 0;
+            font-size: 10px;
+        }
+
+        .patient-item:last-child {
+            border-bottom: none;
+        }
+
+        .patient-dose {
+            color: #666;
+            font-weight: bold;
+        }
+
+        .subtotal {
+            text-align: right;
+            font-weight: bold;
+            padding: 5px;
+            background-color: #fffde7;
+            font-size: 10px;
+            border-top: 1px solid #eee;
+        }
+
+        .empty-msg {
+            text-align: center;
+            color: #999;
+            font-style: italic;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+<h1>Relatório de Controle de Farmácia</h1>
+<div class="meta">
+    <strong>Período:</strong> {{ data_inicio }} a {{ data_fim }} &nbsp;|&nbsp;
+    <strong>Gerado em:</strong> {{ data_hora_geracao }}
+</div>
+
+{% for med in medicacoes %}
+<div class="med-block">
+    <div class="med-header">
+        <span class="med-title">{{ med.nome }}</span>
+        <span class="med-meta">
+                Total Prescrito: <strong>{{ "%.2f"|format(med.qtd_prescrito) }} {{ med.unidade }}</strong>
+            </span>
+    </div>
+
+    <table class="med-content">
+        <tr>
+            <td>
+                <div class="column-header">
+                    ENVIADOS
+                </div>
+                {% if med.lista_enviados %}
+                <div class="patient-list">
+                    {% for p in med.lista_enviados %}
+                    <div class="patient-item">
+                        <span>{{ p.nome }}</span>
+                        <span class="patient-dose">{{ p.dose }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="subtotal">
+                    Total Enviado: {{ "%.2f"|format(med.qtd_enviado) }}
+                </div>
+                {% else %}
+                <div class="empty-msg">- Nenhum -</div>
+                {% endif %}
+            </td>
+
+            <td>
+                <div class="column-header">
+                    AUSENTES
+                </div>
+                {% if med.lista_ausentes %}
+                <div class="patient-list">
+                    {% for p in med.lista_ausentes %}
+                    <div class="patient-item">
+                        <span>{{ p.nome }}</span>
+                        <span class="patient-dose">{{ p.dose }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="subtotal" style="background-color: #ffebee;">
+                    Total Não Enviado: {{ "%.2f"|format(med.qtd_ausente) }}
+                </div>
+                {% else %}
+                <div class="empty-msg">- Nenhum -</div>
+                {% endif %}
+            </td>
+        </tr>
+    </table>
+</div>
+{% else %}
+<div style="text-align: center; padding: 50px; color: #666;">
+    Nenhuma medicação encontrada para o período selecionado.
+</div>
+{% endfor %}
+
+</body>
+</html>

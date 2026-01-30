@@ -61,6 +61,17 @@ class TipoProcedimento(str, enum.Enum):
     MEDICACAO = "medicacao"
 
 
+MAPA_PROCEDIMENTOS = {
+    TipoProcedimento.RETIRADA_INFUSOR: "Retirada de Infusor",
+    TipoProcedimento.PARACENTESE_ALIVIO: "Paracentese de Alívio",
+    TipoProcedimento.MANUTENCAO_CTI: "Manutenção de CTI",
+    TipoProcedimento.RETIRADA_PONTOS: "Retirada de Pontos",
+    TipoProcedimento.TROCA_BOLSA: "Troca de Bolsa",
+    TipoProcedimento.CURATIVO: "Curativo",
+    TipoProcedimento.MEDICACAO: "Medicação",
+}
+
+
 class TipoConsulta(str, enum.Enum):
     TRIAGEM = "triagem"
     NAVEGACAO = "navegacao"
@@ -73,6 +84,16 @@ class MotivoSuspensao(str, enum.Enum):
     LABORATORIAL = "alteracoes_laboratoriais"
     OBITO = "obito"
     ADMINISTRATIVO = "sem_processo"
+
+
+MAPA_MOTIVOS_SUSPENSAO = {
+    MotivoSuspensao.CLINICA: "Alterações Clínicas",
+    MotivoSuspensao.PROTOCOLO: "Mudança de Protocolo",
+    MotivoSuspensao.FALTA_MEDICACAO: "Falta de Medicação",
+    MotivoSuspensao.LABORATORIAL: "Alterações Laboratoriais",
+    MotivoSuspensao.OBITO: "Óbito",
+    MotivoSuspensao.ADMINISTRATIVO: "Sem Processo",
+}
 
 
 class TipoIntercorrencia(str, enum.Enum):

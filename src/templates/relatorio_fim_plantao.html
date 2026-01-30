@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Fechamento de Plantão</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+
+        body {
+            font-family: sans-serif;
+            font-size: 11px;
+            color: #333;
+        }
+
+        h1 {
+            font-size: 16px;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        h2 {
+            font-size: 13px;
+            background-color: #f0f0f0;
+            padding: 4px;
+            border-bottom: 1px solid #ccc;
+            margin-top: 15px;
+            margin-bottom: 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 5px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            background-color: #f9f9f9;
+            font-weight: bold;
+        }
+
+        .stat-label {
+            width: 65%;
+        }
+
+        .stat-value {
+            width: 35%;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .section {
+            margin-bottom: 15px;
+        }
+
+        .details-box {
+            background-color: #fffde7;
+            padding: 5px;
+            border: 1px solid #e0e0e0;
+            margin-top: 5px;
+        }
+
+        ul {
+            margin: 5px 0 5px 20px;
+            padding: 0;
+        }
+
+        .empty-msg {
+            font-style: italic;
+            color: #777;
+            font-size: 10px;
+        }
+    </style>
+</head>
+<body>
+<h1>Relatório de Fechamento de Plantão ({{ data_formatada }})</h1>
+<p style="text-align: center"><strong>Gerado em:</strong> {{ data_hora_geracao }}</p>
+
+<div class="section">
+    <h2>Escala</h2>
+
+    {% if equipe %}
+    <table>
+        <thead>
+        <tr>
+            <th>Função</th>
+            <th>Profissional</th>
+            <th>Turno</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for item in equipe %}
+        <tr>
+            <td>{{ item.funcao }}</td>
+            <td>{{ item.profissional.nome if item.profissional else 'N/A' }}</td>
+            <td>{{ item.turno }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-msg">Nenhuma equipe registrada na escala.</div>
+    {% endif %}
+</div>
+
+<div class="section">
+    <h2>Controle de Ausências</h2>
+
+    {% if ausencias %}
+    <table>
+        <thead>
+        <tr>
+            <th>Colaborador</th>
+            <th>Motivo</th>
+            <th>Dias de Afastamento</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for aus in ausencias %}
+        <tr>
+            <td>{{ aus.profissional.nome if aus.profissional else 'N/A' }}</td>
+            <td>{{ aus.motivo }}</td>
+            <td>{{ (aus.data_fim - aus.data_inicio).days + 1 }} dia(s) <span style="font-size:9px">({{ aus.data_inicio.strftime('%d/%m') }} a {{ aus.data_fim.strftime('%d/%m') }})</span>
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-msg">Nenhuma ausência hoje.</div>
+    {% endif %}
+</div>
+
+<div class="section">
+    <h2>Estatísticas Gerais</h2>
+
+    <table>
+        <tr>
+            <td class="stat-label">Agendados</td>
+            <td class="stat-value">{{ stats.agendados }}</td>
+        </tr>
+        <tr>
+            <td class="stat-label">Encaixes</td>
+            <td class="stat-value">{{ stats.encaixes }}</td>
+        </tr>
+        <tr>
+            <td class="stat-label">Ausências</td>
+            <td class="stat-value">{{ stats.ausentes }}</td>
+        </tr>
+        <tr>
+            <td class="stat-label">Internamentos</td>
+            <td class="stat-value">{{ stats.internamentos|default(0) }}</td>
+        </tr>
+        <tr>
+            <td class="stat-label">Remarcações</td>
+            <td class="stat-value">{{ stats.remarcados|default(0) }}</td>
+        </tr>
+    </table>
+</div>
+
+<div class="section">
+    <h2>Consultas</h2>
+
+    <table>
+        <tr>
+            <td class="stat-label">Triagens</td>
+            <td class="stat-value">{{ stats.consultas_triagem }}</td>
+        </tr>
+        <tr>
+            <td class="stat-label">Consultas de Navegação</td>
+            <td class="stat-value">{{ stats.consultas_navegacao }}</td>
+        </tr>
+    </table>
+</div>
+
+<div class="section">
+    <h2>Procedimentos</h2>
+
+    <table>
+        {% for proc, qtd in stats.procedimentos.items() %}
+        <tr>
+            <td class="stat-label">{{ proc }}</td>
+            <td class="stat-value">{{ qtd }}</td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="2" class="empty-msg">Nenhum procedimento específico registrado.</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+
+<div class="section">
+    <h2>Terapias</h2>
+
+    <table>
+        <tr>
+            <td class="stat-label">Agendados para Terapia</td>
+            <td class="stat-value">{{ stats.total_infusoes }}</td>
+        </tr>
+        <tr>
+            <td class="stat-label">Terapias com duração > 4h</td>
+            <td class="stat-value">{{ stats.duracao_maior_4h }}</td>
+        </tr>
+        <tr>
+            <td class="stat-label">Terapias com duração 2-4h</td>
+            <td class="stat-value">{{ stats.duracao_2h_4h }}</td>
+        </tr>
+        <tr>
+            <td class="stat-label">Terapias com duração < 2h</td>
+            <td class="stat-value">{{ stats.duracao_ate_2h }}</td>
+        </tr>
+        <tr>
+            <td class="stat-label">Hormonioterapias</td>
+            <td class="stat-value">{{ stats.hormonioterapia }}</td>
+        </tr>
+        <tr>
+            <td class="stat-label">Imunoterapias, Terapias Alvo e Anticorpo Monoclonal</td>
+            <td class="stat-value">{{ stats.imuno_alvo }}</td>
+        </tr>
+        <tr>
+            <td class="stat-label">Terapias com Rituximabe</td>
+            <td class="stat-value">{{ stats.rituximabe_especial }}</td>
+        </tr>
+        <tr>
+            <td class="stat-label">Terapias com Zometa</td>
+            <td class="stat-value">{{ stats.zometa }}</td>
+        </tr>
+    </table>
+</div>
+
+<div class="section">
+    <h2>Suspensões</h2>
+    <table>
+        <tr style="background-color: #f9f9f9;">
+            <td><strong>Total de Suspensões</strong></td>
+            <td class="stat-value">{{ stats.suspensoes_total }}</td>
+        </tr>
+        {% for motivo, qtd in stats.motivos_suspensao.items() %}
+        <tr>
+            <td>{{ motivo }}</td>
+            <td class="stat-value">{{ qtd }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    {% if stats.suspensao_med_drogas %}
+    <div class="details-box">
+        <strong>Medicamentos em falta que causaram suspensão:</strong><br>
+        {{ stats.suspensao_med_drogas | join(', ') }}
+    </div>
+    {% endif %}
+</div>
+
+<div class="section">
+    <h2>Intercorrências</h2>
+    <table>
+        <tr>
+            <td>Derramamento de QT</td>
+            <td class="stat-value">{{ stats.derramamentos }}</td>
+        </tr>
+        {% if stats.derramamentos > 0 %}
+        <tr>
+            <td colspan="2" class="details-box"><strong>Drogas derramadas:</strong> {{ stats.derramamento_drogas |
+                join(', ') }}
+            </td>
+        </tr>
+        {% endif %}
+
+        <tr>
+            <td>Reações de Hipersensibilidade</td>
+            <td class="stat-value">{{ stats.hipersensibilidade }}</td>
+        </tr>
+        {% if stats.hipersensibilidade > 0 %}
+        <tr>
+            <td colspan="2" class="details-box">
+                <strong>Drogas que causaram reação:</strong> {{ stats.hipersensibilidade_drogas | join(', ') }}<br>
+                <strong>VIGIHOSP realizado:</strong> {{ 'SIM' if stats.vigihosp_realizado else 'NÃO' }}
+            </td>
+        </tr>
+        {% endif %}
+
+        <tr>
+            <td>Extravasamentos</td>
+            <td class="stat-value">{{ stats.extravasamentos }}</td>
+        </tr>
+        {% if stats.extravasamentos > 0 %}
+        <tr>
+            <td colspan="2" class="details-box"><strong>Drogas extravasadas:</strong> {{ stats.extravasamento_drogas |
+                join(', ') }}
+            </td>
+        </tr>
+        {% endif %}
+    </table>
+</div>
+
+</body>
+</html>
