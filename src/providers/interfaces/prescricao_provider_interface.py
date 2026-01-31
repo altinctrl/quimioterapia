@@ -24,3 +24,7 @@ class PrescricaoProviderInterface(ABC):
     @abstractmethod
     async def criar_prescricao(self, prescricao: Prescricao) -> Prescricao:
         pass
+
+    @abstractmethod
+    async def atualizar_prescricao(self, prescricao: Prescricao) -> Prescricao:
+        pass
