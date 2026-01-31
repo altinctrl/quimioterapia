@@ -17,6 +17,10 @@ class Prescricao(Base):
     data_emissao = Column(DateTime, default=datetime.now)
     status = Column(String, default="pendente")
     conteudo = Column(JSONB, nullable=False)
+    historico_status = Column(JSONB, nullable=True, default=list)
+    historico_agendamentos = Column(JSONB, nullable=True, default=list)
+    prescricao_substituta_id = Column(String, ForeignKey("prescricoes.id"), nullable=True)
+    prescricao_original_id = Column(String, ForeignKey("prescricoes.id"), nullable=True)
 
     paciente = relationship("Paciente", back_populates="prescricoes")
     medico = relationship("Profissional")
