@@ -8,7 +8,7 @@ from src.controllers import agendamento_controller
 from src.dependencies import get_agendamento_provider, get_prescricao_provider
 from src.providers.interfaces.agendamento_provider_interface import AgendamentoProviderInterface
 from src.providers.interfaces.prescricao_provider_interface import PrescricaoProviderInterface
-from src.schemas.agendamento import AgendamentoCreate, AgendamentoUpdate, AgendamentoResponse
+from src.schemas.agendamento import AgendamentoCreate, AgendamentoUpdate, AgendamentoResponse, AgendamentoBulkUpdateList
 
 router = APIRouter(prefix="/api/agendamentos", tags=["Agendamentos"], dependencies=[Depends(auth_handler.decode_token)])
 
@@ -46,6 +46,14 @@ async def criar_agendamento(
         dados,
         criado_por_id=user_id,
     )
+
+
+@router.put("/lote", response_model=List[AgendamentoResponse])
+async def atualizar_agendamentos_em_lote(
+    dados: AgendamentoBulkUpdateList,
+    provider: AgendamentoProviderInterface = Depends(get_agendamento_provider)
+):
+    return await agendamento_controller.atualizar_agendamentos_lote(provider, dados)
 
 
 @router.put("/{agendamento_id}", response_model=AgendamentoResponse)

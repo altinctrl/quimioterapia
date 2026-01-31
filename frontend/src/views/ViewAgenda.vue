@@ -275,6 +275,7 @@ const handleRemarcado = () => {
             @abrir-remarcar="handleAbrirRemarcar"
             @alterar-checkin="handleAlterarCheckin"
             @alterar-status="handleAlterarStatus"
+          @remarcado="handleRemarcado"
         />
       </TabsContent>
 
@@ -292,6 +293,7 @@ const handleRemarcado = () => {
             @abrir-remarcar="handleAbrirRemarcar"
             @alterar-checkin="handleAlterarCheckin"
             @alterar-status="handleAlterarStatus"
+          @remarcado="handleRemarcado"
         />
       </TabsContent>
 
@@ -309,6 +311,7 @@ const handleRemarcado = () => {
             @abrir-remarcar="handleAbrirRemarcar"
             @alterar-checkin="handleAlterarCheckin"
             @alterar-status="handleAlterarStatus"
+          @remarcado="handleRemarcado"
         />
       </TabsContent>
     </Tabs>

@@ -4,6 +4,7 @@ import {useRouter} from 'vue-router'
 import {useAppStore} from '@/stores/storeGeral.ts'
 import {Agendamento, AgendamentoStatusEnum, FarmaciaStatusEnum} from "@/types/typesAgendamento.ts";
 import {Card, CardContent} from '@/components/ui/card'
+import {Button} from '@/components/ui/button'
 import FarmaciaCabecalho from '@/components/farmacia/FarmaciaCabecalho.vue'
 import FarmaciaMetricas from '@/components/farmacia/FarmaciaMetricas.vue'
 import FarmaciaTabela, {type FarmaciaTableRow} from '@/components/farmacia/FarmaciaTabela.vue'
@@ -13,6 +14,7 @@ import {isInfusao, somarDias} from '@/utils/utilsAgenda.ts'
 import AgendamentoModalDetalhes from "@/components/comuns/AgendamentoModalDetalhes.vue";
 import PrescricaoModalDetalhes from "@/components/comuns/PrescricaoModalDetalhes.vue";
 import {useLocalStorage, useSessionStorage} from "@vueuse/core";
+import {toast} from 'vue-sonner'
 
 const router = useRouter()
 const appStore = useAppStore()
@@ -43,6 +45,8 @@ const filtros = useLocalStorage<FiltrosFarmacia>('farmacia_filtros', {
 
 const mostrarMetricas = useLocalStorage('farmacia_mostrar_metricas', true)
 const expandedIdsMap = useSessionStorage<Record<string, string[]>>('farmacia_listas_expandidas_map', {})
+const selectedIds = ref<string[]>([])
+const bulkStatus = ref<FarmaciaStatusEnum | ''>('')
 
 const detalhesModalOpen = ref(false)
 const agendamentoSelecionado = ref<Agendamento | null>(null)
@@ -261,6 +265,69 @@ const metricas = computed(() => {
   }
 })
 
+const selectedRows = computed(() => {
+  const ids = new Set(selectedIds.value)
+  return viewRows.value.filter(r => ids.has(r.id))
+})
+
+const limparSelecao = () => {
+  selectedIds.value = []
+  bulkStatus.value = ''
+}
+
+const aplicarStatusLote = async () => {
+  if (!bulkStatus.value) {
+    toast.error('Selecione um status para aplicar.')
+    return
+  }
+
+  const selecionados = selectedRows.value
+  if (selecionados.length === 0) return
+
+  const itensParaAtualizar: any[] = []
+  let bloqueadosCount = 0
+
+  selecionados.forEach(row => {
+    if (row.statusBloqueado) {
+      bloqueadosCount++
+      return
+    }
+
+    if (row.statusFarmacia !== bulkStatus.value) {
+      itensParaAtualizar.push({
+        id: row.id,
+        detalhes: {
+          infusao: {
+            status_farmacia: bulkStatus.value
+          }
+        }
+      })
+    }
+  })
+
+  if (itensParaAtualizar.length === 0) {
+    if (bloqueadosCount > 0) {
+      toast.warning('Nenhum item válido para atualizar.')
+    } else {
+      toast.info('Todos os itens já estão com este status.')
+    }
+    limparSelecao()
+    return
+  }
+
+  try {
+    await appStore.atualizarAgendamentosEmLote(itensParaAtualizar)
+
+    if (bloqueadosCount > 0) {
+      toast.warning(`${bloqueadosCount} itens bloqueados foram ignorados.`)
+    }
+
+    limparSelecao()
+  } catch (error) {
+    console.error("Erro na atualização em lote da farmácia", error)
+  }
+}
+
 const opcoesStatusFarmacia = computed(() => {
   return appStore.statusConfig
     .filter(s => s.tipo === 'farmacia')
@@ -274,6 +341,11 @@ const opcoesStatusFarmacia = computed(() => {
 watch(dataSelecionada, async (novaData) => {
   await appStore.fetchAgendamentos(novaData, novaData)
 }, {immediate: true})
+
+watch(viewRows, (lista) => {
+  const idsVisiveis = new Set(lista.map(r => r.id))
+  selectedIds.value = selectedIds.value.filter(id => idsVisiveis.has(id))
+})
 </script>
 
 <template>
@@ -314,9 +386,41 @@ watch(dataSelecionada, async (novaData) => {
         />
       </div>
 
+      <div v-if="selectedIds.length" class="px-4 py-3">
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between bg-blue-50 border border-blue-100 rounded-md p-3">
+          <span class="text-sm font-medium text-blue-700">
+            {{ selectedIds.length }} selecionados
+          </span>
+          <div class="flex flex-wrap items-center gap-2">
+            <select
+                v-model="bulkStatus"
+                class="flex h-8 min-w-[200px] items-center justify-between rounded-md border border-input bg-white
+                px-2 py-1 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none
+                focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            >
+              <option disabled value="">Alterar status...</option>
+              <option
+                  v-for="opcao in opcoesStatusFarmacia"
+                  :key="opcao.id"
+                  :value="opcao.id"
+              >
+                {{ opcao.label }}
+              </option>
+            </select>
+            <Button class="h-8" size="sm" variant="outline" @click="limparSelecao">
+              Cancelar
+            </Button>
+            <Button class="h-8" size="sm" @click="aplicarStatusLote">
+              Confirmar
+            </Button>
+          </div>
+        </div>
+      </div>
+
       <CardContent class="p-0 mt-0">
         <FarmaciaTabela
             v-model:expanded-ids="expandedIdsDoDia"
+            v-model:selected-ids="selectedIds"
             :opcoes-status="opcoesStatusFarmacia"
             :rows="viewRows"
             @alterar-status="handleAlterarStatus"

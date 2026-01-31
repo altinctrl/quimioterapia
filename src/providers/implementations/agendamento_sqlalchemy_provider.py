@@ -33,6 +33,11 @@ class AgendamentoSQLAlchemyProvider(AgendamentoProviderInterface):
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
 
+    async def buscar_por_id_multi(self, ids: List[str]) -> List[Agendamento]:
+        query = select(Agendamento).where(Agendamento.id.in_(ids)).options(selectinload(Agendamento.paciente), selectinload(Agendamento.criado_por))
+        result = await self.session.execute(query)
+        return result.scalars().all()
+
 
     async def buscar_por_prescricao_e_dia(self, prescricao_id: str, dia_ciclo: int) -> List[Agendamento]:
         query = select(Agendamento).where(
@@ -58,3 +63,8 @@ class AgendamentoSQLAlchemyProvider(AgendamentoProviderInterface):
         query = select(Agendamento).where(Agendamento.id == agendamento.id).options(selectinload(Agendamento.paciente), selectinload(Agendamento.criado_por))
         result = await self.session.execute(query)
         return result.scalar_one()
+
+    async def atualizar_agendamento_multi(self, agendamentos: List[Agendamento]) -> List[Agendamento]:
+        await self.session.commit()
+        ids = [a.id for a in agendamentos]
+        return await self.buscar_por_id_multi(ids)

@@ -1,9 +1,10 @@
 <script lang="ts" setup>
+import {computed} from 'vue'
 import {useRouter} from 'vue-router'
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '@/components/ui/table'
 import {Badge} from '@/components/ui/badge'
 import {Button} from '@/components/ui/button'
-import {ChevronDown, Clock, Tag} from 'lucide-vue-next'
+import {ChevronDown, Clock, Tag, Pill} from 'lucide-vue-next'
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/components/ui/tooltip'
 import {Agendamento, TipoAgendamento} from "@/types/typesAgendamento.ts";
 import {
@@ -18,9 +19,10 @@ import {
 import {Checkbox} from "@/components/ui/checkbox";
 import PacienteCelula from '@/components/comuns/PacienteCelula.vue'
 
-defineProps<{
+const props = defineProps<{
   agendamentos: Agendamento[]
   tipo: TipoAgendamento
+  selectedIds: string[]
 }>()
 
 const emit = defineEmits<{
@@ -30,9 +32,31 @@ const emit = defineEmits<{
   (e: 'abrir-remarcar', agendamento: Agendamento): void
   (e: 'alterar-checkin', agendamento: Agendamento, checkin: boolean): void
   (e: 'alterar-status', agendamento: Agendamento, novoStatus: string): void
+  (e: 'update:selectedIds', value: string[]): void
 }>()
 
 const router = useRouter()
+
+const selectedSet = computed(() => new Set(props.selectedIds))
+
+const areAllSelected = computed(() => {
+  return props.agendamentos.length > 0 && props.agendamentos.every(ag => selectedSet.value.has(ag.id))
+})
+
+const toggleAll = (checked: boolean) => {
+  if (!checked) {
+    emit('update:selectedIds', [])
+    return
+  }
+  emit('update:selectedIds', props.agendamentos.map(a => a.id))
+}
+
+const toggleSelect = (id: string, checked: boolean) => {
+  const next = new Set(props.selectedIds)
+  if (checked) next.add(id)
+  else next.delete(id)
+  emit('update:selectedIds', [...next])
+}
 
 const irParaProntuario = (pacienteId: string) => {
   router.push({path: '/pacientes', query: {pacienteId}})
@@ -51,6 +75,34 @@ const handleAlterarStatusPaciente = (agendamento: Agendamento, event: Event) => 
   select.value = statusAntigo
 }
 
+const getChecklistLabel = (agendamento: Agendamento) => {
+  if (agendamento.tipo !== 'infusao') return ''
+  const infoInfusao = agendamento.detalhes?.infusao
+  if (!infoInfusao) return ''
+
+  const itensPreparados = new Set(infoInfusao.itensPreparados || [])
+  const diaCicloAtual = infoInfusao.diaCiclo || 1
+  const prescricao = agendamento.prescricao
+
+  let totalMeds = 0
+  let totalChecked = 0
+
+  if (prescricao?.conteudo?.blocos?.length) {
+    prescricao.conteudo.blocos.forEach(bloco => {
+      bloco.itens.forEach(item => {
+        if (item.diasDoCiclo.includes(diaCicloAtual)) {
+          totalMeds += 1
+          const key = item.idItem || `${bloco.ordem}-${item.medicamento}`
+          if (itensPreparados.has(key)) totalChecked += 1
+        }
+      })
+    })
+  }
+
+  if (totalMeds === 0) return ''
+  return `${totalChecked}/${totalMeds}`
+}
+
 </script>
 
 <template>
@@ -58,6 +110,14 @@ const handleAlterarStatusPaciente = (agendamento: Agendamento, event: Event) => 
     <Table>
       <TableHeader>
         <TableRow class="hover:bg-transparent">
+          <TableHead class="w-[40px] text-center">
+            <div class="flex items-center justify-center">
+              <Checkbox
+                  :checked="areAllSelected"
+                  @update:checked="(val) => toggleAll(val as boolean)"
+              />
+            </div>
+          </TableHead>
           <TableHead class="pl-5 w-[100px]">Horário</TableHead>
           <TableHead class="min-w-[150px]">Paciente</TableHead>
           <TableHead class="min-w-[100px]">
@@ -71,7 +131,10 @@ const handleAlterarStatusPaciente = (agendamento: Agendamento, event: Event) => 
       </TableHeader>
       <TableBody>
         <TableRow v-if="agendamentos.length === 0">
-          <TableCell class="text-center py-12 text-gray-500" colspan="9">
+          <TableCell
+              class="text-center py-12 text-gray-500"
+              :colspan="tipo == 'infusao' ? 8 : 7"
+          >
             Nenhum agendamento corresponde aos filtros.
           </TableCell>
         </TableRow>
@@ -82,8 +145,16 @@ const handleAlterarStatusPaciente = (agendamento: Agendamento, event: Event) => 
             :key="ag.id"
             :class="{ 'bg-gray-50 opacity-60 grayscale': ag.status === 'remarcado' }"
         >
-          <TableCell class="p-0 relative">
+          <TableCell class="text-center p-0 pl-2 align-middle relative">
             <div v-if="tipo == 'infusao'" :class="['h-full w-[4px] absolute left-0 top-0 bottom-0', getAgendamentoInfo(ag).corBorda]"></div>
+            <div class="flex items-center justify-center">
+              <Checkbox
+                  :checked="selectedSet.has(ag.id)"
+                  @update:checked="(val) => toggleSelect(ag.id, val as boolean)"
+              />
+            </div>
+          </TableCell>
+          <TableCell class="p-0">
             <div class="px-4 pl-5">
               <button
                   class="text-md hover:text-blue-600 hover:underline"
@@ -100,7 +171,7 @@ const handleAlterarStatusPaciente = (agendamento: Agendamento, event: Event) => 
             </div>
           </TableCell>
 
-          <TableCell>
+          <TableCell class="py-0">
             <PacienteCelula
                 :nome="(ag.paciente?.nome) as string"
                 :observacoesClinicas="getObservacoesClinicas(ag)"
@@ -110,7 +181,7 @@ const handleAlterarStatusPaciente = (agendamento: Agendamento, event: Event) => 
             />
           </TableCell>
 
-          <TableCell class="align-center">
+          <TableCell class="align-center py-0">
             <div v-if="tipo == 'infusao'" class="flex flex-col truncate">
               <button
                   :title="ag.prescricao?.conteudo?.protocolo?.nome || '-'"
@@ -150,7 +221,7 @@ const handleAlterarStatusPaciente = (agendamento: Agendamento, event: Event) => 
             </div>
           </TableCell>
 
-          <TableCell>
+          <TableCell class="py-0">
             <div class="flex items-center gap-2">
               <div :class="['h-2.5 w-2.5 rounded-full flex-shrink-0', getStatusDotColor(ag.status)]"/>
 
@@ -177,8 +248,8 @@ const handleAlterarStatusPaciente = (agendamento: Agendamento, event: Event) => 
             </div>
           </TableCell>
 
-          <TableCell v-if="tipo=='infusao'" class="align-top">
-            <div class="flex flex-col gap-1">
+          <TableCell v-if="tipo=='infusao'" class="align-top py-1.5">
+            <div class="flex flex-col gap-0.5">
               <Badge
                   :class="[getFarmaciaStatusConfig(ag.detalhes?.infusao?.statusFarmacia).corBadge]"
                   class="w-fit font-semibold px-2 border uppercase hover:bg-opacity-100"
@@ -187,9 +258,16 @@ const handleAlterarStatusPaciente = (agendamento: Agendamento, event: Event) => 
                 {{ getFarmaciaStatusConfig(ag.detalhes?.infusao?.statusFarmacia).label }}
               </Badge>
 
-              <div class="pl-1 flex items-center gap-1.5 text-xs">
+              <div class="flex items-center gap-1 text-xs">
+                <Pill class="h-3 w-3 text-gray-400"/>
+                <span
+                    v-if="getChecklistLabel(ag)"
+                    class="font-medium text-gray-700 pr-1"
+                >
+                  {{ getChecklistLabel(ag) }}
+                </span>
                 <Clock class="h-3.5 w-3.5 text-gray-400"/>
-                <span v-if="ag.detalhes?.infusao?.horarioPrevisaoEntrega" class="text-blue-600 font-medium">
+                <span v-if="ag.detalhes?.infusao?.horarioPrevisaoEntrega" class="text-gray-700 font-medium">
                     {{ ag.detalhes.infusao.horarioPrevisaoEntrega }}
                 </span>
                 <span v-else class="text-gray-400 italic">

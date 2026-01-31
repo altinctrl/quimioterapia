@@ -59,6 +59,7 @@ export const useAppStore = defineStore('app', () => {
     atualizarHorarioPrevisao,
     remarcarAgendamento,
     atualizarTagsAgendamento,
+    atualizarAgendamentosEmLote,
     salvarChecklistFarmacia
   } = agendamentoStore
 
@@ -94,6 +95,7 @@ export const useAppStore = defineStore('app', () => {
     atualizarHorarioPrevisao,
     remarcarAgendamento,
     atualizarTagsAgendamento,
+    atualizarAgendamentosEmLote,
     salvarChecklistFarmacia,
 
     fetchProtocolos,

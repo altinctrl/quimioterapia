@@ -22,6 +22,10 @@ class AgendamentoProviderInterface(ABC):
         pass
 
     @abstractmethod
+    async def buscar_por_id_multi(self, ids: List[str]) -> List[Agendamento]:
+        pass
+
+    @abstractmethod
     async def buscar_por_prescricao_e_dia(
             self,
             prescricao_id: str,
@@ -39,4 +43,8 @@ class AgendamentoProviderInterface(ABC):
     async def atualizar_agendamento(
             self, agendamento: Agendamento,
     ) -> Agendamento:
+        pass
+
+    @abstractmethod
+    async def atualizar_agendamento_multi(self, agendamentos: List[Agendamento]) -> List[Agendamento]:
         pass
