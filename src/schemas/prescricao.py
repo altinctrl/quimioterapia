@@ -19,9 +19,11 @@ class BaseSchema(BaseModel):
 
 class PrescricaoStatusEnum(str, Enum):
     PENDENTE = 'pendente'
+    AGENDADA = 'agendada'
     EM_CURSO = 'em-curso'
     CONCLUIDA = 'concluida'
     SUSPENSA = 'suspensa'
+    SUBSTITUIDA = 'substituida'
     CANCELADA = 'cancelada'
 
 
@@ -77,6 +79,24 @@ class PrescricaoConteudo(BaseSchema):
     observacoes: Optional[str] = None
 
 
+class PrescricaoStatusHistoricoItem(BaseSchema):
+    data: datetime
+    usuario_id: Optional[str] = None
+    usuario_nome: Optional[str] = None
+    status_anterior: PrescricaoStatusEnum
+    status_novo: PrescricaoStatusEnum
+    motivo: Optional[str] = None
+
+
+class PrescricaoHistoricoAgendamentoItem(BaseSchema):
+    data: datetime
+    agendamento_id: str
+    status_agendamento: str
+    usuario_id: Optional[str] = None
+    usuario_nome: Optional[str] = None
+    observacoes: Optional[str] = None
+
+
 class PrescricaoCreate(BaseSchema):
     paciente_id: str
     medico_id: str
@@ -93,3 +113,13 @@ class PrescricaoResponse(BaseSchema):
     data_emissao: datetime
     status: PrescricaoStatusEnum  # TODO: Permitir atualizar status no banco de dados
     conteudo: PrescricaoConteudo
+    historico_status: List[PrescricaoStatusHistoricoItem] = []
+    historico_agendamentos: List[PrescricaoHistoricoAgendamentoItem] = []
+    prescricao_substituta_id: Optional[str] = None
+    prescricao_original_id: Optional[str] = None
+
+
+class PrescricaoStatusUpdate(BaseSchema):
+    status: PrescricaoStatusEnum
+    motivo: Optional[str] = None
+    prescricao_substituta_id: Optional[str] = None
