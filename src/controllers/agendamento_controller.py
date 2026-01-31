@@ -1,5 +1,5 @@
 import uuid
-from datetime import date
+from datetime import date, datetime
 from typing import List, Optional
 
 from fastapi import HTTPException, status
@@ -8,11 +8,17 @@ from sqlalchemy.orm.attributes import flag_modified
 from src.models.agendamento import Agendamento
 from src.providers.interfaces.agendamento_provider_interface import AgendamentoProviderInterface
 from src.providers.interfaces.prescricao_provider_interface import PrescricaoProviderInterface
+from src.controllers import prescricao_controller
 from src.schemas.agendamento import AgendamentoCreate, AgendamentoUpdate, AgendamentoResponse, TipoAgendamento, \
     AgendamentoBulkUpdateList
 from src.schemas.prescricao import PrescricaoResponse
 
-def _aplicar_regras_atualizacao(agendamento: Agendamento, update_data: dict):
+def _aplicar_regras_atualizacao(
+        agendamento: Agendamento,
+        update_data: dict,
+        usuario_id: str,
+        usuario_nome: str,
+) -> str:
     if 'tipo' in update_data:
         if update_data['tipo'] != agendamento.tipo:
             raise HTTPException(
@@ -21,6 +27,8 @@ def _aplicar_regras_atualizacao(agendamento: Agendamento, update_data: dict):
             )
         del update_data['tipo']
 
+    status_anterior = agendamento.status
+    checkin_anterior = agendamento.checkin
     novo_status = update_data.get('status', agendamento.status)
     novo_checkin = update_data.get('checkin', agendamento.checkin)
 
@@ -45,6 +53,10 @@ def _aplicar_regras_atualizacao(agendamento: Agendamento, update_data: dict):
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"O status '{novo_status}' exige que o paciente tenha realizado o Check-in."
             )
+
+    prescricao_id_anterior = None
+    if agendamento.tipo == TipoAgendamento.INFUSAO.value and agendamento.detalhes:
+        prescricao_id_anterior = agendamento.detalhes.get('infusao', {}).get('prescricao_id')
 
     if 'detalhes' in update_data:
         novos_detalhes = update_data['detalhes']
@@ -79,6 +91,63 @@ def _aplicar_regras_atualizacao(agendamento: Agendamento, update_data: dict):
 
     if 'detalhes' in update_data:
         flag_modified(agendamento, "detalhes")
+
+    historico_alteracoes = list(agendamento.historico_alteracoes or [])
+    if 'status' in update_data and update_data['status'] != status_anterior:
+        historico_alteracoes.append({
+            "data": datetime.now().isoformat(),
+            "usuario_id": usuario_id,
+            "usuario_nome": usuario_nome,
+            "tipo_alteracao": "status",
+            "campo": "status",
+            "valor_antigo": status_anterior,
+            "valor_novo": update_data['status']
+        })
+
+    if 'checkin' in update_data and update_data['checkin'] != checkin_anterior:
+        historico_alteracoes.append({
+            "data": datetime.now().isoformat(),
+            "usuario_id": usuario_id,
+            "usuario_nome": usuario_nome,
+            "tipo_alteracao": "checkin",
+            "campo": "checkin",
+            "valor_antigo": str(checkin_anterior),
+            "valor_novo": str(update_data['checkin'])
+        })
+
+    if 'detalhes' in update_data and prescricao_id_anterior:
+        prescricao_id_nova = agendamento.detalhes.get('infusao', {}).get('prescricao_id')
+        if prescricao_id_nova and prescricao_id_nova != prescricao_id_anterior:
+            detalhes = dict(agendamento.detalhes) if agendamento.detalhes else {}
+            historico_prescricoes = list(detalhes.get('historico_prescricoes') or [])
+            historico_prescricoes.append({
+                "data": datetime.now().isoformat(),
+                "usuario_id": usuario_id,
+                "usuario_nome": usuario_nome,
+                "prescricao_id_anterior": prescricao_id_anterior,
+                "prescricao_id_nova": prescricao_id_nova,
+                "motivo": "Substituição manual"
+            })
+            detalhes['historico_prescricoes'] = historico_prescricoes
+            agendamento.detalhes = detalhes
+            flag_modified(agendamento, "detalhes")
+
+            historico_alteracoes.append({
+                "data": datetime.now().isoformat(),
+                "usuario_id": usuario_id,
+                "usuario_nome": usuario_nome,
+                "tipo_alteracao": "prescricao",
+                "campo": "prescricao_id",
+                "valor_antigo": prescricao_id_anterior,
+                "valor_novo": prescricao_id_nova,
+                "motivo": "Substituição manual"
+            })
+
+    if historico_alteracoes:
+        agendamento.historico_alteracoes = historico_alteracoes
+        flag_modified(agendamento, "historico_alteracoes")
+
+    return prescricao_id_anterior
 
 
 async def listar_agendamentos(
@@ -118,7 +187,8 @@ async def criar_agendamento(
         provider: AgendamentoProviderInterface,
         prescricao_provider: PrescricaoProviderInterface,
         dados: AgendamentoCreate,
-        criado_por_id: str
+        criado_por_id: str,
+        usuario_nome: Optional[str] = None
 ) -> AgendamentoResponse:
     if dados.tipo == TipoAgendamento.INFUSAO:
         detalhes_inf = dados.detalhes.infusao
@@ -126,6 +196,9 @@ async def criar_agendamento(
         prescricao = await prescricao_provider.obter_prescricao(detalhes_inf.prescricao_id)
         if not prescricao:
             raise HTTPException(status_code=400, detail="Prescrição informada não encontrada.")
+
+        if prescricao.status in ['suspensa', 'cancelada', 'substituida']:
+            raise HTTPException(status_code=400, detail="Prescrição indisponível para novos agendamentos.")
 
         if prescricao.paciente_id != dados.paciente_id:
             raise HTTPException(status_code=400, detail="A prescrição não pertence ao paciente informado.")
@@ -169,24 +242,95 @@ async def criar_agendamento(
     )
 
     criado = await provider.criar_agendamento(agendamento)
+
+    if dados.tipo == TipoAgendamento.INFUSAO:
+        prescricao = await prescricao_provider.obter_prescricao(dados.detalhes.infusao.prescricao_id)
+        if prescricao:
+            historico_agendamentos = list(prescricao.historico_agendamentos or [])
+            historico_agendamentos.append({
+                "data": datetime.now().isoformat(),
+                "agendamento_id": criado.id,
+                "status_agendamento": criado.status,
+                "usuario_id": criado_por_id,
+                "usuario_nome": usuario_nome,
+                "observacoes": "Agendamento criado"
+            })
+            prescricao.historico_agendamentos = historico_agendamentos
+            flag_modified(prescricao, "historico_agendamentos")
+            await prescricao_provider.atualizar_prescricao(prescricao)
+
+        await prescricao_controller.recalcular_status_prescricao(
+            prescricao_provider,
+            provider,
+            dados.detalhes.infusao.prescricao_id,
+            usuario_id=criado_por_id,
+            usuario_nome=usuario_nome
+        )
+
     return AgendamentoResponse.model_validate(criado)
 
 
-async def atualizar_agendamento(provider: AgendamentoProviderInterface, agendamento_id: str,
-                                dados: AgendamentoUpdate) -> AgendamentoResponse:
+async def atualizar_agendamento(
+        provider: AgendamentoProviderInterface,
+        prescricao_provider: PrescricaoProviderInterface,
+        agendamento_id: str,
+        dados: AgendamentoUpdate,
+        usuario_id: Optional[str] = None,
+        usuario_nome: Optional[str] = None
+) -> AgendamentoResponse:
     agendamento = await provider.obter_agendamento(agendamento_id)
     if not agendamento:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agendamento não encontrado")
 
     update_data = dados.model_dump(exclude_unset=True)
-    _aplicar_regras_atualizacao(agendamento, update_data)
+    prescricao_id_anterior = _aplicar_regras_atualizacao(agendamento, update_data)
     atualizado = await provider.atualizar_agendamento(agendamento)
+
+    if agendamento.tipo == TipoAgendamento.INFUSAO.value:
+        prescricao_id_atual = agendamento.detalhes.get('infusao', {}).get('prescricao_id') if agendamento.detalhes else None
+        if prescricao_id_atual:
+            await prescricao_controller.recalcular_status_prescricao(
+                prescricao_provider,
+                provider,
+                prescricao_id_atual,
+                usuario_id=usuario_id,
+                usuario_nome=usuario_nome
+            )
+
+            if 'status' in update_data:
+                prescricao = await prescricao_provider.obter_prescricao(prescricao_id_atual)
+                if prescricao:
+                    historico_agendamentos = list(prescricao.historico_agendamentos or [])
+                    historico_agendamentos.append({
+                        "data": datetime.now().isoformat(),
+                        "agendamento_id": agendamento.id,
+                        "status_agendamento": update_data['status'],
+                        "usuario_id": usuario_id,
+                        "usuario_nome": usuario_nome,
+                        "observacoes": "Status do agendamento atualizado"
+                    })
+                    prescricao.historico_agendamentos = historico_agendamentos
+                    flag_modified(prescricao, "historico_agendamentos")
+                    await prescricao_provider.atualizar_prescricao(prescricao)
+
+        if prescricao_id_anterior and prescricao_id_anterior != prescricao_id_atual:
+            await prescricao_controller.recalcular_status_prescricao(
+                prescricao_provider,
+                provider,
+                prescricao_id_anterior,
+                usuario_id=usuario_id,
+                usuario_nome=usuario_nome
+            )
+
     return AgendamentoResponse.model_validate(atualizado)
 
 
 async def atualizar_agendamentos_lote(
         provider: AgendamentoProviderInterface,
-        dados_lote: AgendamentoBulkUpdateList
+        prescricao_provider: PrescricaoProviderInterface,
+        dados_lote: AgendamentoBulkUpdateList,
+        usuario_id: Optional[str] = None,
+        usuario_nome: Optional[str] = None
 ) -> List[AgendamentoResponse]:
     ids = [item.id for item in dados_lote.itens]
     agendamentos_existentes = await provider.buscar_por_id_multi(ids)
@@ -200,10 +344,65 @@ async def atualizar_agendamentos_lote(
             detail=f"Agendamentos não encontrados: {', '.join(ids_faltantes)}"
         )
 
+    processamento_pendente = []
     for item_update in dados_lote.itens:
         agendamento = mapa_agendamentos[item_update.id]
         update_data = item_update.model_dump(exclude={'id'}, exclude_unset=True)
-        _aplicar_regras_atualizacao(agendamento, update_data)
+        prescricao_id_anterior = _aplicar_regras_atualizacao(
+            agendamento,
+            update_data,
+            usuario_id=usuario_id,
+            usuario_nome=usuario_nome
+        )
+
+        processamento_pendente.append({
+            "agendamento": agendamento,
+            "update_data": update_data,
+            "prescricao_id_anterior": prescricao_id_anterior
+        })
 
     atualizados = await provider.atualizar_agendamento_multi(list(mapa_agendamentos.values()))
+    for item in processamento_pendente:
+        agendamento = item["agendamento"]
+        update_data = item["update_data"]
+        prescricao_id_anterior = item["prescricao_id_anterior"]
+
+        if agendamento.tipo == TipoAgendamento.INFUSAO.value:
+            prescricao_id_atual = agendamento.detalhes.get('infusao', {}).get(
+                'prescricao_id') if agendamento.detalhes else None
+
+            if prescricao_id_atual:
+                await prescricao_controller.recalcular_status_prescricao(
+                    prescricao_provider,
+                    provider,
+                    prescricao_id_atual,
+                    usuario_id=usuario_id,
+                    usuario_nome=usuario_nome
+                )
+
+                if 'status' in update_data:
+                    prescricao = await prescricao_provider.obter_prescricao(prescricao_id_atual)
+                    if prescricao:
+                        historico_agendamentos = list(prescricao.historico_agendamentos or [])
+                        historico_agendamentos.append({
+                            "data": datetime.now().isoformat(),
+                            "agendamento_id": agendamento.id,
+                            "status_agendamento": update_data['status'],
+                            "usuario_id": usuario_id,
+                            "usuario_nome": usuario_nome,
+                            "observacoes": "Status do agendamento atualizado em lote"
+                        })
+                        prescricao.historico_agendamentos = historico_agendamentos
+                        flag_modified(prescricao, "historico_agendamentos")
+                        await prescricao_provider.atualizar_prescricao(prescricao)
+
+            if prescricao_id_anterior and prescricao_id_anterior != prescricao_id_atual:
+                await prescricao_controller.recalcular_status_prescricao(
+                    prescricao_provider,
+                    provider,
+                    prescricao_id_anterior,
+                    usuario_id=usuario_id,
+                    usuario_nome=usuario_nome
+                )
+
     return [AgendamentoResponse.model_validate(a) for a in atualizados]
