@@ -49,6 +49,18 @@ class AgendamentoSQLAlchemyProvider(AgendamentoProviderInterface):
         return result.scalars().all()
 
 
+    async def listar_por_prescricao(self, prescricao_id: str, incluir_concluidos: bool = True) -> List[Agendamento]:
+        query = select(Agendamento).where(
+            Agendamento.detalhes['infusao']['prescricao_id'].astext == prescricao_id
+        )
+
+        if not incluir_concluidos:
+            query = query.where(Agendamento.status != 'concluido')
+
+        result = await self.session.execute(query)
+        return result.scalars().all()
+
+
     async def criar_agendamento(self, agendamento: Agendamento) -> Agendamento:
         self.session.add(agendamento)
         await self.session.commit()
