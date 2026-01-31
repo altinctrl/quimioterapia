@@ -130,7 +130,7 @@ const {
           </div>
 
           <div class="pl-3 border-l-4 border-blue-100 space-y-4">
-            <div v-for="(opcao, opIdx) in item.opcoes" :key="opIdx"
+            <div v-for="(_opcao, opIdx) in item.opcoes" :key="opIdx"
                  class="bg-white p-3 rounded relative border border-gray-200 shadow-sm">
               <div class="flex justify-between items-center mb-2">
                 <span class="text-sm font-bold text-gray-700">Opção {{ opIdx + 1 }}</span>

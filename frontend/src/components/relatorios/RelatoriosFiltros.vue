@@ -4,7 +4,7 @@ import {Input} from '@/components/ui/input'
 import {Label} from '@/components/ui/label'
 import {ChevronDown, ClipboardList} from 'lucide-vue-next'
 
-const props = defineProps<{
+defineProps<{
   filtros: {
     tipoRelatorio: string
     periodoTipo: 'dia' | 'mes'

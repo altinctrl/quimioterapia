@@ -112,7 +112,7 @@ const onSelecionarMedicamento = (bIndex: number, iIndex: number, nomeMedicamento
 
             <div
                 v-if="item.tipo === 'grupo_alternativas'"
-                :class="getGrupoError(bIndex, iIndex) ? 'border-red-500' : ''"
+                :class="getGrupoError(bIndex, iIndex as number) ? 'border-red-500' : ''"
                 class="border rounded-lg p-4"
             >
               <div class="flex items-center gap-2 mb-3">
@@ -121,10 +121,10 @@ const onSelecionarMedicamento = (bIndex: number, iIndex: number, nomeMedicamento
 
               <Select
                   :model-value="item.itemSelecionado?.medicamento || ''"
-                  @update:model-value="(val) => onSelecionarMedicamento(bIndex, iIndex, val as string)"
+                  @update:model-value="(val) => onSelecionarMedicamento(bIndex, iIndex as number, val as string)"
               >
                 <SelectTrigger
-                    :class="getGrupoError(bIndex, iIndex) ? 'border-red-500 text-red-700' : ''">
+                    :class="getGrupoError(bIndex, iIndex as number) ? 'border-red-500 text-red-700' : ''">
                   <SelectValue placeholder="Selecione a medicação..."/>
                 </SelectTrigger>
                 <SelectContent>
@@ -134,8 +134,8 @@ const onSelecionarMedicamento = (bIndex: number, iIndex: number, nomeMedicamento
                 </SelectContent>
               </Select>
 
-              <span v-if="getGrupoError(bIndex, iIndex)" class="text-xs text-red-600 font-bold mt-1 block">
-                {{ getGrupoError(bIndex, iIndex) }}
+              <span v-if="getGrupoError(bIndex, iIndex as number)" class="text-xs text-red-600 font-bold mt-1 block">
+                {{ getGrupoError(bIndex, iIndex as number) }}
               </span>
 
               <div v-if="item.itemSelecionado"
@@ -143,11 +143,11 @@ const onSelecionarMedicamento = (bIndex: number, iIndex: number, nomeMedicamento
                 <PrescricaoItem
                     :key="item.itemSelecionado.medicamento"
                     :dados-paciente="dadosPaciente"
-                    :errors="getItemErrors(bIndex, iIndex, true)"
+                    :errors="getItemErrors(bIndex, iIndex as number, true)"
                     :item="item.itemSelecionado"
                     @update:item="(novoItemSelecionado) => {
                         const novoGrupo = { ...item, itemSelecionado: novoItemSelecionado };
-                        atualizarBlocos(bIndex, iIndex, novoGrupo);
+                        atualizarBlocos(bIndex, iIndex as number, novoGrupo);
                     }"
                 />
               </div>
@@ -157,9 +157,9 @@ const onSelecionarMedicamento = (bIndex: number, iIndex: number, nomeMedicamento
               <PrescricaoItem
                   :key="item.idItem || iIndex"
                   :dados-paciente="dadosPaciente"
-                  :errors="getItemErrors(bIndex, iIndex, false)"
+                  :errors="getItemErrors(bIndex, iIndex as number, false)"
                   :item="item"
-                  @update:item="(novoItem) => atualizarBlocos(bIndex, iIndex, novoItem)"
+                  @update:item="(novoItem) => atualizarBlocos(bIndex, iIndex as number, novoItem)"
               />
             </div>
           </div>

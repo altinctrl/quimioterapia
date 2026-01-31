@@ -165,9 +165,9 @@ watch(() => props.protocolo, () => {
                     :variant="activeTemplateIndex === idx ? 'default' : 'outline'"
                     class="h-8 text-sm whitespace-nowrap flex-shrink-0"
                     size="sm"
-                    @click="activeTemplateIndex = idx"
+                    @click="activeTemplateIndex = idx as number"
                 >
-                  {{ template.idTemplate || `Variante ${idx + 1}` }}
+                  {{ template.idTemplate || `Variante ${(idx as number) + 1}` }}
                 </Button>
               </div>
 

@@ -186,7 +186,7 @@ const handleConfirm = () => {
 
           <div v-if="tipoIntercorrencia === 'hipersensibilidade'"
                class="flex items-center space-x-2 bg-amber-50 p-3 rounded-md border border-amber-100">
-            <Checkbox id="vigihosp" :checked="vigihospFeito" @update:checked="vigihospFeito = $event"/>
+            <Checkbox id="vigihosp" :checked="vigihospFeito" @update:checked="vigihospFeito = $event as boolean"/>
             <div class="grid gap-1.5 leading-none">
               <Label class="font-medium cursor-pointer" for="vigihosp">
                 Notificação VIGIHOSP realizada?
