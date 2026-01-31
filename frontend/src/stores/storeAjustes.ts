@@ -72,6 +72,13 @@ const defaultStatusConfig: ConfigStatus[] = [
     tipo: 'paciente'
   },
   {
+    id: 'agendado',
+    label: 'Agendado',
+    cor: 'bg-red-600 text-white',
+    corBadge: 'bg-gray-100 hover:bg-gray-100 text-gray-800 border-gray-200',
+    tipo: 'farmacia'
+  },
+  {
     id: 'aguarda-prescricao',
     label: 'Aguarda Prescrição',
     cor: 'bg-red-600 text-white',
