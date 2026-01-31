@@ -9,11 +9,11 @@ defineOptions({
 
 const props = defineProps<WithClassAsProps>()
 
-const { carouselRef, orientation } = useCarousel()
+const { carouselRef: _carouselRef, orientation } = useCarousel()
 </script>
 
 <template>
-  <div ref="carouselRef" class="overflow-hidden">
+  <div ref="_carouselRef" class="overflow-hidden">
     <div
       :class="
         cn(

@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {ref, toRef, watch} from 'vue'
+import {toRef, watch} from 'vue'
 import {Button} from '@/components/ui/button'
 import {Input} from '@/components/ui/input'
 import {Label} from '@/components/ui/label'
@@ -20,7 +20,6 @@ const props = defineProps<{
 }>()
 
 const protocoloRef = toRef(props, 'modelValue')
-const tabsContainerRef = ref<HTMLElement | null>(null)
 
 const {
   activeTemplateIndex,
@@ -155,7 +154,6 @@ watch(() => props.modelValue, (newVal) => {
       <Card class="p-4 flex items-center gap-1 mb-4 w-full">
 
         <div
-            ref="tabsContainerRef"
             class="flex items-center gap-2 overflow-x-auto flex-1 px-1 w-0"
             style="scrollbar-width: thin; -ms-overflow-style: -ms-autohiding-scrollbar;"
         >

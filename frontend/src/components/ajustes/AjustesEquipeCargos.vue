@@ -6,7 +6,7 @@ import {Input} from '@/components/ui/input'
 import {Badge} from '@/components/ui/badge'
 import {Briefcase, Plus, X} from 'lucide-vue-next'
 
-const props = defineProps<{
+defineProps<{
   cargos: string[]
 }>()
 

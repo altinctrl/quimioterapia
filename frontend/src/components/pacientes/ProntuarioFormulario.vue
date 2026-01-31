@@ -229,7 +229,7 @@ const adicionarContato = () => {
                   size="icon"
                   title="Remover contato"
                   variant="outline"
-                  @click="contatos.remove(idx)"
+                  @click="contatos.remove(idx as number)"
               >
                 <Trash2 class="h-4 w-4"/>
               </Button>

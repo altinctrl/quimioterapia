@@ -3,7 +3,7 @@ import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '@/c
 import {Badge} from '@/components/ui/badge'
 import {Paciente} from "@/types/typesPaciente.ts";
 
-const props = defineProps<{
+defineProps<{
   pacientes: Paciente[]
   loading?: boolean
 }>()
