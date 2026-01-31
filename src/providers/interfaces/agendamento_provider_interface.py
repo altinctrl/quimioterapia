@@ -34,6 +34,14 @@ class AgendamentoProviderInterface(ABC):
         pass
 
     @abstractmethod
+    async def listar_por_prescricao(
+            self,
+            prescricao_id: str,
+            incluir_concluidos: bool = True,
+    ) -> List[Agendamento]:
+        pass
+
+    @abstractmethod
     async def criar_agendamento(
             self, agendamento: Agendamento,
     ) -> Agendamento:
