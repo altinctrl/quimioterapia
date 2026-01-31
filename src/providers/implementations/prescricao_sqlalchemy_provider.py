@@ -49,3 +49,7 @@ class PrescricaoSQLAlchemyProvider(PrescricaoProviderInterface):
         self.session.add(prescricao)
         await self.session.commit()
         return await self.obter_prescricao(prescricao.id)
+
+    async def atualizar_prescricao(self, prescricao: Prescricao) -> Prescricao:
+        await self.session.commit()
+        return await self.obter_prescricao(prescricao.id)
