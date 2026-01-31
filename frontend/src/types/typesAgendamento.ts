@@ -19,6 +19,7 @@ export enum AgendamentoStatusEnum {
 }
 
 export enum FarmaciaStatusEnum {
+  AGENDADO = 'agendado',
   AGUARDA_PRESCRICAO = 'aguarda-prescricao', // Não recebido
   VALIDANDO_PRESCRICAO = 'validando-prescricao', // Aguarda confirmação dos dados da prescrição
   PENDENTE = 'pendente',

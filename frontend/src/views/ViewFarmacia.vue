@@ -25,16 +25,17 @@ onMounted(() => {
 })
 
 const STATUS_ORDER: Record<string, number> = {
-  [FarmaciaStatusEnum.AGUARDA_PRESCRICAO]: 0,
-  [FarmaciaStatusEnum.VALIDANDO_PRESCRICAO]: 1,
-  [FarmaciaStatusEnum.PENDENTE]: 2,
-  [FarmaciaStatusEnum.EM_PREPARACAO]: 3,
-  [FarmaciaStatusEnum.PRONTO]: 4,
-  [FarmaciaStatusEnum.ENVIADO]: 5,
-  [FarmaciaStatusEnum.MED_EM_FALTA]: 6,
-  [FarmaciaStatusEnum.MED_JUD_EM_FALTA]: 7,
-  [FarmaciaStatusEnum.SEM_PROCESSO]: 8,
-  [FarmaciaStatusEnum.PRESCRICAO_DEVOLVIDA]: 9,
+  [FarmaciaStatusEnum.AGENDADO]: 0,
+  [FarmaciaStatusEnum.AGUARDA_PRESCRICAO]: 1,
+  [FarmaciaStatusEnum.VALIDANDO_PRESCRICAO]: 2,
+  [FarmaciaStatusEnum.PENDENTE]: 3,
+  [FarmaciaStatusEnum.EM_PREPARACAO]: 4,
+  [FarmaciaStatusEnum.PRONTO]: 5,
+  [FarmaciaStatusEnum.ENVIADO]: 6,
+  [FarmaciaStatusEnum.MED_EM_FALTA]: 7,
+  [FarmaciaStatusEnum.MED_JUD_EM_FALTA]: 8,
+  [FarmaciaStatusEnum.SEM_PROCESSO]: 9,
+  [FarmaciaStatusEnum.PRESCRICAO_DEVOLVIDA]: 10,
 }
 
 const filtros = useLocalStorage<FiltrosFarmacia>('farmacia_filtros', {

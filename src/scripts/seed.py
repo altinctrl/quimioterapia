@@ -412,7 +412,7 @@ async def setup_app(aghu_pacientes):
 
                     status_ag = AgendamentoStatusEnum.AGENDADO
                     checkin = False
-                    status_farm = FarmaciaStatusEnum.PENDENTE
+                    status_farm = FarmaciaStatusEnum.AGENDADO
 
                     if data_ag < date.today():
                         status_ag = AgendamentoStatusEnum.CONCLUIDO
@@ -425,7 +425,7 @@ async def setup_app(aghu_pacientes):
                             AgendamentoStatusEnum.CONCLUIDO,
                         ])
                         checkin = True if status_ag != AgendamentoStatusEnum.AGENDADO else False
-                        status_farm = FarmaciaStatusEnum.PENDENTE if checkin else FarmaciaStatusEnum.ENVIADO
+                        status_farm = FarmaciaStatusEnum.AGENDADO if checkin else FarmaciaStatusEnum.ENVIADO
 
                     inicio, fim = gerar_horario(random.choice(["manha", "tarde"]), protocolo.tempo_total_minutos)
 
