@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Boolean, Text, Date, JSON, ForeignKey
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 
 from src.resources.database import Base
@@ -21,6 +22,7 @@ class Agendamento(Base):
     observacoes = Column(Text, nullable=True)
     tags = Column(JSON, nullable=True)
     detalhes = Column(JSON, nullable=True)
+    historico_alteracoes = Column(JSONB, nullable=True, default=list)
 
     paciente = relationship("Paciente", back_populates="agendamentos")
     criado_por = relationship("Profissional")
