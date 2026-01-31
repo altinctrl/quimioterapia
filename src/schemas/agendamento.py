@@ -224,6 +224,14 @@ class AgendamentoPaciente(BaseSchema):
     observacoes_clinicas: Optional[str] = None
 
 
+class AgendamentoBulkUpdateItem(AgendamentoUpdate):
+    id: str
+
+
+class AgendamentoBulkUpdateList(BaseSchema):
+    itens: List[AgendamentoBulkUpdateItem]
+
+
 class AgendamentoResponse(AgendamentoBase):
     id: str
     criado_por_id: Optional[str] = None

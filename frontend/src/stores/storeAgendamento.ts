@@ -213,6 +213,36 @@ export const useAgendamentoStore = defineStore('agendamento', () => {
     }
   }
 
+  async function atualizarAgendamentosEmLote(itens: { id: string, [key: string]: any }[]) {
+    try {
+      const payload = {
+        itens: itens
+      }
+
+      const res = await api.put('/api/agendamentos/lote', payload)
+      const atualizados = res.data as Agendamento[]
+
+      atualizados.forEach(atualizado => {
+        const idx = agendamentos.value.findIndex(a => a.id === atualizado.id)
+        if (idx !== -1) {
+          const prescricaoAntiga = agendamentos.value[idx].prescricao
+          agendamentos.value[idx] = { ...atualizado, prescricao: prescricaoAntiga }
+        }
+      })
+
+      toast.success(`${atualizados.length} agendamentos atualizados`)
+      return atualizados
+    } catch (e: any) {
+      console.error(e)
+      if (e.response?.data?.detail) {
+          toast.error(e.response.data.detail)
+      } else {
+          toast.error("Erro ao atualizar agendamentos em lote")
+      }
+      throw e
+    }
+  }
+
   return {
     agendamentos,
     getAgendamentosDoDia,
@@ -224,6 +254,7 @@ export const useAgendamentoStore = defineStore('agendamento', () => {
     atualizarHorarioPrevisao,
     remarcarAgendamento,
     atualizarTagsAgendamento,
+    atualizarAgendamentosEmLote,
     salvarChecklistFarmacia
   }
 })

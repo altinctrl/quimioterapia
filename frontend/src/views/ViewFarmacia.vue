@@ -275,7 +275,7 @@ const limparSelecao = () => {
   bulkStatus.value = ''
 }
 
-const aplicarStatusLote = () => {
+const aplicarStatusLote = async () => {
   if (!bulkStatus.value) {
     toast.error('Selecione um status para aplicar.')
     return
@@ -284,26 +284,48 @@ const aplicarStatusLote = () => {
   const selecionados = selectedRows.value
   if (selecionados.length === 0) return
 
-  let aplicados = 0
-  let bloqueados = 0
+  const itensParaAtualizar: any[] = []
+  let bloqueadosCount = 0
 
   selecionados.forEach(row => {
     if (row.statusBloqueado) {
-      bloqueados += 1
+      bloqueadosCount++
       return
     }
-    appStore.atualizarStatusFarmacia(row.id, bulkStatus.value as FarmaciaStatusEnum)
-    aplicados += 1
+
+    if (row.statusFarmacia !== bulkStatus.value) {
+      itensParaAtualizar.push({
+        id: row.id,
+        detalhes: {
+          infusao: {
+            status_farmacia: bulkStatus.value
+          }
+        }
+      })
+    }
   })
 
-  if (aplicados > 0) {
-    toast.success(`${aplicados} agendamentos atualizados.`)
-  }
-  if (bloqueados > 0) {
-    toast.error(`${bloqueados} agendamentos bloqueados não foram alterados.`)
+  if (itensParaAtualizar.length === 0) {
+    if (bloqueadosCount > 0) {
+      toast.warning('Nenhum item válido para atualizar.')
+    } else {
+      toast.info('Todos os itens já estão com este status.')
+    }
+    limparSelecao()
+    return
   }
 
-  limparSelecao()
+  try {
+    await appStore.atualizarAgendamentosEmLote(itensParaAtualizar)
+
+    if (bloqueadosCount > 0) {
+      toast.warning(`${bloqueadosCount} itens bloqueados foram ignorados.`)
+    }
+
+    limparSelecao()
+  } catch (error) {
+    console.error("Erro na atualização em lote da farmácia", error)
+  }
 }
 
 const opcoesStatusFarmacia = computed(() => {
@@ -364,19 +386,19 @@ watch(viewRows, (lista) => {
         />
       </div>
 
-      <div v-if="selectedIds.length" class="px-4 pb-3">
+      <div v-if="selectedIds.length" class="px-4 py-3">
         <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between bg-blue-50 border border-blue-100 rounded-md p-3">
           <span class="text-sm font-medium text-blue-700">
-            {{ selectedIds.length }} preparações selecionadas
+            {{ selectedIds.length }} selecionados
           </span>
           <div class="flex flex-wrap items-center gap-2">
             <select
                 v-model="bulkStatus"
-                class="flex h-8 min-w-[200px] items-center justify-between rounded-md border border-input bg-transparent
+                class="flex h-8 min-w-[200px] items-center justify-between rounded-md border border-input bg-white
                 px-2 py-1 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none
                 focus:ring-2 focus:ring-ring focus:ring-offset-2"
             >
-              <option disabled value="">Selecionar status</option>
+              <option disabled value="">Alterar status...</option>
               <option
                   v-for="opcao in opcoesStatusFarmacia"
                   :key="opcao.id"
@@ -386,10 +408,10 @@ watch(viewRows, (lista) => {
               </option>
             </select>
             <Button class="h-8" size="sm" variant="outline" @click="limparSelecao">
-              Limpar seleção
+              Cancelar
             </Button>
             <Button class="h-8" size="sm" @click="aplicarStatusLote">
-              Aplicar status
+              Confirmar
             </Button>
           </div>
         </div>

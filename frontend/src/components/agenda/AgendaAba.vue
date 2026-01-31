@@ -9,10 +9,12 @@ import {Label} from '@/components/ui/label'
 import {Textarea} from '@/components/ui/textarea'
 import AgendaControles, {type FiltrosAgenda} from '@/components/agenda/AgendaControles.vue'
 import AgendaTabela from '@/components/agenda/AgendaTabela.vue'
-import {getDuracaoAgendamento, getGrupoInfusao, getOpcoesStatus} from '@/utils/utilsAgenda.ts'
+import {getDuracaoAgendamento, getGrupoInfusao} from '@/utils/utilsAgenda.ts'
 import {Agendamento, AgendamentoStatusEnum, TipoAgendamento} from "@/types/typesAgendamento.ts";
+import {statusPermitidosSemCheckin} from "@/constants/constAgenda.ts"
 import {useAppStore} from '@/stores/storeGeral.ts'
 import {toast} from 'vue-sonner'
+import {ChevronDown} from "lucide-vue-next";
 
 const props = defineProps<{
   agendamentos: Agendamento[]
@@ -159,23 +161,19 @@ const opcoesStatusLote = computed<Array<{ id: string; label: string }>>(() => {
   const selecionados = selectedAgendamentos.value
   if (selecionados.length === 0) return []
 
-  const bloqueados = new Set(['suspenso', 'intercorrencia'])
-  let comuns: Array<{ id: string; label: string }> | null = null
-
-  selecionados.forEach(ag => {
-    const opcoes = getOpcoesStatus(ag).filter(opt => !bloqueados.has(opt.id))
-    if (!comuns) {
-      comuns = opcoes
-      return
-    }
-    const ids = new Set(opcoes.map(o => o.id))
-    comuns = comuns.filter(o => ids.has(o.id))
-  })
-
-  return comuns || []
+  return [
+    {id: AgendamentoStatusEnum.AGENDADO, label: 'Agendado'},
+    {id: AgendamentoStatusEnum.AGUARDANDO_CONSULTA, label: 'Aguardando Consulta'},
+    {id: AgendamentoStatusEnum.AGUARDANDO_EXAME, label: 'Aguardando Exame'},
+    {id: AgendamentoStatusEnum.AGUARDANDO_MEDICAMENTO, label: 'Aguardando Medicamento'},
+    {id: AgendamentoStatusEnum.INTERNADO, label: 'Internado'},
+    {id: AgendamentoStatusEnum.EM_TRIAGEM, label: 'Em Triagem'},
+    {id: AgendamentoStatusEnum.EM_INFUSAO, label: 'Em Infusão'},
+    {id: AgendamentoStatusEnum.CONCLUIDO, label: 'Concluído'},
+  ]
 })
 
-const aplicarStatusPacienteLote = () => {
+const aplicarStatusPacienteLote = async () => {
   if (!bulkStatusPaciente.value) {
     toast.error('Selecione um status para aplicar.')
     return
@@ -184,12 +182,52 @@ const aplicarStatusPacienteLote = () => {
   const selecionados = selectedAgendamentos.value
   if (selecionados.length === 0) return
 
-  selecionados.forEach(ag => {
-    emit('alterar-status', ag, bulkStatusPaciente.value)
+  const novoStatus = bulkStatusPaciente.value as AgendamentoStatusEnum
+  const exigeCheckin = !statusPermitidosSemCheckin.includes(novoStatus)
+  const precisaMarcarCheckin = selecionados.some(ag => !ag.checkin)
+
+  let forcarCheckin = false
+  if (exigeCheckin && precisaMarcarCheckin) {
+    const confirmacao = window.confirm(
+      `O status "${novoStatus}" exige que o paciente esteja em sala.\n\nDeseja marcar os pacientes como "em sala" para os agendamentos selecionados e continuar?`
+    )
+    if (!confirmacao) return
+    forcarCheckin = true
+  }
+
+  const itensParaAtualizar = selecionados.map(ag => {
+    const payload: any = {
+      id: ag.id,
+      status: novoStatus
+    }
+    if (forcarCheckin && !ag.checkin) {
+      payload.checkin = true
+    }
+    return payload
   })
 
-  toast.success(`${selecionados.length} agendamentos atualizados.`)
-  limparSelecao()
+  const itensFiltrados = itensParaAtualizar.filter(item => {
+    const original = selecionados.find(s => s.id === item.id)
+    if (!original) return false
+
+    const statusMudou = original.status !== item.status
+    const checkinMudou = item.checkin === true && !original.checkin
+
+    return statusMudou || checkinMudou
+  })
+
+  if (itensFiltrados.length === 0) {
+    toast.info('Nenhuma alteração necessária nos itens selecionados.')
+    limparSelecao()
+    return
+  }
+
+  try {
+    await appStore.atualizarAgendamentosEmLote(itensFiltrados)
+    limparSelecao()
+  } catch (error) {
+    console.error("Falha no update em lote", error)
+  }
 }
 </script>
 
@@ -204,35 +242,39 @@ const aplicarStatusPacienteLote = () => {
       />
     </div>
 
-    <div v-if="selectedIds.length" class="px-4 pb-3">
+    <div v-if="selectedIds.length" class="px-4 py-3">
       <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between bg-blue-50 border border-blue-100 rounded-md p-3">
         <span class="text-sm font-medium text-blue-700">
           {{ selectedIds.length }} agendamentos selecionados
         </span>
         <div class="flex flex-wrap gap-2">
-          <select
-              v-model="bulkStatusPaciente"
-              class="flex h-8 min-w-[220px] items-center justify-between rounded-md border border-input bg-transparent
-              px-2 py-1 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none
-              focus:ring-2 focus:ring-ring focus:ring-offset-2"
-          >
-            <option disabled value="">Selecionar status do paciente</option>
-            <option
-                v-for="opcao in opcoesStatusLote"
-                :key="opcao.id"
-                :value="opcao.id"
+          <div class="relative">
+            <select
+                v-model="bulkStatusPaciente"
+                class="flex h-8 w-full items-center justify-between rounded-md border border-input bg-background
+                         px-3 py-1 pr-8 text-sm ring-offset-background placeholder:text-muted-foreground
+                         focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2
+                         disabled:cursor-not-allowed disabled:opacity-50 appearance-none truncate"
             >
-              {{ opcao.label }}
-            </option>
-          </select>
+              <option disabled value="">Alterar status...</option>
+              <option
+                  v-for="opcao in opcoesStatusLote"
+                  :key="opcao.id"
+                  :value="opcao.id"
+              >
+                {{ opcao.label }}
+              </option>
+            </select>
+            <ChevronDown class="absolute right-2 top-2 h-4 w-4 opacity-50 pointer-events-none"/>
+          </div>
           <Button class="h-8" size="sm" variant="outline" @click="limparSelecao">
-            Limpar seleção
+            Cancelar
           </Button>
-          <Button class="h-8" size="sm" variant="outline" @click="aplicarStatusPacienteLote">
-            Alterar status
+          <Button class="h-8" size="sm" @click="aplicarStatusPacienteLote">
+            Confirmar
           </Button>
           <Button class="h-8" size="sm" @click="abrirRemarcacaoLote">
-            Remarcar selecionados
+            Remarcar
           </Button>
         </div>
       </div>

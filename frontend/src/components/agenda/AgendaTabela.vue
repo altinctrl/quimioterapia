@@ -4,7 +4,7 @@ import {useRouter} from 'vue-router'
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '@/components/ui/table'
 import {Badge} from '@/components/ui/badge'
 import {Button} from '@/components/ui/button'
-import {ChevronDown, Clock, Tag} from 'lucide-vue-next'
+import {ChevronDown, Clock, Tag, Pill} from 'lucide-vue-next'
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/components/ui/tooltip'
 import {Agendamento, TipoAgendamento} from "@/types/typesAgendamento.ts";
 import {
@@ -145,7 +145,8 @@ const getChecklistLabel = (agendamento: Agendamento) => {
             :key="ag.id"
             :class="{ 'bg-gray-50 opacity-60 grayscale': ag.status === 'remarcado' }"
         >
-          <TableCell class="text-center p-0 align-middle">
+          <TableCell class="text-center p-0 pl-2 align-middle relative">
+            <div v-if="tipo == 'infusao'" :class="['h-full w-[4px] absolute left-0 top-0 bottom-0', getAgendamentoInfo(ag).corBorda]"></div>
             <div class="flex items-center justify-center">
               <Checkbox
                   :checked="selectedSet.has(ag.id)"
@@ -153,8 +154,7 @@ const getChecklistLabel = (agendamento: Agendamento) => {
               />
             </div>
           </TableCell>
-          <TableCell class="p-0 relative">
-            <div v-if="tipo == 'infusao'" :class="['h-full w-[4px] absolute left-0 top-0 bottom-0', getAgendamentoInfo(ag).corBorda]"></div>
+          <TableCell class="p-0">
             <div class="px-4 pl-5">
               <button
                   class="text-md hover:text-blue-600 hover:underline"
@@ -171,7 +171,7 @@ const getChecklistLabel = (agendamento: Agendamento) => {
             </div>
           </TableCell>
 
-          <TableCell>
+          <TableCell class="py-0">
             <PacienteCelula
                 :nome="(ag.paciente?.nome) as string"
                 :observacoesClinicas="getObservacoesClinicas(ag)"
@@ -181,7 +181,7 @@ const getChecklistLabel = (agendamento: Agendamento) => {
             />
           </TableCell>
 
-          <TableCell class="align-center">
+          <TableCell class="align-center py-0">
             <div v-if="tipo == 'infusao'" class="flex flex-col truncate">
               <button
                   :title="ag.prescricao?.conteudo?.protocolo?.nome || '-'"
@@ -221,7 +221,7 @@ const getChecklistLabel = (agendamento: Agendamento) => {
             </div>
           </TableCell>
 
-          <TableCell>
+          <TableCell class="py-0">
             <div class="flex items-center gap-2">
               <div :class="['h-2.5 w-2.5 rounded-full flex-shrink-0', getStatusDotColor(ag.status)]"/>
 
@@ -248,8 +248,8 @@ const getChecklistLabel = (agendamento: Agendamento) => {
             </div>
           </TableCell>
 
-          <TableCell v-if="tipo=='infusao'" class="align-top">
-            <div class="flex flex-col gap-1">
+          <TableCell v-if="tipo=='infusao'" class="align-top py-1.5">
+            <div class="flex flex-col gap-0.5">
               <Badge
                   :class="[getFarmaciaStatusConfig(ag.detalhes?.infusao?.statusFarmacia).corBadge]"
                   class="w-fit font-semibold px-2 border uppercase hover:bg-opacity-100"
@@ -258,19 +258,20 @@ const getChecklistLabel = (agendamento: Agendamento) => {
                 {{ getFarmaciaStatusConfig(ag.detalhes?.infusao?.statusFarmacia).label }}
               </Badge>
 
-              <div class="pl-1 flex items-center gap-1.5 text-xs">
+              <div class="flex items-center gap-1 text-xs">
+                <Pill class="h-3 w-3 text-gray-400"/>
+                <span
+                    v-if="getChecklistLabel(ag)"
+                    class="font-medium text-gray-700 pr-1"
+                >
+                  {{ getChecklistLabel(ag) }}
+                </span>
                 <Clock class="h-3.5 w-3.5 text-gray-400"/>
-                <span v-if="ag.detalhes?.infusao?.horarioPrevisaoEntrega" class="text-blue-600 font-medium">
+                <span v-if="ag.detalhes?.infusao?.horarioPrevisaoEntrega" class="text-gray-700 font-medium">
                     {{ ag.detalhes.infusao.horarioPrevisaoEntrega }}
                 </span>
                 <span v-else class="text-gray-400 italic">
                   --:--
-                </span>
-                <span
-                    v-if="getChecklistLabel(ag)"
-                    class="ml-1 rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 border border-blue-100"
-                >
-                  {{ getChecklistLabel(ag) }}
                 </span>
               </div>
             </div>
