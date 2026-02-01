@@ -1,13 +1,16 @@
 <script lang="ts" setup>
-import {computed} from 'vue'
-import {Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle} from '@/components/ui/dialog'
+import {computed, ref, watch} from 'vue'
+import {Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription} from '@/components/ui/dialog'
 import {Button} from '@/components/ui/button'
 import {Badge} from '@/components/ui/badge'
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select'
 import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs'
 import {AlertCircle, Calendar, Clock, ExternalLink, Tag, User} from 'lucide-vue-next'
 import {Agendamento} from "@/types/typesAgendamento.ts";
 import {formatarConsulta, formatarProcedimento} from "@/utils/utilsAgenda.ts";
 import TimelineHistorico, {type TimelineItem} from '@/components/comuns/TimelineHistorico.vue'
+import {useAppStore} from '@/stores/storeGeral.ts'
+import {useAuthStore} from '@/stores/storeAuth.ts'
 
 const props = defineProps<{
   open: boolean
@@ -16,6 +19,48 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits(['update:open', 'abrir-prescricao'])
+const appStore = useAppStore()
+const authStore = useAuthStore()
+
+const prescricaoSelecionada = ref('')
+const motivoTroca = ref('')
+const carregandoTroca = ref(false)
+
+const podeTrocarPrescricao = computed(() => {
+  const role = authStore.user?.role || ''
+  return ['enfermeiro', 'admin', 'medico'].includes(role)
+})
+
+const prescricoesPaciente = computed(() => {
+  if (!props.agendamento?.pacienteId) return []
+  return appStore.prescricoes.filter(p => p.pacienteId === props.agendamento?.pacienteId)
+})
+
+const handleTrocarPrescricao = async () => {
+  if (!props.agendamento?.id || !prescricaoSelecionada.value) return
+  carregandoTroca.value = true
+  try {
+    await appStore.trocarPrescricaoAgendamento(
+      props.agendamento.id,
+      prescricaoSelecionada.value,
+      motivoTroca.value,
+      props.agendamento.pacienteId
+    )
+    prescricaoSelecionada.value = ''
+    motivoTroca.value = ''
+  } finally {
+    carregandoTroca.value = false
+  }
+}
+
+watch(
+  () => props.agendamento?.pacienteId,
+  async (pacienteId) => {
+    if (!pacienteId) return
+    await appStore.fetchPrescricoes(pacienteId)
+  },
+  {immediate: true}
+)
 
 const formatarData = (data: string) => {
   return new Date(data).toLocaleDateString('pt-BR', {
@@ -75,6 +120,9 @@ const historicoItens = computed<TimelineItem[]>(() => {
     <DialogContent class="max-w-2xl">
       <DialogHeader>
         <DialogTitle>Detalhes do Agendamento</DialogTitle>
+        <DialogDescription class="sr-only">
+          Informações do agendamento e histórico de alterações.
+        </DialogDescription>
       </DialogHeader>
 
       <Tabs v-if="agendamento" default-value="detalhes" class="space-y-4">
@@ -182,6 +230,40 @@ const historicoItens = computed<TimelineItem[]>(() => {
               Ver Prescrição
               <ExternalLink class="h-3 w-3 ml-1"/>
             </Button>
+          </div>
+
+          <div v-if="podeTrocarPrescricao" class="mt-4 pt-3 border-t border-blue-200/50 space-y-3">
+            <div class="space-y-1">
+              <label class="text-xs font-bold uppercase text-blue-600/80">Trocar prescrição do agendamento</label>
+              <Select
+                :model-value="prescricaoSelecionada"
+                @update:model-value="(val) => (prescricaoSelecionada = val as string)"
+              >
+                <SelectTrigger class="bg-white">
+                  <SelectValue placeholder="Selecione a prescrição" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem
+                    v-for="p in prescricoesPaciente"
+                    :key="p.id"
+                    :value="p.id"
+                  >
+                    {{ p.conteudo?.protocolo?.nome }} • Ciclo {{ p.conteudo?.protocolo?.cicloAtual }} • {{ p.id.slice(0, 6) }}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <input
+                v-model="motivoTroca"
+                class="w-full border rounded px-3 py-2 text-sm bg-white"
+                placeholder="Motivo (opcional)"
+              />
+              <Button :disabled="!prescricaoSelecionada || carregandoTroca" @click="handleTrocarPrescricao">
+                Trocar
+              </Button>
+            </div>
           </div>
         </div>
 
