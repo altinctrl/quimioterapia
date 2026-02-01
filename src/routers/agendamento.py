@@ -3,12 +3,12 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query, HTTPException
 
-from src.auth.auth import auth_handler
+from src.auth.auth import auth_handler, require_groups
 from src.controllers import agendamento_controller
 from src.dependencies import get_agendamento_provider, get_prescricao_provider
 from src.providers.interfaces.agendamento_provider_interface import AgendamentoProviderInterface
 from src.providers.interfaces.prescricao_provider_interface import PrescricaoProviderInterface
-from src.schemas.agendamento import AgendamentoCreate, AgendamentoUpdate, AgendamentoResponse, AgendamentoBulkUpdateList
+from src.schemas.agendamento import AgendamentoCreate, AgendamentoUpdate, AgendamentoResponse, AgendamentoBulkUpdateList, AgendamentoPrescricaoUpdate
 
 router = APIRouter(prefix="/api/agendamentos", tags=["Agendamentos"], dependencies=[Depends(auth_handler.decode_token)])
 
@@ -66,5 +66,25 @@ async def atualizar_agendamento(agendamento_id: str, dados: AgendamentoUpdate,
     user_id = current_user.get("username") or current_user.get("sub")
     user_name = current_user.get("display_name") or current_user.get("displayName")
     return await agendamento_controller.atualizar_agendamento(provider, prescricao_provider, agendamento_id, dados, usuario_id=user_id, usuario_nome=user_name)
+
+
+@router.put("/{agendamento_id}/prescricao", response_model=AgendamentoResponse)
+async def trocar_prescricao_agendamento(
+        agendamento_id: str,
+        dados: AgendamentoPrescricaoUpdate,
+        provider: AgendamentoProviderInterface = Depends(get_agendamento_provider),
+        prescricao_provider: PrescricaoProviderInterface = Depends(get_prescricao_provider),
+        current_user: dict = Depends(require_groups(["Enfermagem", "Medicos", "Administradores"]))
+):
+    user_id = current_user.get("username") or current_user.get("sub")
+    user_name = current_user.get("display_name") or current_user.get("displayName")
+    return await agendamento_controller.trocar_prescricao_agendamento(
+        provider,
+        prescricao_provider,
+        agendamento_id,
+        dados,
+        usuario_id=user_id,
+        usuario_nome=user_name
+    )
 
 # TODO: Criar endpoint para remarcação, garantindo operação atômica
