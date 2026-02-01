@@ -1,12 +1,15 @@
 <script lang="ts" setup>
+import {computed} from 'vue'
 import {Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle} from '@/components/ui/dialog'
 import {Button} from '@/components/ui/button'
 import {Badge} from '@/components/ui/badge'
+import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs'
 import {AlertCircle, Calendar, Clock, ExternalLink, Tag, User} from 'lucide-vue-next'
 import {Agendamento} from "@/types/typesAgendamento.ts";
 import {formatarConsulta, formatarProcedimento} from "@/utils/utilsAgenda.ts";
+import TimelineHistorico, {type TimelineItem} from '@/components/comuns/TimelineHistorico.vue'
 
-defineProps<{
+const props = defineProps<{
   open: boolean
   agendamento: Agendamento | null
   pacienteNome?: string
@@ -22,6 +25,49 @@ const formatarData = (data: string) => {
     day: 'numeric'
   })
 }
+
+const historicoItens = computed<TimelineItem[]>(() => {
+  if (!props.agendamento) return []
+
+  const itens: TimelineItem[] = []
+  const alteracoes = props.agendamento.historicoAlteracoes || []
+  alteracoes.forEach((item, index) => {
+    const titulo = item.tipoAlteracao === 'status'
+      ? 'Status atualizado'
+      : item.tipoAlteracao === 'checkin'
+        ? 'Check-in atualizado'
+        : item.tipoAlteracao === 'prescricao'
+          ? 'Prescrição atualizada'
+          : `Alteração: ${item.tipoAlteracao}`
+
+    const descricao = item.valorAntigo || item.valorNovo
+      ? `${item.valorAntigo ?? '-'} → ${item.valorNovo ?? '-'}`
+      : undefined
+
+    itens.push({
+      id: `alt-${index}-${item.data}`,
+      data: item.data,
+      titulo,
+      descricao,
+      usuario: item.usuarioNome || item.usuarioId,
+      meta: item.motivo || item.campo
+    })
+  })
+
+  const historicoPrescricoes = props.agendamento.detalhes?.historicoPrescricoes || []
+  historicoPrescricoes.forEach((item, index) => {
+    itens.push({
+      id: `presc-${index}-${item.data}`,
+      data: item.data,
+      titulo: 'Troca de prescrição no agendamento',
+      descricao: `${item.prescricaoIdAnterior ?? '-'} → ${item.prescricaoIdNova ?? '-'}`,
+      usuario: item.usuarioNome || item.usuarioId,
+      meta: item.motivo
+    })
+  })
+
+  return itens
+})
 </script>
 
 <template>
@@ -31,7 +77,13 @@ const formatarData = (data: string) => {
         <DialogTitle>Detalhes do Agendamento</DialogTitle>
       </DialogHeader>
 
-      <div v-if="agendamento" class="space-y-4">
+      <Tabs v-if="agendamento" default-value="detalhes" class="space-y-4">
+        <TabsList class="grid w-full grid-cols-2">
+          <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
+          <TabsTrigger value="historico">Histórico</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="detalhes" class="space-y-4">
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-3 rounded-lg border">
           <div class="md:col-span-2 flex items-center justify-between border-b pb-2 mb-1">
@@ -197,7 +249,15 @@ const formatarData = (data: string) => {
           </div>
         </div>
 
-      </div>
+        </TabsContent>
+
+        <TabsContent value="historico">
+          <TimelineHistorico
+            :itens="historicoItens"
+            vazio-texto="Nenhuma alteração registrada para este agendamento."
+          />
+        </TabsContent>
+      </Tabs>
 
       <DialogFooter>
         <Button variant="outline" @click="emit('update:open', false)">Fechar</Button>
