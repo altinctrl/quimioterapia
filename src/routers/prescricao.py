@@ -2,7 +2,7 @@ from typing import List
 
 from fastapi import APIRouter, Depends
 
-from src.auth.auth import auth_handler
+from src.auth.auth import auth_handler, require_groups
 from src.controllers import prescricao_controller
 from src.dependencies import get_prescricao_provider, get_equipe_provider, get_agendamento_provider
 from src.providers.interfaces.agendamento_provider_interface import AgendamentoProviderInterface
@@ -26,6 +26,7 @@ async def criar_prescricao(
         dados: PrescricaoCreate,
         prescricao_provider: PrescricaoProviderInterface = Depends(get_prescricao_provider),
         equipe_provider: EquipeProviderInterface = Depends(get_equipe_provider),
+        current_user: dict = Depends(require_groups(["Medicos", "Administradores"]))
 ):
     return await prescricao_controller.criar_prescricao(prescricao_provider, equipe_provider, dados)
 
@@ -37,7 +38,7 @@ async def atualizar_status_prescricao(
                 dados: PrescricaoStatusUpdate,
                 prescricao_provider: PrescricaoProviderInterface = Depends(get_prescricao_provider),
                 agendamento_provider: AgendamentoProviderInterface = Depends(get_agendamento_provider),
-                current_user: dict = Depends(auth_handler.get_current_user)
+                current_user: dict = Depends(require_groups(["Medicos", "Administradores"]))
 ):
         user_id = current_user.get("username") or current_user.get("sub")
         user_name = current_user.get("display_name") or current_user.get("displayName")
