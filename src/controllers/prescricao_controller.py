@@ -16,7 +16,7 @@ from sqlalchemy.orm.attributes import flag_modified
 
 from src.providers.interfaces.agendamento_provider_interface import AgendamentoProviderInterface
 from src.providers.interfaces.prescricao_provider_interface import PrescricaoProviderInterface
-from src.schemas.prescricao import PrescricaoCreate, PrescricaoResponse, MedicoSnapshot, PrescricaoStatusEnum, PrescricaoStatusUpdate
+from src.schemas.prescricao import PrescricaoCreate, PrescricaoResponse, MedicoSnapshot, PrescricaoStatusEnum, PrescricaoStatusUpdate, PrescricaoSubstituicaoCreate
 
 
 async def listar_prescricoes_por_paciente(
@@ -45,16 +45,15 @@ async def buscar_prescricao_multi(
     return [PrescricaoResponse.model_validate(p) for p in lista]
 
 
-async def criar_prescricao(
-        prescricao_provider: PrescricaoProviderInterface,
+async def _montar_prescricao(
         equipe_provider: EquipeProviderInterface,
         dados: PrescricaoCreate,
-) -> PrescricaoResponse:
+) -> Prescricao:
     try:
         medico = await equipe_provider.buscar_profissional_por_username(dados.medico_id)
         medico_snapshot = MedicoSnapshot(nome=medico.nome, crm_uf=medico.registro)
     except:
-        medico_snapshot = MedicoSnapshot(nome="Médico não identificado", crm_uf="") # TODO: Remover
+        medico_snapshot = MedicoSnapshot(nome="Médico não identificado", crm_uf="")  # TODO: Remover
 
     blocos_processados = []
     for bloco in dados.blocos:
@@ -73,7 +72,7 @@ async def criar_prescricao(
         "observacoes": dados.observacoes_clinicas
     }
 
-    nova_prescricao = Prescricao(
+    return Prescricao(
         id=str(uuid.uuid4()),
         paciente_id=dados.paciente_id,
         medico_id=dados.medico_id,
@@ -82,7 +81,108 @@ async def criar_prescricao(
         conteudo=documento_json
     )
 
+
+async def criar_prescricao(
+        prescricao_provider: PrescricaoProviderInterface,
+        equipe_provider: EquipeProviderInterface,
+        dados: PrescricaoCreate,
+) -> PrescricaoResponse:
+    nova_prescricao = await _montar_prescricao(equipe_provider, dados)
     criado = await prescricao_provider.criar_prescricao(nova_prescricao)
+    return PrescricaoResponse.model_validate(criado)
+
+
+async def criar_prescricao_substituicao_atomic(
+        prescricao_provider: PrescricaoProviderInterface,
+        equipe_provider: EquipeProviderInterface,
+        agendamento_provider: AgendamentoProviderInterface,
+        dados: PrescricaoSubstituicaoCreate,
+        usuario_id: Optional[str],
+        usuario_nome: Optional[str],
+) -> PrescricaoResponse:
+    @asynccontextmanager
+    async def _maybe_transaction(session):
+        if session.in_transaction():
+            yield
+        else:
+            async with session.begin():
+                yield
+
+    session = getattr(prescricao_provider, "session", None)
+    if session is None:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Provider sem suporte a transações")
+
+    prescricao_original = await prescricao_provider.obter_prescricao(dados.prescricao_original_id)
+    if not prescricao_original:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Prescrição original não encontrada")
+
+    nova_prescricao = await _montar_prescricao(equipe_provider, dados)
+
+    async with _maybe_transaction(session):
+        criado = await prescricao_provider.criar_prescricao(nova_prescricao, commit=False)
+
+        status_anterior = prescricao_original.status
+        prescricao_original.prescricao_substituta_id = criado.id
+        prescricao_original.status = PrescricaoStatusEnum.SUBSTITUIDA.value
+        _append_historico_status(
+            prescricao_original,
+            status_anterior,
+            PrescricaoStatusEnum.SUBSTITUIDA.value,
+            usuario_id,
+            usuario_nome,
+            dados.motivo
+        )
+
+        criado.prescricao_original_id = prescricao_original.id
+        await prescricao_provider.atualizar_prescricao(prescricao_original, commit=False)
+        await prescricao_provider.atualizar_prescricao(criado, commit=False)
+
+        agendamentos = await agendamento_provider.listar_por_prescricao(prescricao_original.id, incluir_concluidos=False)
+        for ag in agendamentos:
+            detalhes = dict(ag.detalhes) if ag.detalhes else {}
+            infusao = detalhes.get('infusao') or {}
+            prescricao_id_anterior = infusao.get('prescricao_id')
+            infusao['prescricao_id'] = criado.id
+            detalhes['infusao'] = infusao
+
+            historico_prescricoes = list(detalhes.get('historico_prescricoes') or [])
+            historico_prescricoes.append({
+                "data": datetime.now().isoformat(),
+                "usuario_id": usuario_id,
+                "usuario_nome": usuario_nome,
+                "prescricao_id_anterior": prescricao_id_anterior,
+                "prescricao_id_nova": criado.id,
+                "motivo": dados.motivo
+            })
+            detalhes['historico_prescricoes'] = historico_prescricoes
+
+            ag.detalhes = detalhes
+            flag_modified(ag, "detalhes")
+
+            historico_agendamento = list(ag.historico_alteracoes or [])
+            historico_agendamento.append({
+                "data": datetime.now().isoformat(),
+                "usuario_id": usuario_id,
+                "usuario_nome": usuario_nome,
+                "tipo_alteracao": "prescricao",
+                "campo": "prescricao_id",
+                "valor_antigo": prescricao_id_anterior,
+                "valor_novo": criado.id,
+                "motivo": dados.motivo
+            })
+            ag.historico_alteracoes = historico_agendamento
+            flag_modified(ag, "historico_alteracoes")
+
+            await agendamento_provider.atualizar_agendamento(ag, commit=False)
+
+        await recalcular_status_prescricao(
+            prescricao_provider,
+            agendamento_provider,
+            criado.id,
+            usuario_id=usuario_id,
+            usuario_nome=usuario_nome,
+            commit=False
+        )
 
     return PrescricaoResponse.model_validate(criado)
 
