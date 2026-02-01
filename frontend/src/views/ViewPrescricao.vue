@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import {onMounted} from 'vue'
-import {useRouter} from 'vue-router'
+import {computed, onMounted} from 'vue'
+import {useRoute, useRouter} from 'vue-router'
 import {Button} from '@/components/ui/button'
 import {Label} from '@/components/ui/label'
 import {Activity, ArrowLeft, Pill, User} from 'lucide-vue-next'
@@ -15,7 +15,10 @@ import {usePrescricaoFormulario} from '@/composables/usePrescricaoFormulario.ts'
 import {useAppStore} from "@/stores/storeGeral.ts";
 
 const router = useRouter()
+const route = useRoute()
 const appStore = useAppStore()
+
+const isSubstituicao = computed(() => Boolean(route.query.substituirDe))
 
 const {
   values,
@@ -54,7 +57,9 @@ const handleBaixar = async () => {
           <ArrowLeft class="h-4 w-4"/>
         </Button>
         <div>
-          <h1 class="text-3xl font-bold tracking-tight text-gray-900">Nova Prescrição</h1>
+          <h1 class="text-3xl font-bold tracking-tight text-gray-900">
+            {{ isSubstituicao ? 'Nova Prescrição (Substituição)' : 'Nova Prescrição' }}
+          </h1>
         </div>
       </div>
     </div>
