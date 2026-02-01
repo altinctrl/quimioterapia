@@ -48,9 +48,38 @@ export const usePrescricaoStore = defineStore('prescricao', () => {
     try {
       const res = await api.post('/api/prescricoes', payload)
       prescricoes.value.push(res.data as PrescricaoMedica)
+      const pacienteId = (payload as any).paciente_id || (payload as any).pacienteId
+      if (pacienteId) {
+        await fetchPrescricoes(pacienteId)
+      }
       return res.data as PrescricaoMedica
     } catch (e) {
       toast.error("Erro ao criar prescrição")
+      throw e
+    }
+  }
+
+  async function adicionarPrescricaoSubstituicao(
+    payload: PayloadCriacaoPrescricao,
+    prescricaoOriginalId: string,
+    motivo?: string
+  ) {
+    try {
+      const corpo: any = {
+        ...payload,
+        prescricao_original_id: prescricaoOriginalId
+      }
+      if (motivo) corpo.motivo = motivo
+
+      const res = await api.post('/api/prescricoes/substituir', corpo)
+      prescricoes.value.push(res.data as PrescricaoMedica)
+      const pacienteId = (payload as any).paciente_id || (payload as any).pacienteId
+      if (pacienteId) {
+        await fetchPrescricoes(pacienteId)
+      }
+      return res.data as PrescricaoMedica
+    } catch (e) {
+      toast.error("Erro ao substituir prescrição")
       throw e
     }
   }
@@ -109,6 +138,7 @@ export const usePrescricaoStore = defineStore('prescricao', () => {
     getPrescricoesPorPaciente,
     fetchPrescricoes,
     adicionarPrescricao,
+    adicionarPrescricaoSubstituicao,
     baixarPrescricao,
     alterarStatusPrescricao,
     substituirPrescricao
