@@ -8,7 +8,7 @@ from src.dependencies import get_prescricao_provider, get_equipe_provider, get_a
 from src.providers.interfaces.agendamento_provider_interface import AgendamentoProviderInterface
 from src.providers.interfaces.equipe_provider_interface import EquipeProviderInterface
 from src.providers.interfaces.prescricao_provider_interface import PrescricaoProviderInterface
-from src.schemas.prescricao import PrescricaoCreate, PrescricaoResponse, PrescricaoStatusUpdate
+from src.schemas.prescricao import PrescricaoCreate, PrescricaoResponse, PrescricaoStatusUpdate, PrescricaoSubstituicaoCreate
 
 router = APIRouter(prefix="/api/prescricoes", tags=["Prescrições"], dependencies=[Depends(auth_handler.decode_token)])
 
@@ -29,6 +29,27 @@ async def criar_prescricao(
         current_user: dict = Depends(require_groups(["Medicos", "Administradores"]))
 ):
     return await prescricao_controller.criar_prescricao(prescricao_provider, equipe_provider, dados)
+
+
+@router.post("/substituir", response_model=PrescricaoResponse)
+async def criar_prescricao_substituicao(
+                dados: PrescricaoSubstituicaoCreate,
+                prescricao_provider: PrescricaoProviderInterface = Depends(get_prescricao_provider),
+                equipe_provider: EquipeProviderInterface = Depends(get_equipe_provider),
+                agendamento_provider: AgendamentoProviderInterface = Depends(get_agendamento_provider),
+                current_user: dict = Depends(require_groups(["Medicos", "Administradores"]))
+):
+        user_id = current_user.get("username") or current_user.get("sub")
+        user_name = current_user.get("display_name") or current_user.get("displayName")
+
+        return await prescricao_controller.criar_prescricao_substituicao_atomic(
+                prescricao_provider,
+                equipe_provider,
+                agendamento_provider,
+                dados,
+                usuario_id=user_id,
+                usuario_nome=user_name
+        )
 
 
 # TODO: Criar endpoint para atualizar status da prescrição
