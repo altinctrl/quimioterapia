@@ -5,6 +5,7 @@ import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '@/c
 import {useAppStore} from '@/stores/storeGeral.ts'
 import {Agendamento} from "@/types/typesAgendamento.ts";
 import {PrescricaoMedica} from "@/types/typesPrescricao.ts";
+import {usePrescricaoStatus} from '@/composables/usePrescricaoStatus.ts'
 
 defineProps<{
   agendamentos: Agendamento[]
@@ -17,18 +18,14 @@ const emit = defineEmits<{
 }>()
 
 const appStore = useAppStore()
+const {formatarStatus} = usePrescricaoStatus()
 
 const getStatusLabel = (status: string) => {
   if (!status) return '-'
   return appStore.getStatusConfig(status).label
 }
 
-const formatarStatusPrescricao = (status: string) => {
-  const mapa: Record<string, string> = {
-    'ativa': 'Ativa', 'concluida': 'Concluída', 'pausada': 'Pausada', 'cancelada': 'Cancelada'
-  }
-  return mapa[status] || status?.charAt(0).toUpperCase() + status?.slice(1)
-}
+const formatarStatusPrescricao = (status: string) => formatarStatus(status)
 </script>
 
 <template>
