@@ -60,6 +60,26 @@ export interface DetalhesInfusao {
   itensPreparados?: string[];
 }
 
+export interface HistoricoPrescricaoAgendamentoItem {
+  data: string;
+  usuarioId?: string;
+  usuarioNome?: string;
+  prescricaoIdAnterior?: string | null;
+  prescricaoIdNova?: string | null;
+  motivo?: string;
+}
+
+export interface AgendamentoHistoricoItem {
+  data: string;
+  usuarioId?: string;
+  usuarioNome?: string;
+  tipoAlteracao: string;
+  valorAntigo?: string | null;
+  valorNovo?: string | null;
+  motivo?: string;
+  campo?: string;
+}
+
 export interface DetalhesAgendamento {
   infusao?: DetalhesInfusao;
   procedimento?: {
@@ -71,6 +91,7 @@ export interface DetalhesAgendamento {
     observacoes?: string;
   };
   remarcacao?: any;
+  historicoPrescricoes?: HistoricoPrescricaoAgendamentoItem[];
 }
 
 export interface Agendamento {
@@ -95,4 +116,5 @@ export interface Agendamento {
   tags?: string[];
   detalhes?: DetalhesAgendamento;
   prescricao?: PrescricaoMedica;
+  historicoAlteracoes?: AgendamentoHistoricoItem[];
 }
