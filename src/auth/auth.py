@@ -4,7 +4,7 @@ from typing import Optional, Dict, Union
 
 import jwt
 from dotenv import load_dotenv
-from fastapi import HTTPException, Security
+from fastapi import HTTPException, Security, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 load_dotenv()
@@ -68,3 +68,23 @@ class AuthHandler:
 
 
 auth_handler = AuthHandler()
+
+
+def _normalizar_grupos(grupos):
+    if not grupos:
+        return set()
+    return {str(grupo).strip().lower() for grupo in grupos if grupo is not None}
+
+
+def require_groups(grupos_permitidos):
+    grupos_permitidos_norm = _normalizar_grupos(grupos_permitidos)
+
+    async def _guard(current_user: dict = Depends(auth_handler.get_current_user)):
+        grupos_usuario = _normalizar_grupos(current_user.get("groups"))
+
+        if grupos_permitidos_norm and not (grupos_usuario & grupos_permitidos_norm):
+            raise HTTPException(status_code=403, detail="Usuário sem permissão para esta ação")
+
+        return current_user
+
+    return _guard
