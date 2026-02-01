@@ -228,6 +228,11 @@ class AgendamentoUpdate(BaseSchema):
     detalhes: Optional[DetalhesAgendamentoUpdate] = None
 
 
+class AgendamentoPrescricaoUpdate(BaseSchema):
+    prescricao_id: str
+    motivo: Optional[str] = None
+
+
 class AgendamentoPaciente(BaseSchema):
     id: str
     nome: str
