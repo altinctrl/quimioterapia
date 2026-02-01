@@ -1,12 +1,21 @@
 <script lang="ts" setup>
+import {computed, ref} from 'vue'
+import {useRouter} from 'vue-router'
 import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from '@/components/ui/dialog'
 import {Button} from '@/components/ui/button'
 import {Badge} from '@/components/ui/badge'
 import {Separator} from '@/components/ui/separator'
-import {Activity, AlertTriangle, Download, FileText} from 'lucide-vue-next'
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select'
+import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs'
+import {Textarea} from '@/components/ui/textarea'
+import {Activity, AlertTriangle, Download, FileText, History} from 'lucide-vue-next'
 import {toast} from "vue-sonner";
 import api from "@/services/api.ts";
 import {getUnidadeFinal} from "@/utils/utilsPrescricao.ts";
+import {usePrescricaoStatus} from '@/composables/usePrescricaoStatus.ts'
+import {usePrescricaoStore} from '@/stores/storePrescricao.ts'
+import {PrescricaoStatusEnum} from '@/types/typesPrescricao.ts'
+import TimelineHistorico, {type TimelineItem} from '@/components/comuns/TimelineHistorico.vue'
 
 const props = defineProps<{
   open: boolean
@@ -14,17 +23,58 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits(['update:open'])
+const router = useRouter()
 
-const formatarStatus = (status: string) => {
-  const mapa: Record<string, string> = {
-    'pendente': 'Pendente',
-    'em-curso': 'Em Curso',
-    'concluida': 'Concluída',
-    'suspensa': 'Suspensa',
-    'cancelada': 'Cancelada'
+const prescricaoStore = usePrescricaoStore()
+const prescricaoAtual = computed(() => {
+  const id = props.prescricao?.id
+  if (!id) return props.prescricao
+  return prescricaoStore.prescricoes.find(p => p.id === id) || props.prescricao
+})
+
+const {statusOptions, formatarStatus, alterarStatus, carregando} = usePrescricaoStatus()
+
+const statusSelecionado = ref<PrescricaoStatusEnum | ''>('')
+const motivo = ref('')
+
+const podeSalvarStatus = computed(() => {
+  if (!statusSelecionado.value) return false
+  if ([PrescricaoStatusEnum.SUSPENSA, PrescricaoStatusEnum.CANCELADA].includes(statusSelecionado.value)) {
+    return motivo.value.trim().length > 0
   }
-  return mapa[status] || status
-}
+  return true
+})
+
+const historicoItens = computed<TimelineItem[]>(() => {
+  if (!prescricaoAtual.value) return []
+  const itens: TimelineItem[] = []
+
+  const statusList = prescricaoAtual.value.historicoStatus || []
+  statusList.forEach((item: any, index: number) => {
+    itens.push({
+      id: `status-${index}-${item.data}`,
+      data: item.data,
+      titulo: `Status: ${formatarStatus(item.statusNovo)}`,
+      descricao: item.statusAnterior ? `${formatarStatus(item.statusAnterior)} → ${formatarStatus(item.statusNovo)}` : undefined,
+      usuario: item.usuarioNome || item.usuarioId,
+      meta: item.motivo
+    })
+  })
+
+  const agList = prescricaoAtual.value.historicoAgendamentos || []
+  agList.forEach((item: any, index: number) => {
+    itens.push({
+      id: `ag-${index}-${item.data}`,
+      data: item.data,
+      titulo: `Agendamento ${item.agendamentoId}`,
+      descricao: `Status: ${item.statusAgendamento}`,
+      usuario: item.usuarioNome || item.usuarioId,
+      meta: item.observacoes
+    })
+  })
+
+  return itens
+})
 
 const getCategoriaLabel = (cat: string) => {
   const map: Record<string, string> = {
@@ -42,8 +92,8 @@ const formatDiasCiclo = (dias: number[]) => {
 }
 
 const fetchPdfBlob = async () => {
-  if (!props.prescricao?.id) throw new Error("ID inválido")
-  const response = await api.get(`/api/prescricoes/${props.prescricao.id}/pdf`, {
+  if (!prescricaoAtual.value?.id) throw new Error("ID inválido")
+  const response = await api.get(`/api/prescricoes/${prescricaoAtual.value.id}/pdf`, {
     responseType: 'blob'
   })
   return new Blob([response.data], {type: 'application/pdf'})
@@ -57,8 +107,8 @@ const handleBaixar = async () => {
 
     const link = document.createElement('a')
     link.href = url
-    const nomePaciente = props.prescricao.conteudo?.paciente?.nome || 'paciente'
-    link.setAttribute('download', `Prescricao_${nomePaciente}_${props.prescricao.id.slice(0, 8)}.pdf`)
+    const nomePaciente = prescricaoAtual.value.conteudo?.paciente?.nome || 'paciente'
+    link.setAttribute('download', `Prescricao_${nomePaciente}_${prescricaoAtual.value.id.slice(0, 8)}.pdf`)
 
     document.body.appendChild(link)
     link.click()
@@ -68,6 +118,37 @@ const handleBaixar = async () => {
     console.error(e)
     toast.error("Erro ao baixar PDF.")
   }
+}
+
+const handleSalvarStatus = async () => {
+  if (!prescricaoAtual.value?.id || !statusSelecionado.value) return
+
+  if ([PrescricaoStatusEnum.SUSPENSA, PrescricaoStatusEnum.CANCELADA].includes(statusSelecionado.value)) {
+    if (!motivo.value.trim()) {
+      toast.error('Informe o motivo da alteração')
+      return
+    }
+  }
+
+  try {
+    await alterarStatus(prescricaoAtual.value.id, statusSelecionado.value, motivo.value)
+    statusSelecionado.value = ''
+    motivo.value = ''
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+const handleSubstituir = async () => {
+  if (!prescricaoAtual.value?.id) return
+  await router.push({
+    name: 'Prescricao',
+    query: {
+      pacienteId: prescricaoAtual.value.pacienteId,
+      substituirDe: prescricaoAtual.value.id
+    }
+  })
+  emit('update:open', false)
 }
 </script>
 
@@ -82,42 +163,50 @@ const handleBaixar = async () => {
               <FileText class="h-5 w-5"/>
               Prescrição Médica
             </DialogTitle>
-            <DialogDescription v-if="prescricao?.conteudo?.paciente">
-              Paciente: <span class="font-medium text-gray-900">{{ prescricao.conteudo.paciente.nome }}</span>
+            <DialogDescription v-if="prescricaoAtual?.conteudo?.paciente">
+              Paciente: <span class="font-medium text-gray-900">{{ prescricaoAtual.conteudo.paciente.nome }}</span>
               <span class="mx-2 text-gray-300">|</span>
-              Prontuário: {{ prescricao.conteudo.paciente.prontuario }}
+              Prontuário: {{ prescricaoAtual.conteudo.paciente.prontuario }}
             </DialogDescription>
           </div>
-          <Badge :variant="prescricao?.status === 'concluida' ? 'default' : 'outline'" class="h-6">
-            {{ formatarStatus(prescricao?.status) }}
+          <Badge :variant="prescricaoAtual?.status === 'concluida' ? 'default' : 'outline'" class="h-6">
+            {{ formatarStatus(prescricaoAtual?.status) }}
           </Badge>
         </div>
       </DialogHeader>
 
       <div class="flex-1 overflow-y-auto min-h-0 w-full p-6 space-y-6 scrollbar-thin scrollbar-thumb-gray-200">
 
-        <div v-if="prescricao" class="grid grid-cols-2 md:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-lg border">
+        <Tabs default-value="detalhes" class="space-y-6">
+          <TabsList class="grid w-full grid-cols-2">
+            <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
+            <TabsTrigger value="historico">Histórico</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="detalhes" class="space-y-6">
+
+        <div v-if="prescricaoAtual" class="grid grid-cols-2 md:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-lg border">
           <div>
             <span class="text-sm text-gray-500 uppercase font-bold">Data Emissão</span>
-            <p class="text-sm font-medium">{{ new Date(prescricao.dataEmissao).toLocaleDateString('pt-BR') }}</p>
+            <p class="text-sm font-medium">{{ new Date(prescricaoAtual.dataEmissao).toLocaleDateString('pt-BR') }}</p>
           </div>
           <div>
             <span class="text-sm text-gray-500 uppercase font-bold">Protocolo</span>
-            <p class="text-sm font-medium">{{ prescricao.conteudo?.protocolo?.nome }}</p>
+            <p class="text-sm font-medium">{{ prescricaoAtual.conteudo?.protocolo?.nome }}</p>
           </div>
           <div>
             <span class="text-sm text-gray-500 uppercase font-bold">Ciclo</span>
-            <p class="text-sm font-medium">{{ prescricao.conteudo?.protocolo?.cicloAtual }}</p>
+            <p class="text-sm font-medium">{{ prescricaoAtual.conteudo?.protocolo?.cicloAtual }}</p>
           </div>
           <div>
             <span class="text-sm text-gray-500 uppercase font-bold">Médico</span>
-            <p :title="prescricao.conteudo?.medico?.nome" class="text-sm font-medium truncate">
-              {{ prescricao.conteudo?.medico?.nome }}
+            <p :title="prescricaoAtual.conteudo?.medico?.nome" class="text-sm font-medium truncate">
+              {{ prescricaoAtual.conteudo?.medico?.nome }}
             </p>
           </div>
         </div>
 
-        <div v-if="prescricao?.conteudo?.paciente">
+        <div v-if="prescricaoAtual?.conteudo?.paciente">
           <h4 class="text-sm font-medium mb-3 flex items-center gap-2 text-gray-900">
             <Activity class="h-4 w-4 text-gray-900"/>
             Dados Antropométricos
@@ -125,28 +214,28 @@ const handleBaixar = async () => {
           <div class="grid grid-cols-2 md:grid-cols-4 gap-4 border p-4 rounded-lg bg-white shadow-sm">
             <div class="flex flex-col">
               <span class="text-sm text-gray-500">Peso</span>
-              <span class="font-medium">{{ prescricao.conteudo.paciente.peso }} kg</span>
+              <span class="font-medium">{{ prescricaoAtual.conteudo.paciente.peso }} kg</span>
             </div>
             <div class="flex flex-col">
               <span class="text-sm text-gray-500">Altura</span>
-              <span class="font-medium">{{ prescricao.conteudo.paciente.altura }} cm</span>
+              <span class="font-medium">{{ prescricaoAtual.conteudo.paciente.altura }} cm</span>
             </div>
             <div class="flex flex-col">
               <span class="text-sm text-gray-500">Sup. Corpórea</span>
-              <span class="font-medium">{{ prescricao.conteudo.paciente.sc }} m²</span>
+              <span class="font-medium">{{ prescricaoAtual.conteudo.paciente.sc }} m²</span>
             </div>
             <div class="flex flex-col">
               <span class="text-sm text-gray-500">Creatinina</span>
-              <span class="font-medium">{{ prescricao.conteudo.paciente.creatinina ? prescricao.conteudo.paciente.creatinina + ' mg/dL' : '-' }}</span>
+              <span class="font-medium">{{ prescricaoAtual.conteudo.paciente.creatinina ? prescricaoAtual.conteudo.paciente.creatinina + ' mg/dL' : '-' }}</span>
             </div>
           </div>
         </div>
 
         <Separator/>
 
-        <div v-if="prescricao?.conteudo?.blocos" class="space-y-6">
+        <div v-if="prescricaoAtual?.conteudo?.blocos" class="space-y-6">
           <div
-              v-for="bloco in prescricao.conteudo.blocos"
+              v-for="bloco in prescricaoAtual.conteudo.blocos"
               :key="bloco.ordem"
               class="border rounded-lg overflow-hidden shadow-sm"
           >
@@ -241,11 +330,57 @@ const handleBaixar = async () => {
           Nenhum bloco de prescrição encontrado.
         </div>
 
-        <div v-if="prescricao?.conteudo?.observacoes" class="bg-blue-50 border border-blue-100 rounded-lg p-4">
-          <h4 class="text-sm font-bold text-blue-800 uppercase mb-1">Observações Gerais</h4>
-          <p class="text-sm text-blue-700">{{ prescricao.conteudo.observacoes }}</p>
-        </div>
+          <div v-if="prescricaoAtual?.conteudo?.observacoes" class="bg-blue-50 border border-blue-100 rounded-lg p-4">
+            <h4 class="text-sm font-bold text-blue-800 uppercase mb-1">Observações Gerais</h4>
+            <p class="text-sm text-blue-700">{{ prescricaoAtual.conteudo.observacoes }}</p>
+          </div>
+          </TabsContent>
 
+          <TabsContent value="historico" class="space-y-6">
+            <div class="bg-gray-50 p-4 rounded-lg border space-y-3">
+              <div class="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                <History class="h-4 w-4" />
+                Alterar status da prescrição
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div class="space-y-1">
+                  <label class="text-xs font-bold uppercase text-gray-500">Novo status</label>
+                  <Select
+                    :model-value="statusSelecionado"
+                    @update:model-value="(val) => (statusSelecionado = val as PrescricaoStatusEnum)"
+                  >
+                    <SelectTrigger class="bg-white">
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem v-for="opt in statusOptions" :key="opt.value" :value="opt.value">
+                        {{ opt.label }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+              </div>
+
+              <div class="space-y-1">
+                <label class="text-xs font-bold uppercase text-gray-500">Motivo</label>
+                <Textarea v-model="motivo" rows="2" placeholder="Descreva o motivo da alteração" />
+              </div>
+
+              <div class="flex justify-end">
+                <Button :disabled="!podeSalvarStatus || carregando" @click="handleSalvarStatus">
+                  Salvar alteração
+                </Button>
+              </div>
+            </div>
+
+            <TimelineHistorico
+              :itens="historicoItens"
+              vazio-texto="Nenhum histórico disponível para esta prescrição."
+            />
+          </TabsContent>
+        </Tabs>
       </div>
 
       <DialogFooter class="p-4 border-t bg-gray-50 shrink-0 rounded-b-lg">
@@ -253,6 +388,9 @@ const handleBaixar = async () => {
           <Button variant="secondary" @click="handleBaixar">
             <Download class="h-4 w-4 mr-2"/>
             Baixar
+          </Button>
+          <Button variant="outline" @click="handleSubstituir">
+            Substituir
           </Button>
         </div>
         <Button variant="outline" @click="emit('update:open', false)">Fechar</Button>
