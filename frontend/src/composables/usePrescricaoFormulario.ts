@@ -356,22 +356,30 @@ export function usePrescricaoFormulario() {
         observacoesClinicas: formValues.diagnostico
       }
 
+      if (substituicaoOriginalId.value) {
+        try {
+          const resSub = await appStore.adicionarPrescricaoSubstituicao(
+            payload as any,
+            substituicaoOriginalId.value,
+            'Substituída por nova prescrição'
+          )
+          prescricaoGeradaId.value = resSub.id
+          prescricaoConcluida.value = true
+          await appStore.fetchPrescricoes(formValues.pacienteId)
+          return
+        } catch (e) {
+          console.error(e)
+          const confirmar = window.confirm(
+            'Falha ao substituir de forma atômica. Deseja criar a nova prescrição sem vincular à antiga?'
+          )
+          if (!confirmar) return
+        }
+      }
+
       const res = await appStore.adicionarPrescricao(payload as any)
       prescricaoGeradaId.value = res.id
       prescricaoConcluida.value = true
-
-      if (substituicaoOriginalId.value) {
-        try {
-          await appStore.substituirPrescricao(
-            substituicaoOriginalId.value,
-            res.id,
-            'Substituída por nova prescrição'
-          )
-        } catch (e) {
-          console.error(e)
-          toast.error('Prescrição criada, mas falhou ao vincular substituição.')
-        }
-      }
+      await appStore.fetchPrescricoes(formValues.pacienteId)
     } catch (e) {
       console.error(e)
       toast.error('Erro ao salvar prescrição.')
