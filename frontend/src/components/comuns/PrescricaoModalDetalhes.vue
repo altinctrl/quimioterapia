@@ -14,6 +14,7 @@ import api from "@/services/api.ts";
 import {getUnidadeFinal} from "@/utils/utilsPrescricao.ts";
 import {usePrescricaoStatus} from '@/composables/usePrescricaoStatus.ts'
 import {usePrescricaoStore} from '@/stores/storePrescricao.ts'
+import {useAuthStore} from '@/stores/storeAuth.ts'
 import {PrescricaoStatusEnum} from '@/types/typesPrescricao.ts'
 import TimelineHistorico, {type TimelineItem} from '@/components/comuns/TimelineHistorico.vue'
 
@@ -26,6 +27,7 @@ const emit = defineEmits(['update:open'])
 const router = useRouter()
 
 const prescricaoStore = usePrescricaoStore()
+const authStore = useAuthStore()
 const prescricaoAtual = computed(() => {
   const id = props.prescricao?.id
   if (!id) return props.prescricao
@@ -389,7 +391,11 @@ const handleSubstituir = async () => {
             <Download class="h-4 w-4 mr-2"/>
             Baixar
           </Button>
-          <Button variant="outline" @click="handleSubstituir">
+          <Button
+            v-if="['medico', 'admin'].includes(authStore.user?.role || '')"
+            variant="outline"
+            @click="handleSubstituir"
+          >
             Substituir
           </Button>
         </div>
