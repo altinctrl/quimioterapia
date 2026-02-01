@@ -40,11 +40,13 @@ class AgendamentoProviderInterface(ABC):
     @abstractmethod
     async def criar_agendamento(
             self, agendamento: Agendamento,
+            commit: bool = True,
     ) -> Agendamento:
         pass
 
     @abstractmethod
     async def atualizar_agendamento(
             self, agendamento: Agendamento,
+            commit: bool = True,
     ) -> Agendamento:
         pass

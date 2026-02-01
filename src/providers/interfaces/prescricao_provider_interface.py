@@ -22,9 +22,9 @@ class PrescricaoProviderInterface(ABC):
         pass
 
     @abstractmethod
-    async def criar_prescricao(self, prescricao: Prescricao) -> Prescricao:
+    async def criar_prescricao(self, prescricao: Prescricao, commit: bool = True) -> Prescricao:
         pass
 
     @abstractmethod
-    async def atualizar_prescricao(self, prescricao: Prescricao) -> Prescricao:
+    async def atualizar_prescricao(self, prescricao: Prescricao, commit: bool = True) -> Prescricao:
         pass
