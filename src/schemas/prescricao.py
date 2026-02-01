@@ -106,6 +106,11 @@ class PrescricaoCreate(BaseSchema):
     blocos: List[BlocoPrescricao]
 
 
+class PrescricaoSubstituicaoCreate(PrescricaoCreate):
+    prescricao_original_id: str
+    motivo: Optional[str] = None
+
+
 class PrescricaoResponse(BaseSchema):
     id: str
     paciente_id: str
