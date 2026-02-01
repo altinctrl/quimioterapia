@@ -36,7 +36,7 @@ class AgendamentoSQLAlchemyProvider(AgendamentoProviderInterface):
 
     async def buscar_por_prescricao_e_dia(self, prescricao_id: str, dia_ciclo: int) -> List[Agendamento]:
         query = select(Agendamento).where(
-            Agendamento.detalhes['infusao']['prescricao_id'].astext == prescricao_id,
+            Agendamento.detalhes['infusao']['prescricao_id'].as_string() == prescricao_id,
             Agendamento.detalhes['infusao']['dia_ciclo'] == dia_ciclo
         )
 
@@ -46,7 +46,7 @@ class AgendamentoSQLAlchemyProvider(AgendamentoProviderInterface):
 
     async def listar_por_prescricao(self, prescricao_id: str, incluir_concluidos: bool = True) -> List[Agendamento]:
         query = select(Agendamento).where(
-            Agendamento.detalhes['infusao']['prescricao_id'].astext == prescricao_id
+            Agendamento.detalhes['infusao']['prescricao_id'].as_string() == prescricao_id
         )
 
         if not incluir_concluidos:
@@ -56,16 +56,22 @@ class AgendamentoSQLAlchemyProvider(AgendamentoProviderInterface):
         return result.scalars().all()
 
 
-    async def criar_agendamento(self, agendamento: Agendamento) -> Agendamento:
+    async def criar_agendamento(self, agendamento: Agendamento, commit: bool = True) -> Agendamento:
         self.session.add(agendamento)
-        await self.session.commit()
+        if commit:
+            await self.session.commit()
+        else:
+            await self.session.flush()
 
         query = select(Agendamento).where(Agendamento.id == agendamento.id).options(selectinload(Agendamento.paciente), selectinload(Agendamento.criado_por))
         result = await self.session.execute(query)
         return result.scalar_one()
 
-    async def atualizar_agendamento(self, agendamento: Agendamento) -> Agendamento:
-        await self.session.commit()
+    async def atualizar_agendamento(self, agendamento: Agendamento, commit: bool = True) -> Agendamento:
+        if commit:
+            await self.session.commit()
+        else:
+            await self.session.flush()
 
         query = select(Agendamento).where(Agendamento.id == agendamento.id).options(selectinload(Agendamento.paciente), selectinload(Agendamento.criado_por))
         result = await self.session.execute(query)
