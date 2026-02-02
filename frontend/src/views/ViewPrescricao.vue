@@ -103,7 +103,7 @@ const handleBaixar = async () => {
       </div>
 
       <div class="flex flex-col gap-1 mb-2">
-        <Label class="text-sm font-semibold text-gray-700">Selecione a Variante do Protocolo</Label>
+        <Label class="text-sm font-semibold text-gray-700">Selecione o Modelo</Label>
       </div>
 
       <Card v-if="templatesDisponiveis.length > 1" class="p-4 flex items-center gap-1 mb-4 w-full">

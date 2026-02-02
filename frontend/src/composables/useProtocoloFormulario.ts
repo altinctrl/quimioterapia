@@ -53,6 +53,9 @@ export function useProtocoloFormulario(protocoloId?: string) {
     if (!payload.fase || payload.fase === '' || payload.fase === 'none') {
       payload.fase = null;
     }
+    if (!payload.tipoTerapia || payload.tipoTerapia === '' || payload.tipoTerapia === 'none') {
+      payload.tipoTerapia = null;
+    }
 
     if (payload.templatesCiclo) {
       payload.templatesCiclo.forEach((template: any) => {

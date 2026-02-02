@@ -1,3 +1,14 @@
+export enum TipoTerapiaEnum {
+  QUIMIOTERAPIA = "quimioterapia",
+  IMUNOTERAPIA = "imunoterapia",
+  TERAPIA_ALVO = "terapia_alvo",
+  HORMONIOTERAPIA = "hormonioterapia",
+  ANTICORPO_MONOCLONAL = "anticorpo_monoclonal",
+  IMUNOGLOBULINA = "imunoglobulina",
+  MEDICACAO_SUPORTE = "medicacao_suporte",
+  HEMATOLOGIA = "hematologia",
+}
+
 export enum FaseEnum {
   ADJUVANTE = "Adjuvante",
   NEOADJUVANTE = "Neoadjuvante",
@@ -84,6 +95,7 @@ export interface Protocolo {
   totalCiclos?: number;
   fase?: FaseEnum;
   linha?: number;
+  tipoTerapia?: string;
   observacoes?: string;
   precaucoes?: string;
   ativo: boolean;
