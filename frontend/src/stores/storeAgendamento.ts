@@ -116,7 +116,10 @@ export const useAgendamentoStore = defineStore('agendamento', () => {
       const payload = {detalhes: {infusao: {horario_previsao_entrega: horario}}}
       const res = await api.put(`/api/agendamentos/${id}`, payload)
       const idx = agendamentos.value.findIndex(a => a.id === id)
-      if (idx !== -1) agendamentos.value[idx] = res.data
+      if (idx !== -1) {
+        const prescricaoAntiga = agendamentos.value[idx].prescricao
+        agendamentos.value[idx] = {...res.data, prescricao: prescricaoAntiga}
+      }
     } catch (e) {
       toast.error("Erro ao atualizar horário")
     }
