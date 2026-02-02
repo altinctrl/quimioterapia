@@ -192,15 +192,15 @@ const getChecklistLabel = (agendamento: Agendamento) => {
               </button>
 
               <div class="flex items-center gap-2 mt-1 text-xs text-gray-800">
-                <template>
-                    <span v-if="ag.detalhes?.infusao?.cicloAtual"
-                          class="bg-blue-50 text-blue-700 px-1.5 rounded border border-blue-100">
-                        Ciclo {{ ag.detalhes.infusao.cicloAtual }}
-                    </span>
-                    <span v-if="ag.detalhes?.infusao?.diaCiclo" class="text-gray-800 px-1.5 rounded border">
-                        Dia {{ ag.detalhes.infusao.diaCiclo }}
-                    </span>
-                </template>
+                <span
+                    v-if="ag.detalhes?.infusao?.cicloAtual"
+                    class="bg-blue-50 text-blue-700 px-1.5 rounded border border-blue-100"
+                >
+                  Ciclo {{ ag.detalhes.infusao.cicloAtual }}
+                </span>
+                <span v-if="ag.detalhes?.infusao?.diaCiclo" class="text-gray-800 px-1.5 rounded border">
+                  D{{ ag.detalhes.infusao.diaCiclo }}
+                </span>
               </div>
             </div>
             <div v-else-if="tipo == 'consulta'">
