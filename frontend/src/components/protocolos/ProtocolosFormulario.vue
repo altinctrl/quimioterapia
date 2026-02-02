@@ -8,9 +8,9 @@ import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/c
 import {Checkbox} from '@/components/ui/checkbox'
 import {Card, CardContent} from '@/components/ui/card'
 import {ClipboardList, Copy, Info, Layers, Plus, Trash2} from 'lucide-vue-next'
-import {diasSemanaOptions} from '@/constants/constProtocolos.ts'
+import {diasSemanaOptions, TipoTerapiaLabels} from '@/constants/constProtocolos.ts'
 import ProtocolosBlocoMedicamentos from './ProtocolosBlocoMedicamentos.vue'
-import {FaseEnum, type Protocolo} from "@/types/typesProtocolo.ts";
+import {FaseEnum, type Protocolo, TipoTerapiaEnum} from "@/types/typesProtocolo.ts";
 
 import {useProtocoloModelos} from '@/composables/useProtocoloModelos.ts'
 import {useProtocoloBlocos} from '@/composables/useProtocoloBlocos.ts'
@@ -35,6 +35,11 @@ const {
   removeBlocoFromTemplate,
   moveBlocoInTemplate
 } = useProtocoloBlocos()
+
+const handleTipoTerapiaChange = (value: unknown) => {
+  const valString = String(value)
+  props.modelValue.tipoTerapia = valString === 'none' ? undefined : valString as TipoTerapiaEnum
+}
 
 const handleFaseChange = (value: unknown) => {
   const valString = String(value)
@@ -74,9 +79,30 @@ watch(() => props.modelValue, (newVal) => {
               <Input v-model="modelValue.nome"/>
             </div>
 
-            <div class="col-span-12 md:col-span-12">
+            <div class="col-span-9">
               <Label>Indicação</Label>
               <Input v-model="modelValue.indicacao"/>
+            </div>
+            <div class="col-span-3">
+              <Label>Tipo de Terapia</Label>
+              <Select
+                  :model-value="modelValue.tipoTerapia || 'none'"
+                  @update:model-value="handleTipoTerapiaChange"
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione"/>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Selecione</SelectItem>
+                  <SelectItem
+                      v-for="valor in TipoTerapiaEnum"
+                      :key="valor"
+                      :value="valor"
+                  >
+                    {{ TipoTerapiaLabels[valor] }}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div class="col-span-2">
@@ -148,7 +174,7 @@ watch(() => props.modelValue, (newVal) => {
     <div class="pt-6 space-y-4">
       <div class="flex items-center gap-2">
         <Layers/>
-        <h2 class="text-xl font-semibold text-gray-800">Templates</h2>
+        <h2 class="text-xl font-semibold text-gray-800">Modelos</h2>
       </div>
 
       <Card class="p-4 flex items-center gap-1 mb-4 w-full">
@@ -186,7 +212,7 @@ watch(() => props.modelValue, (newVal) => {
           <div class="flex justify-between items-start gap-4 pb-4 border-b">
             <div class="grid grid-cols-12 gap-4 flex-1">
               <div class="col-span-12 md:col-span-8">
-                <Label class="text-xs uppercase text-gray-500 font-bold">Nome do Template / Variante</Label>
+                <Label class="text-xs uppercase text-gray-500 font-bold">Nome do Modelo</Label>
                 <Input
                     v-model="currentTemplate.idTemplate"
                     placeholder="Ex: Padrão, D1 e D8, etc"
@@ -249,12 +275,12 @@ watch(() => props.modelValue, (newVal) => {
           <div class="flex justify-center pt-2">
             <Button class="w-full border-dashed py-6" variant="outline" @click="addBlocoToTemplate(currentTemplate!)">
               <Plus class="h-5 w-5 mr-2"/>
-              Adicionar Novo Bloco ao Template "{{ currentTemplate.idTemplate }}"
+              Adicionar Novo Bloco ao Modelo "{{ currentTemplate.idTemplate }}"
             </Button>
           </div>
         </div>
         <div v-else class="text-center py-8 text-muted-foreground">
-          Nenhum template selecionado.
+          Nenhum modelo selecionado.
         </div>
       </Card>
     </div>

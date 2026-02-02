@@ -82,9 +82,9 @@ const {
               <Clock class="h-4 w-4"/>
               {{ p.tempoTotalMinutos || 0 }} min
             </div>
-            <div class="flex items-center gap-1" title="Templates/Variantes">
+            <div class="flex items-center gap-1" title="Modelo">
               <Layers class="h-4 w-4"/>
-              {{ p.templatesCiclo?.length || 0 }} variantes
+              {{ p.templatesCiclo?.length || 0 }} modelos
             </div>
           </div>
 

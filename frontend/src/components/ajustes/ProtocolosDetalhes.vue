@@ -7,8 +7,9 @@ import {Separator} from '@/components/ui/separator'
 import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from '@/components/ui/dialog'
 import {AlertTriangle, CalendarDays, ChevronLeft, ChevronRight, Info, Layers} from 'lucide-vue-next'
 import ProtocolosMedicamentoLeitura from "@/components/ajustes/ProtocolosMedicamentoLeitura.vue";
-import {categoriasBloco} from "@/constants/constProtocolos.ts";
+import {categoriasBloco, TipoTerapiaLabels} from "@/constants/constProtocolos.ts";
 import {formatDiasSemana} from "@/utils/utilsComuns.ts";
+import {TipoTerapiaEnum} from "@/types/typesProtocolo.ts";
 
 const props = defineProps<{
   open: boolean
@@ -63,7 +64,8 @@ watch(() => props.protocolo, () => {
               <Badge v-if="!protocolo?.ativo" class="text-xs">Inativo</Badge>
             </DialogTitle>
             <DialogDescription class="mt-1 text-sm text-gray-600 flex flex-col">
-              {{ protocolo?.indicacao }}
+              <span>{{ TipoTerapiaLabels[protocolo.tipoTerapia as TipoTerapiaEnum] }}</span>
+              <span>{{ protocolo?.indicacao }}</span>
               <div>
               <span v-if="protocolo?.fase" class="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 {{ protocolo?.fase }}
@@ -140,7 +142,7 @@ watch(() => props.protocolo, () => {
             <div class="flex flex-col gap-1 mb-3">
               <h3 class="text-lg font-semibold flex items-center gap-2">
                 <Layers class="h-5 w-5 text-gray-600"/>
-                Esquema de Administração
+                Modelos
               </h3>
             </div>
 
