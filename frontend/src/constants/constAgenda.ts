@@ -1,4 +1,4 @@
-import {AgendamentoStatusEnum, TipoConsultaEnum, TipoProcedimentoEnum} from "@/types/typesAgendamento.ts";
+import {AgendamentoStatusEnum, GrupoInfusao, TipoConsultaEnum, TipoProcedimentoEnum} from "@/types/typesAgendamento.ts";
 
 export const statusInfusaoPermitidosSemCheckin = [
   'agendado',
@@ -82,3 +82,11 @@ export const MESES = [
   {value: '11', label: 'Novembro'},
   {value: '12', label: 'Dezembro'}
 ]
+
+export const LABELS_GRUPO_INFUSAO: Record<GrupoInfusao, string> = {
+    rapido: 'Rápida',
+    medio: 'Média',
+    longo: 'Longa',
+    extra_longo: 'Extra Longa',
+    indefinido: '-'
+  }

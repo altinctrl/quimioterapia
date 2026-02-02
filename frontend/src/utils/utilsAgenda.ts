@@ -1,6 +1,6 @@
 import {Agendamento, DetalhesInfusao, GrupoInfusao} from "@/types/typesAgendamento.ts";
 import {
-  LABELS_CONSULTA,
+  LABELS_CONSULTA, LABELS_GRUPO_INFUSAO,
   LABELS_PROCEDIMENTO,
   LIMITE_LONGO_MINUTOS,
   LIMITE_MEDIO_MINUTOS,
@@ -124,7 +124,7 @@ export const getAgendamentoInfo = (ag: Agendamento) => {
     duracaoTexto: formatarDuracao(duracaoMin),
     corBorda: getCorGrupo(grupo),
     corBadge: getBadgeGrupo(grupo),
-    grupoLabel: grupo === 'rapido' ? 'Rápida' : grupo === 'medio' ? 'Média' : 'Longa'
+    grupoLabel: LABELS_GRUPO_INFUSAO[grupo]
   }
 }
 
