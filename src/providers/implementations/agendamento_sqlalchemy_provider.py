@@ -42,7 +42,7 @@ class AgendamentoSQLAlchemyProvider(AgendamentoProviderInterface):
     async def buscar_por_prescricao_e_dia(self, prescricao_id: str, dia_ciclo: int) -> List[Agendamento]:
         query = select(Agendamento).where(
             Agendamento.detalhes['infusao']['prescricao_id'].astext == prescricao_id,
-            Agendamento.detalhes['infusao']['dia_ciclo'] == dia_ciclo
+            Agendamento.detalhes['infusao']['dia_ciclo'].as_integer() == dia_ciclo
         )
 
         result = await self.session.execute(query)
