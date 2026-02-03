@@ -184,7 +184,9 @@ async def criar_prescricao_substituicao_atomic(
             commit=False
         )
 
-    return PrescricaoResponse.model_validate(criado)
+    response = PrescricaoResponse.model_validate(criado)
+    session.commit()
+    return response
 
 
 def _append_historico_status(prescricao: Prescricao, status_anterior: str, status_novo: str,
