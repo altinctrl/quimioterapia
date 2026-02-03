@@ -9,6 +9,8 @@ interface VagasInfo {
   count: number
   full: boolean
   label?: string
+  blocked?: boolean
+  hidden?: boolean
 }
 
 defineProps<{
@@ -78,12 +80,18 @@ const emit = defineEmits<{
             @click="!isDiaBloqueado(dia) && emit('selecionarData', dia.toISOString().split('T')[0])"
         >
           <span class="font-medium">{{ dia.getDate() }}</span>
-          <div v-if="!isDiaBloqueado(dia)" class="mt-1 text-xs">
-            <span v-if="getInfoVagas(dia.toISOString().split('T')[0]).full" class="text-red-600 font-bold">Cheio</span>
+          <span v-if="!isDiaBloqueado(dia)" class="mt-1 text-xs">
+            <span v-if="getInfoVagas(dia.toISOString().split('T')[0]).hidden"></span>
+            <span v-else-if="getInfoVagas(dia.toISOString().split('T')[0]).blocked" class="text-gray-400 font-medium text-[10px] uppercase">
+              Não Permitido
+            </span>
+            <span v-else-if="getInfoVagas(dia.toISOString().split('T')[0]).full" class="text-red-600 font-bold">
+              Cheio
+            </span>
             <span v-else class="text-green-600 font-medium">
               {{ getInfoVagas(dia.toISOString().split('T')[0]).count }} vagas
             </span>
-          </div>
+          </span>
         </button>
       </div>
       <div class="mt-2 text-xs text-gray-500 text-right">
