@@ -283,7 +283,7 @@ async def atualizar_agendamento(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agendamento não encontrado")
 
     update_data = dados.model_dump(exclude_unset=True)
-    prescricao_id_anterior = _aplicar_regras_atualizacao(agendamento, update_data)
+    prescricao_id_anterior = _aplicar_regras_atualizacao(agendamento, update_data, usuario_id, usuario_nome)
     atualizado = await provider.atualizar_agendamento(agendamento)
 
     if agendamento.tipo == TipoAgendamento.INFUSAO.value:
