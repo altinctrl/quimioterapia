@@ -123,7 +123,7 @@ const onStatusChange = (id: string, event: Event) => {
               <ChevronsUpDown v-else class="h-4 w-4"/>
             </Button>
           </TableHead>
-          <TableHead class="w-[100px]">Horário</TableHead>
+          <TableHead class="w-[70px]">Horário</TableHead>
           <TableHead class="min-w-[150px]">Paciente</TableHead>
           <TableHead class="min-w-[100px]">Prescrição</TableHead>
           <TableHead class="w-[80px] text-center">Em Sala</TableHead>

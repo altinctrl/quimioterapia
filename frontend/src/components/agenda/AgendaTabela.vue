@@ -118,7 +118,7 @@ const getChecklistLabel = (agendamento: Agendamento) => {
               />
             </div>
           </TableHead>
-          <TableHead class="pl-5 w-[100px]">Horário</TableHead>
+          <TableHead class="pl-5 w-[80px]">Horário</TableHead>
           <TableHead class="min-w-[150px]">Paciente</TableHead>
           <TableHead class="min-w-[100px]">
             {{ tipo == 'infusao' ? 'Prescrição' : tipo == 'consulta' ? 'Consulta' : 'Procedimento'}}
