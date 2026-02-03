@@ -144,6 +144,9 @@ export function useAgendamentoFormulario() {
 
   let timeoutBusca: ReturnType<typeof setTimeout>
   watch(buscaPaciente, (novoTermo) => {
+    if (pacienteSelecionado.value && novoTermo === pacienteSelecionado.value.nome) {
+      return
+    }
     clearTimeout(timeoutBusca)
     timeoutBusca = setTimeout(async () => {
       if (novoTermo.length >= 3) {
