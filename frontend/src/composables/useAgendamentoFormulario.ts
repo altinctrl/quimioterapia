@@ -82,6 +82,13 @@ export function useAgendamentoFormulario() {
     return Array.from(diasTeoricos).sort((a, b) => a - b)
   })
 
+  const diasSemanaPermitidosProtocolo = computed(() => {
+    if (!prescricaoAtual.value) return undefined
+    const protoNome = prescricaoAtual.value.conteudo.protocolo.nome
+    const protocoloFull = appStore.protocolos.find(p => p.nome === protoNome)
+    return protocoloFull?.diasSemanaPermitidos
+  })
+
   const grupoInfusaoAtual = computed((): GrupoInfusao => {
     if (tipoAgendamento.value !== 'infusao' || !prescricaoAtual.value) return 'medio'
     const protoNome = prescricaoAtual.value.conteudo.protocolo.nome
@@ -107,7 +114,7 @@ export function useAgendamentoFormulario() {
       if (!prescricaoAtual.value) return 0
       const protoNome = prescricaoAtual.value.conteudo.protocolo.nome
       const protocoloFull = appStore.protocolos.find(p => p.nome === protoNome)
-      return protocoloFull?.tempoTotalMinutos || 120 // 120 default
+      return protocoloFull?.tempoTotalMinutos || 120
     }
 
     if (tipoAgendamento.value === 'consulta') {
@@ -197,11 +204,10 @@ export function useAgendamentoFormulario() {
 
   const handleSelecionarData = (data: string) => {
     dataSelecionada.value = data
-    horarioInicio.value = ''
     listaAvisos.value = []
   }
 
-  const preValidarAgendamento = (vagasInfo: { full: boolean, label: string }) => {
+  const preValidarAgendamento = (vagasInfo: { full: boolean, label?: string, blocked?: boolean }) => {
     listaAvisos.value = []
 
     if (!pacienteSelecionado.value || !dataSelecionada.value || !horarioInicio.value) {
@@ -209,8 +215,12 @@ export function useAgendamentoFormulario() {
       return
     }
 
+    if (vagasInfo.blocked) {
+      listaAvisos.value.push('A data selecionada não é permitida para este protocolo.')
+    }
+
     if (tipoAgendamento.value === 'infusao' && (!prescricaoSelecionadaId.value || !diaCiclo.value)) {
-      toast.error('Selecione a prescrição e o dia do ciclo') // Msg ajustada
+      toast.error('Selecione a prescrição e o dia do ciclo')
       return
     }
     if (tipoAgendamento.value === 'consulta' && !tipoConsulta.value) {
@@ -222,7 +232,7 @@ export function useAgendamentoFormulario() {
       return
     }
 
-    if (vagasInfo.full) {
+    if (vagasInfo.full && !vagasInfo.blocked) {
       listaAvisos.value.push(`A capacidade para "${vagasInfo.label}" está esgotada neste dia.`)
     }
 
@@ -289,7 +299,7 @@ export function useAgendamentoFormulario() {
         data: dataSelecionada.value,
         turno: turnoInferido,
         horarioInicio: horarioInicio.value,
-        horarioFim: horarioFimCalculado.value || appStore.parametros.horarioFechamento, // Usa o calculado
+        horarioFim: horarioFimCalculado.value || appStore.parametros.horarioFechamento,
         status: 'agendado',
         encaixe: encaixe.value,
         observacoes: observacoes.value,
@@ -321,6 +331,7 @@ export function useAgendamentoFormulario() {
     prescricoesFormatadas,
     diasPermitidosCiclo,
     grupoInfusaoAtual,
+    diasSemanaPermitidosProtocolo,
     ultimoAgendamento,
     duracaoEstimadaMinutos,
     horarioFimCalculado,

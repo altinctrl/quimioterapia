@@ -33,6 +33,7 @@ const {
   prescricoesFormatadas,
   diasPermitidosCiclo,
   grupoInfusaoAtual,
+  diasSemanaPermitidosProtocolo,
   ultimoAgendamento,
   handleSelecionarPaciente,
   handleSelecionarData,
@@ -47,7 +48,7 @@ const {
   espacosVazios,
   isDiaBloqueado,
   getStatusVagas
-} = useAgendamentoCalendario(tipoAgendamento, grupoInfusaoAtual)
+} = useAgendamentoCalendario(tipoAgendamento, grupoInfusaoAtual, prescricaoSelecionadaId, diasSemanaPermitidosProtocolo)
 
 onMounted(async () => {
   await Promise.all([

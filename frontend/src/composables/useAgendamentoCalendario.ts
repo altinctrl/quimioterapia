@@ -2,9 +2,19 @@ import {computed, Ref, ref} from 'vue'
 import {useAppStore} from '@/stores/storeGeral.ts'
 import {Agendamento, GrupoInfusao, TipoAgendamento} from "@/types/typesAgendamento.ts";
 
+export interface VagasInfo {
+  count: number
+  full: boolean
+  label?: string
+  blocked?: boolean
+  hidden?: boolean
+}
+
 export function useAgendamentoCalendario(
   tipoAgendamento: Ref<TipoAgendamento>,
-  grupoInfusao: Ref<GrupoInfusao>
+  grupoInfusao: Ref<GrupoInfusao>,
+  prescricaoSelecionadaId: Ref<string>,
+  diasSemanaPermitidos: Ref<number[] | undefined>
 ) {
   const appStore = useAppStore()
 
@@ -38,7 +48,10 @@ export function useAgendamentoCalendario(
     return isPastDate || isClosedDay
   }
 
-  const getStatusVagas = (dataStr: string) => {
+  const getStatusVagas = (dataStr: string): VagasInfo => {
+    const dateObj = new Date(dataStr + 'T12:00:00');
+    const dayOfWeek = dateObj.getDay();
+
     const agendamentosNoDia = appStore.getAgendamentosDoDia(dataStr)
     const limiteVagas = appStore.parametros.vagas
 
@@ -61,6 +74,22 @@ export function useAgendamentoCalendario(
         label: tipo
       }
     } else {
+
+      if (!prescricaoSelecionadaId.value) {
+        return { count: 0, full: false, hidden: true }
+      }
+
+      if (diasSemanaPermitidos.value && diasSemanaPermitidos.value.length > 0) {
+        if (!diasSemanaPermitidos.value.includes(dayOfWeek)) {
+          return {
+            count: 0,
+            full: true,
+            blocked: true,
+            label: 'Não Permitido'
+          }
+        }
+      }
+
       const grupo = grupoInfusao.value
       const chaveGrupo = `infusao_${grupo}` as keyof typeof limiteVagas
       const limiteGrupo = limiteVagas[chaveGrupo] || 0
