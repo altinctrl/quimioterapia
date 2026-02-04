@@ -33,6 +33,7 @@ class AgendamentoStatusEnum(str, enum.Enum):
 
 
 class FarmaciaStatusEnum(str, enum.Enum):
+    AGENDADO = 'agendado'
     PENDENTE = 'pendente'
     EM_PREPARACAO = 'em-preparacao'
     PRONTO = 'pronto'

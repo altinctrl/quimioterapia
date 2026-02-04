@@ -29,6 +29,12 @@ def _aplicar_regras_atualizacao(
 
     status_anterior = agendamento.status
     checkin_anterior = agendamento.checkin
+    status_farmacia_anterior = None
+    prescricao_id_anterior = None
+    if agendamento.tipo == TipoAgendamento.INFUSAO.value and agendamento.detalhes:
+        infusao_detalhes = agendamento.detalhes.get('infusao', {})
+        prescricao_id_anterior = infusao_detalhes.get('prescricao_id')
+        status_farmacia_anterior = infusao_detalhes.get('status_farmacia')
     novo_status = update_data.get('status', agendamento.status)
     novo_checkin = update_data.get('checkin', agendamento.checkin)
 
@@ -53,10 +59,6 @@ def _aplicar_regras_atualizacao(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"O status '{novo_status}' exige que o paciente tenha realizado o Check-in."
             )
-
-    prescricao_id_anterior = None
-    if agendamento.tipo == TipoAgendamento.INFUSAO.value and agendamento.detalhes:
-        prescricao_id_anterior = agendamento.detalhes.get('infusao', {}).get('prescricao_id')
 
     if 'detalhes' in update_data:
         novos_detalhes = update_data['detalhes']
@@ -86,6 +88,21 @@ def _aplicar_regras_atualizacao(
 
         update_data['detalhes'] = detalhes_atuais
 
+    if (agendamento.tipo == TipoAgendamento.INFUSAO.value and
+            novo_status == 'aguardando-medicamento' and
+            novo_checkin is True):
+        detalhes_finais = update_data.get('detalhes')
+        if detalhes_finais is None:
+            detalhes_finais = dict(agendamento.detalhes) if agendamento.detalhes else {}
+
+        infusao_data = detalhes_finais.get('infusao', {})
+        if infusao_data is None: infusao_data = {}
+        status_farmacia_atual = infusao_data.get('status_farmacia')
+        if status_farmacia_atual == 'agendado':
+            infusao_data['status_farmacia'] = 'pendente'
+            detalhes_finais['infusao'] = infusao_data
+            update_data['detalhes'] = detalhes_finais
+
     for key, value in update_data.items():
         setattr(agendamento, key, value)
 
@@ -114,6 +131,22 @@ def _aplicar_regras_atualizacao(
             "valor_antigo": str(checkin_anterior),
             "valor_novo": str(update_data['checkin'])
         })
+
+    if agendamento.tipo == TipoAgendamento.INFUSAO.value and 'detalhes' in update_data:
+        status_farmacia_novo = agendamento.detalhes.get('infusao', {}).get('status_farmacia')
+
+        if (status_farmacia_anterior and status_farmacia_novo and
+                status_farmacia_anterior != status_farmacia_novo):
+            historico_alteracoes.append({
+                "data": datetime.now().isoformat(),
+                "usuario_id": usuario_id,
+                "usuario_nome": usuario_nome,
+                "tipo_alteracao": "status_farmacia",
+                "campo": "status_farmacia",
+                "valor_antigo": status_farmacia_anterior,
+                "valor_novo": status_farmacia_novo,
+                "motivo": "Alteração automática por check-in/status" if status_farmacia_novo == 'pendente' and status_farmacia_anterior == 'agendado' else None
+            })
 
     if 'detalhes' in update_data and prescricao_id_anterior:
         prescricao_id_nova = agendamento.detalhes.get('infusao', {}).get('prescricao_id')
