@@ -233,6 +233,11 @@ const handleSubstituir = async () => {
           </div>
         </div>
 
+          <div v-if="prescricaoAtual?.conteudo?.diagnostico" class="bg-blue-50 border border-blue-100 rounded-lg p-4">
+            <h4 class="text-sm font-bold text-blue-800 uppercase mb-1">Hipótese Diagnóstica</h4>
+            <p class="text-sm text-blue-700">{{ prescricaoAtual.conteudo.diagnostico }}</p>
+          </div>
+
         <Separator/>
 
         <div v-if="prescricaoAtual?.conteudo?.blocos" class="space-y-6">
@@ -331,11 +336,6 @@ const handleSubstituir = async () => {
         <div v-else class="text-center py-8 text-gray-500 italic border-2 border-dashed rounded-lg">
           Nenhum bloco de prescrição encontrado.
         </div>
-
-          <div v-if="prescricaoAtual?.conteudo?.observacoes" class="bg-blue-50 border border-blue-100 rounded-lg p-4">
-            <h4 class="text-sm font-bold text-blue-800 uppercase mb-1">Observações Gerais</h4>
-            <p class="text-sm text-blue-700">{{ prescricaoAtual.conteudo.observacoes }}</p>
-          </div>
           </TabsContent>
 
           <TabsContent value="historico" class="space-y-6">

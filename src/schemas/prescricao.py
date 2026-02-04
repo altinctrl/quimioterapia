@@ -76,7 +76,7 @@ class PrescricaoConteudo(BaseSchema):
     medico: MedicoSnapshot
     protocolo: ProtocoloRef
     blocos: List[BlocoPrescricao]
-    observacoes: Optional[str] = None
+    diagnostico: Optional[str] = None
 
 
 class PrescricaoStatusHistoricoItem(BaseSchema):
@@ -102,7 +102,7 @@ class PrescricaoCreate(BaseSchema):
     medico_id: str
     protocolo: ProtocoloRef
     dados_paciente: PacienteSnapshot
-    observacoes_clinicas: Optional[str] = None
+    diagnostico: Optional[str] = None
     blocos: List[BlocoPrescricao]
 
 
