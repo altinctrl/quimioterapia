@@ -10,7 +10,8 @@ from src.providers.interfaces.agendamento_provider_interface import AgendamentoP
 from src.providers.interfaces.prescricao_provider_interface import PrescricaoProviderInterface
 from src.controllers import prescricao_controller
 from src.schemas.agendamento import AgendamentoCreate, AgendamentoUpdate, AgendamentoResponse, TipoAgendamento, \
-    AgendamentoBulkUpdateList,  AgendamentoPrescricaoUpdate
+    AgendamentoBulkUpdateList, AgendamentoPrescricaoUpdate, AgendamentoStatusEnum, FarmaciaStatusEnum, \
+    AgendamentoRemarcacaoLoteRequest, AgendamentoRemarcacaoRequest
 from src.schemas.prescricao import PrescricaoResponse
 
 def _aplicar_regras_atualizacao(
@@ -181,6 +182,119 @@ def _aplicar_regras_atualizacao(
         flag_modified(agendamento, "historico_alteracoes")
 
     return prescricao_id_anterior
+
+
+def _calcular_novo_fim(inicio_original: str, fim_original: str, novo_inicio: str) -> str:
+    formato = "%H:%M"
+    try:
+        t_inicio_orig = datetime.strptime(inicio_original, formato)
+        t_fim_orig = datetime.strptime(fim_original, formato)
+        duracao = t_fim_orig - t_inicio_orig
+        t_novo_inicio = datetime.strptime(novo_inicio, formato)
+        t_novo_fim = t_novo_inicio + duracao
+        return t_novo_fim.strftime(formato)
+    except Exception:
+        return fim_original
+
+
+async def _executar_remarcacao_atomica(
+        provider: AgendamentoProviderInterface,
+        prescricao_provider: PrescricaoProviderInterface,
+        original: Agendamento,
+        nova_data: date,
+        novo_horario: str,
+        motivo: str,
+        usuario_id: str,
+        usuario_nome: str
+) -> Agendamento:
+    detalhes_originais = dict(original.detalhes) if original.detalhes else {}
+    detalhes_originais['remarcacao'] = {
+        "motivo_remarcacao": motivo,
+        "nova_data": nova_data.isoformat()
+    }
+
+    status_original = original.status
+    original.status = AgendamentoStatusEnum.REMARCADO
+    original.detalhes = detalhes_originais
+    historico = list(original.historico_alteracoes or [])
+    historico.append({
+        "data": datetime.now().isoformat(),
+        "usuario_id": usuario_id,
+        "usuario_nome": usuario_nome,
+        "tipo_alteracao": "status",
+        "valor_antigo": status_original,
+        "valor_novo": AgendamentoStatusEnum.REMARCADO,
+        "motivo": f"Remarcado para {nova_data}"
+    })
+    original.historico_alteracoes = historico
+
+    flag_modified(original, "detalhes")
+    flag_modified(original, "historico_alteracoes")
+    await provider.atualizar_agendamento(original, commit=False)
+
+    novo_horario_fim = _calcular_novo_fim(
+        original.horario_inicio,
+        original.horario_fim,
+        novo_horario
+    )
+    novos_detalhes = dict(original.detalhes)
+    if original.tipo == TipoAgendamento.INFUSAO.value:
+        if 'remarcacao' in novos_detalhes: del novos_detalhes['remarcacao']
+        if 'cancelamento' in novos_detalhes: del novos_detalhes['cancelamento']
+        if 'suspensao' in novos_detalhes: del novos_detalhes['suspensao']
+        if 'intercorrencia' in novos_detalhes: del novos_detalhes['intercorrencia']
+
+        infusao = novos_detalhes.get('infusao', {}).copy()
+        infusao['status_farmacia'] = FarmaciaStatusEnum.PENDENTE
+        infusao['itens_preparados'] = []
+        infusao['horario_previsao_entrega'] = None
+        novos_detalhes['infusao'] = infusao
+
+    novo_agendamento = Agendamento(
+        id=str(uuid.uuid4()),
+        paciente_id=original.paciente_id,
+        tipo=original.tipo,
+        data=nova_data,
+        turno='manha' if int(novo_horario.split(':')[0]) < 13 else 'tarde',
+        horario_inicio=novo_horario,
+        horario_fim=novo_horario_fim,
+        checkin=False,
+        status=AgendamentoStatusEnum.AGENDADO,
+        encaixe=original.encaixe,
+        observacoes=f"Remarcado de {original.data.strftime('%d/%m/%Y')}. Motivo: {motivo}",
+        tags=original.tags,
+        detalhes=novos_detalhes,
+        criado_por_id=usuario_id
+    )
+    criado = await provider.criar_agendamento(novo_agendamento, commit=False)
+
+    if original.tipo == TipoAgendamento.INFUSAO.value:
+        prescricao_id = novos_detalhes.get('infusao', {}).get('prescricao_id')
+        if prescricao_id:
+            prescricao = await prescricao_provider.obter_prescricao(prescricao_id)
+            if prescricao:
+                hist_presc = list(prescricao.historico_agendamentos or [])
+                hist_presc.append({
+                    "data": datetime.now().isoformat(),
+                    "agendamento_id": original.id,
+                    "status_agendamento": AgendamentoStatusEnum.REMARCADO,
+                    "usuario_id": usuario_id,
+                    "usuario_nome": usuario_nome,
+                    "observacoes": f"Remarcado para novo agendamento {criado.id}"
+                })
+                hist_presc.append({
+                    "data": datetime.now().isoformat(),
+                    "agendamento_id": criado.id,
+                    "status_agendamento": AgendamentoStatusEnum.AGENDADO,
+                    "usuario_id": usuario_id,
+                    "usuario_nome": usuario_nome,
+                    "observacoes": f"Gerado a partir de remarcação de {original.id}"
+                })
+                prescricao.historico_agendamentos = hist_presc
+                flag_modified(prescricao, "historico_agendamentos")
+                await prescricao_provider.atualizar_prescricao(prescricao, commit=False)
+
+    return criado
 
 
 async def listar_agendamentos(
@@ -574,3 +688,61 @@ async def trocar_prescricao_agendamento(
     response.prescricao = PrescricaoResponse.model_validate(prescricao_nova)
     return response
 
+
+async def remarcar_agendamento(
+        provider: AgendamentoProviderInterface,
+        prescricao_provider: PrescricaoProviderInterface,
+        agendamento_id: str,
+        dados: AgendamentoRemarcacaoRequest,
+        usuario_id: str,
+        usuario_nome: str
+) -> AgendamentoResponse:
+    agendamento = await provider.obter_agendamento(agendamento_id)
+    if not agendamento:
+        raise HTTPException(status_code=404, detail="Agendamento não encontrado")
+
+    horario_final = agendamento.horario_inicio if dados.manter_horario else dados.novo_horario
+    if not horario_final:
+        raise HTTPException(status_code=400, detail="Horário não fornecido")
+
+    novo_agendamento = await _executar_remarcacao_atomica(
+        provider, prescricao_provider, agendamento, dados.nova_data, horario_final,
+        dados.motivo, usuario_id, usuario_nome
+    )
+
+    response = AgendamentoResponse.model_validate(novo_agendamento)
+    await provider.commit()
+    return response
+
+
+async def remarcar_agendamentos_lote(
+        provider: AgendamentoProviderInterface,
+        prescricao_provider: PrescricaoProviderInterface,
+        dados: AgendamentoRemarcacaoLoteRequest,
+        usuario_id: str,
+        usuario_nome: str
+) -> List[AgendamentoResponse]:
+    agendamentos = await provider.buscar_por_id_multi(dados.ids)
+
+    if len(agendamentos) != len(set(dados.ids)):
+        raise HTTPException(status_code=404, detail="Alguns agendamentos não foram encontrados")
+
+    novos_agendamentos = []
+
+    for original in agendamentos:
+        if original.status == AgendamentoStatusEnum.REMARCADO:
+            continue
+
+        horario_final = original.horario_inicio if dados.manter_horario else dados.novo_horario
+        if not horario_final:
+            horario_final = original.horario_inicio
+
+        novo = await _executar_remarcacao_atomica(
+            provider, prescricao_provider, original, dados.nova_data, horario_final,
+            dados.motivo, usuario_id, usuario_nome
+        )
+        novos_agendamentos.append(novo)
+
+    response = [AgendamentoResponse.model_validate(a) for a in novos_agendamentos]
+    await provider.commit()
+    return response

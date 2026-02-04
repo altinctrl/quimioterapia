@@ -268,3 +268,17 @@ class AgendamentoResponse(AgendamentoBase):
     paciente: Optional[AgendamentoPaciente] = None
     prescricao: Optional[PrescricaoResponse] = None
     historico_alteracoes: List[AgendamentoHistoricoItem] = []
+
+
+class AgendamentoRemarcacaoRequest(BaseSchema):
+    nova_data: date
+    novo_horario: str
+    motivo: str
+    manter_horario: bool = False
+
+class AgendamentoRemarcacaoLoteRequest(BaseSchema):
+    ids: List[str]
+    nova_data: date
+    novo_horario: Optional[str] = None
+    motivo: str
+    manter_horario: bool = False

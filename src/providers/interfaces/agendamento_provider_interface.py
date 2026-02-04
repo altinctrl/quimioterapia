@@ -6,6 +6,11 @@ from src.models.agendamento import Agendamento
 
 
 class AgendamentoProviderInterface(ABC):
+
+    @abstractmethod
+    async def commit(self):
+        pass
+
     @abstractmethod
     async def listar_agendamentos(
             self,

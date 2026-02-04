@@ -62,6 +62,7 @@ export const useAppStore = defineStore('app', () => {
     atualizarHorarioPrevisao,
     trocarPrescricaoAgendamento,
     remarcarAgendamento,
+    remarcarAgendamentosLote,
     atualizarTagsAgendamento,
     atualizarAgendamentosEmLote,
     salvarChecklistFarmacia
@@ -99,6 +100,7 @@ export const useAppStore = defineStore('app', () => {
     atualizarHorarioPrevisao,
     trocarPrescricaoAgendamento,
     remarcarAgendamento,
+    remarcarAgendamentosLote,
     atualizarTagsAgendamento,
     atualizarAgendamentosEmLote,
     salvarChecklistFarmacia,
