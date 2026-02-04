@@ -108,6 +108,7 @@ def criar_prescricao_payload(protocolo_model: Protocolo, paciente: Paciente, med
                     medicamento=dados.medicamento,
                     dose_referencia=str(dados.dose_referencia),
                     unidade=dados.unidade,
+                    dose_teorica=round(dose_calc, 2),
                     percentual_ajuste=100.0,
                     dose_final=round(dose_calc, 2),
                     via=dados.via,
