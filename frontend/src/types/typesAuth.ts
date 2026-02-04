@@ -8,6 +8,7 @@ export interface User {
   grupo: string;
   email?: string;
   token?: string;
+  refreshToken?: string;
 }
 
 export type TipoUsuario = UserRole;

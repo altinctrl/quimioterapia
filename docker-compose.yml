@@ -17,5 +17,31 @@ services:
       timeout: 5s
       retries: 5
 
+  ldap:
+    image: osixia/openldap:latest
+    container_name: openldap_server
+    environment:
+      LDAP_ORGANISATION: "Hospital"
+      LDAP_DOMAIN: "hc.gov.br"
+      LDAP_ADMIN_PASSWORD: "admin"
+      LDAP_RFC2307BIS_SCHEMA: "true"
+    volumes:
+      - ./ldap_bootstrap:/container/service/slapd/assets/config/bootstrap/ldif/custom:Z
+    ports:
+      - "3389:389"
+      - "3636:636"
+    command: --copy-service
+
+  ldap-admin:
+    image: osixia/phpldapadmin:latest
+    container_name: phpldapadmin
+    environment:
+      PHPLDAPADMIN_LDAP_HOSTS: "ldap"
+      PHPLDAPADMIN_HTTPS: "false"
+    ports:
+      - "8081:80"
+    depends_on:
+      - ldap
+
 volumes:
   postgres_data:

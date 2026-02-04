@@ -112,20 +112,20 @@ const handleSubmit = async () => {
             <p class="text-xs text-gray-500 mb-3">Usuários de desenvolvimento:</p>
             <div class="space-y-2 text-xs">
               <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
-                <span class="text-gray-700">Admin:</span>
-                <code class="text-gray-600">admin / admin</code>
+                <span class="text-gray-700">Administrador:</span>
+                <code class="text-gray-600">admin.sistema / 123</code>
               </div>
               <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
-                <span class="text-gray-700">Enfermeiro:</span>
-                <code class="text-gray-600">enfermeiro / enfermeiro123</code>
+                <span class="text-gray-700">Enfermagem:</span>
+                <code class="text-gray-600">ana.enfermagem / 123</code>
               </div>
               <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
                 <span class="text-gray-700">Médico:</span>
-                <code class="text-gray-600">medico / medico123</code>
+                <code class="text-gray-600">dr.joao / 123</code>
               </div>
               <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
                 <span class="text-gray-700">Farmácia:</span>
-                <code class="text-gray-600">farmacia / farmacia123</code>
+                <code class="text-gray-600">ana.farmacia / 123</code>
               </div>
             </div>
           </div>

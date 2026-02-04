@@ -1,0 +1,6 @@
+{
+  "Administradores": "admin",
+  "Medicos": "medico",
+  "Farmacia": "farmacia",
+  "default": "enfermeiro"
+}

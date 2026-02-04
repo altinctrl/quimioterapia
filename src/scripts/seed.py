@@ -9,6 +9,7 @@ from sqlalchemy import text
 
 from src.models.agendamento import Agendamento
 from src.models.aghu import AghuPaciente
+from src.models.auth_model import RefreshToken
 from src.models.configuracao import Configuracao
 from src.models.equipe import Profissional, EscalaPlantao, AusenciaProfissional
 from src.models.paciente import Paciente, ContatoEmergencia
@@ -242,6 +243,7 @@ async def setup_app(aghu_pacientes):
         await conn.execute(text("DROP TABLE IF EXISTS pacientes CASCADE"))
         await conn.execute(text("DROP TABLE IF EXISTS protocolos CASCADE"))
         await conn.execute(text("DROP TABLE IF EXISTS configuracoes CASCADE"))
+        await conn.execute(text("DROP TABLE IF EXISTS refresh_tokens CASCADE"))
 
         await conn.run_sync(Base.metadata.create_all)
 

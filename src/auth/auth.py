@@ -12,15 +12,14 @@ load_dotenv()
 
 class AuthHandler:
     security = HTTPBearer()
-    secret = os.getenv("JWT_SECRET", "secret_key_dev")
+    secret = os.getenv("JWT_SECRET")
+    exp_time = int(os.getenv("JWT_EXP_MINUTES"))
     algorithm = "HS256"
-
-    jwt_exp_hours = int(os.getenv("JWT_EXP_HOURS", 24))
 
     def encode_token(self, user_id: str, claims: Optional[Dict] = None) -> str:
         payload = {
             "sub": user_id,
-            "exp": time.time() + (self.jwt_exp_hours * 3600),
+            "exp": time.time() + self.exp_time,
             "iat": time.time(),
             "type": "access"
         }

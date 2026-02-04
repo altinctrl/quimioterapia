@@ -3,15 +3,8 @@ import {computed, ref} from 'vue'
 import api from '@/services/api'
 import type {User, UserRole} from '@/types/typesAuth.ts'
 
-function mapGroupsToRole(groups: string[]): UserRole {
-  if (groups.includes('Farmacia')) return 'farmacia'
-  if (groups.includes('Medicos')) return 'medico'
-  if (groups.includes('Administradores')) return 'admin'
-  return 'enfermeiro'
-}
-
 export const useAuthStore = defineStore('auth', () => {
-  const user = ref<User & { token?: string } | null>(null)
+  const user = ref<User & { token?: string, refreshToken?: string } | null>(null)
 
   const savedUser = localStorage.getItem('user')
   if (savedUser) {
@@ -34,31 +27,24 @@ export const useAuthStore = defineStore('auth', () => {
         headers: {'Content-Type': 'application/x-www-form-urlencoded'}
       })
 
-      const token = responseToken.data.access_token
-
+      const data = responseToken.data
       const responseUser = await api.get('/api/users/me', {
-        headers: {Authorization: `Bearer ${token}`}
+        headers: {Authorization: `Bearer ${data.access_token}`}
       })
-
       const userDataBackend = responseUser.data
-
-      const userRole = mapGroupsToRole(userDataBackend.groups || [])
-
       const userObj = {
         id: userDataBackend.username,
-        nome: userDataBackend.displayName ? userDataBackend.displayName[0] : userDataBackend.username,
+        nome: userDataBackend.displayName || userDataBackend.username,
         username: userDataBackend.username,
         email: userDataBackend.email,
         grupo: userDataBackend.groups ? userDataBackend.groups.join(', ') : '',
-        role: userRole,
-        token: token
+        role: userDataBackend.role as UserRole,
+        token: data.access_token,
+        refreshToken: data.refresh_token
       }
-
       user.value = userObj
       localStorage.setItem('user', JSON.stringify(userObj))
-
       return {success: true}
-
     } catch (err: any) {
       console.error('Erro no login:', err)
       if (err.response && err.response.status === 401) {
@@ -68,27 +54,43 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  function logout() {
-    user.value = null
-    localStorage.removeItem('user')
-    // api.post('/api/logout')
+  function updateTokens(accessToken: string, refreshToken: string) {
+    if (user.value) {
+      user.value.token = accessToken
+      user.value.refreshToken = refreshToken
+      localStorage.setItem('user', JSON.stringify(user.value))
+    }
+  }
+
+  async function logout() {
+    try {
+      if (user.value?.refreshToken) {
+        await api.post('/api/logout', {
+          refresh_token: user.value.refreshToken
+        })
+      }
+    } catch (error) {
+      console.error('Erro ao invalidar token no servidor', error)
+    } finally {
+      user.value = null
+      localStorage.removeItem('user')
+      window.location.href = '/login'
+    }
   }
 
   function hasAccess(page: string): boolean {
     if (!user.value) return false
-
     const rolePermissions: Record<UserRole, string[]> = {
       'enfermeiro': ['dashboard', 'pacientes', 'agenda', 'agendamento', 'ajustes', 'relatorios', 'protocolos', 'equipe'],
       'medico': ['pacientes', 'prescricao', 'protocolos'],
       'farmacia': ['farmacia', 'pacientes', 'relatorios'],
       'admin': ['dashboard', 'pacientes', 'agenda', 'agendamento', 'farmacia', 'relatorios', 'protocolos', 'ajustes', 'prescricao', 'equipe']
     }
-
     const permissions = rolePermissions[user.value.role]
     return permissions ? permissions.includes(page) : false
   }
 
   return {
-    user, isAuthenticated, login, logout, hasAccess
+    user, isAuthenticated, login, updateTokens, logout, hasAccess
   }
 })
