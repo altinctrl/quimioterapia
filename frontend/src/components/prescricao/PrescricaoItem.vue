@@ -5,7 +5,7 @@ import {Label} from '@/components/ui/label'
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select'
 import {AlertTriangle} from 'lucide-vue-next'
 import {UnidadeDoseEnum} from '@/types/typesProtocolo.ts'
-import {formatDiasCiclo, getUnidadeFinal, isDiluenteDisponivel} from '@/utils/utilsPrescricao.ts'
+import {getUnidadeFinal, isDiluenteDisponivel} from '@/utils/utilsPrescricao.ts'
 import {usePrescricaoCalculos} from '@/composables/usePrescricaoCalculos.ts'
 import {formatNumber, parseNumber} from '@/utils/utilsComuns.ts'
 
@@ -60,6 +60,19 @@ const atualizarCalculos = () => {
   }
 }
 
+const diasDoCicloModel = computed({
+  get: () => {
+    const val = localItem.value.diasDoCiclo;
+    if (Array.isArray(val)) {
+      return val.join(', ');
+    }
+    return val || '';
+  },
+  set: (val: string) => {
+    localItem.value.diasDoCiclo = val as any;
+  }
+});
+
 watch(localItem, (novoValor) => {
   emit('update:item', JSON.parse(JSON.stringify(novoValor)))
 }, {deep: true})
@@ -103,9 +116,6 @@ onMounted(() => {
         >
           <AlertTriangle class="h-3 w-3 mr-1"/>
           Teto Atingido
-        </div>
-        <div class="font-bold text-sm text-gray-700 bg-gray-100 px-2 py-1 rounded">
-          Dias do Ciclo: {{ formatDiasCiclo(localItem.diasDoCiclo) }}
         </div>
       </div>
     </div>
@@ -200,7 +210,7 @@ onMounted(() => {
       </div>
     </div>
     <div class="grid grid-cols-2 md:grid-cols-12 gap-3 items-start">
-      <div class="col-span-2 md:col-span-8">
+      <div class="col-span-2 md:col-span-4">
         <Label :class="errors?.diluicaoFinal ? 'text-red-500' : 'text-gray-500'" class="text-xs uppercase">
           Diluição
         </Label>
@@ -248,6 +258,20 @@ onMounted(() => {
           <span class="absolute right-2 top-1.5 text-sm pointer-events-none">minutos</span>
         </div>
         <span v-if="errors?.tempoMinutos" class="text-xs text-red-500">{{ errors?.tempoMinutos }}</span>
+      </div>
+
+      <div class="col-span-1 md:col-span-4">
+        <Label :class="{'text-red-500': errors?.diasDoCiclo}" class="text-xs font-bold uppercase">Dias do ciclo</Label>
+        <div class="relative">
+          <Input
+              v-model="diasDoCicloModel"
+              :class="{'border-red-500': errors?.diasDoCiclo}"
+              class="h-8 pr-6"
+              placeholder="Ex: 1, 8, 15"
+              type="text"
+          />
+        </div>
+        <span v-if="errors?.diasDoCiclo" class="text-xs text-red-500">{{ errors?.diasDoCiclo }}</span>
       </div>
     </div>
     <div class="col-span-2 md:col-span-3">

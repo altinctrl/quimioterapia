@@ -7,6 +7,7 @@ import {usePrescricaoCalculos} from './usePrescricaoCalculos'
 import {prescricaoFormSchema, type PrescricaoFormValues} from '@/schemas/esquemaPrescricao.ts'
 import {TemplateCiclo} from "@/types/typesProtocolo.ts";
 import {mesclarPrescricaoComTemplate} from "@/utils/utilsPrescricao.ts";
+import {parseDiasCicloFromString} from "@/utils/utilsComuns.ts";
 
 const parseNumber = (val: string | number | null | undefined): number => {
   if (val === null || val === undefined || val === '') return 0
@@ -321,6 +322,14 @@ export function usePrescricaoFormulario() {
             ? item.itemSelecionado!
             : item;
 
+          let diasProcessados = dados.diasDoCiclo;
+          if (typeof diasProcessados === 'string') {
+             diasProcessados = parseDiasCicloFromString(diasProcessados);
+          }
+          if (Array.isArray(diasProcessados)) {
+            diasProcessados.sort((a: number, b: number) => a - b);
+          }
+
           return {
             idItem: dados.idItem || `new-${Date.now()}-${Math.random()}`,
             medicamento: dados.medicamento,
@@ -333,7 +342,7 @@ export function usePrescricaoFormulario() {
             via: dados.via,
             tempoMinutos: dados.tempoMinutos,
             diluicaoFinal: dados.diluicaoFinal,
-            diasDoCiclo: dados.diasDoCiclo,
+            diasDoCiclo: diasProcessados,
             notasEspecificas: dados.notasEspecificas
           }
         })
@@ -438,6 +447,8 @@ export function usePrescricaoFormulario() {
     if (!novoNome) return
     const proto = appStore.protocolos.find(p => p.nome === novoNome)
     if (proto) {
+      setFieldValue('duracaoCicloDias', proto.duracaoCicloDias || undefined)
+
       templatesDisponiveis.value = proto.templatesCiclo || []
       if (!bloqueandoTemplateInicial.value && proto.templatesCiclo?.length > 0) {
         await nextTick(() => {

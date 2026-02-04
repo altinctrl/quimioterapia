@@ -100,7 +100,51 @@ export const itemPrescricaoSchema = z.object({
     z.number({invalid_type_error: 'Valor inválido'}).int().min(0).default(0)
   ),
   diluicaoFinal: z.string().optional(),
-  diasDoCiclo: z.array(z.number().int().positive()).min(1, 'Selecione pelo menos um dia'),
+  diasDoCiclo: z.union([z.string(), z.array(z.number())])
+    .superRefine((val, ctx) => {
+      if (typeof val === 'string') {
+        if (!val.trim()) return;
+
+        if (/[^0-9,\s]/.test(val)) {
+           ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Digite apenas números (ex: 1, 8, 15)'
+          });
+          return z.NEVER;
+        }
+
+        const parts = val.split(',');
+        for (const part of parts) {
+          const trimmed = part.trim();
+          if (trimmed.includes(' ')) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: 'Separe os números por vírgula (ex: 1, 8)'
+            });
+            return z.NEVER;
+          }
+        }
+      }
+    })
+    .transform((val, ctx) => {
+      if (Array.isArray(val)) return val;
+
+      const parts = val.split(',').map(s => s.trim()).filter(s => s !== '');
+      const numbers = parts.map(Number);
+
+      if (numbers.some(n => isNaN(n))) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Números inválidos' });
+        return z.NEVER;
+      }
+      return numbers;
+    })
+    .pipe(
+      z.array(z.number().int().positive('Os dias devem ser positivos'))
+       .min(1, 'Informe os dias de administração')
+       .refine((items) => new Set(items).size === items.length, {
+         message: 'Não deve haver dias repetidos'
+       })
+    ),
   notasEspecificas: z.string().nullish(),
 });
 
@@ -181,13 +225,15 @@ export const prescricaoFormSchema = z.object({
           ? item.diasDoCiclo
           : item.itemSelecionado?.diasDoCiclo || [];
 
-        const diaInvalido = dias.find(d => d > (data.duracaoCicloDias || 0));
-        if (diaInvalido) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: `Dia ${diaInvalido} excede a duração do ciclo (${data.duracaoCicloDias} dias)`,
-            path: ['blocos', bIdx, 'itens', iIdx, 'diasDoCiclo']
-          });
+        if (Array.isArray(dias)) {
+          const diaInvalido = dias.find(d => d > (data.duracaoCicloDias || 0));
+          if (diaInvalido) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: `Dia ${diaInvalido} excede a duração do ciclo (${data.duracaoCicloDias} dias)`,
+              path: ['blocos', bIdx, 'itens', iIdx, 'diasDoCiclo']
+            });
+          }
         }
       });
     });
