@@ -1,0 +1,72 @@
+# 1. Unidades Organizacionais
+dn: ou=groups,dc=hc,dc=gov,dc=br
+changetype: add
+objectClass: organizationalUnit
+ou: groups
+
+dn: ou=people,dc=hc,dc=gov,dc=br
+changetype: add
+objectClass: organizationalUnit
+ou: people
+
+# 2. Usuários
+dn: cn=ana.enfermagem,ou=people,dc=hc,dc=gov,dc=br
+changetype: add
+objectClass: inetOrgPerson
+cn: ana.enfermagem
+sn: Ana
+displayName: Ana da Enfermagem
+mail: ana.enfermagem@hc.gov.br
+userPassword: 123
+
+dn: cn=ana.farmacia,ou=people,dc=hc,dc=gov,dc=br
+changetype: add
+objectClass: inetOrgPerson
+cn: ana.farmacia
+sn: Silva
+displayName: Ana da Farmacia
+mail: ana.farmacia@hc.gov.br
+userPassword: 123
+
+dn: cn=dr.joao,ou=people,dc=hc,dc=gov,dc=br
+changetype: add
+objectClass: inetOrgPerson
+cn: dr.joao
+sn: Medico
+displayName: Dr. Joao
+mail: dr.joao@hc.gov.br
+userPassword: 123
+
+dn: cn=admin.sistema,ou=people,dc=hc,dc=gov,dc=br
+changetype: add
+objectClass: inetOrgPerson
+cn: admin.sistema
+sn: Sysadmin
+displayName: Administrador Geral
+mail: admin@hc.gov.br
+userPassword: 123
+
+# 3. Grupos
+dn: cn=Enfermagem,ou=groups,dc=hc,dc=gov,dc=br
+changetype: add
+objectClass: groupOfNames
+cn: Enfermagem
+member: cn=ana.enfermagem,ou=people,dc=hc,dc=gov,dc=br
+
+dn: cn=Farmacia,ou=groups,dc=hc,dc=gov,dc=br
+changetype: add
+objectClass: groupOfNames
+cn: Farmacia
+member: cn=ana.farmacia,ou=people,dc=hc,dc=gov,dc=br
+
+dn: cn=Medicos,ou=groups,dc=hc,dc=gov,dc=br
+changetype: add
+objectClass: groupOfNames
+cn: Medicos
+member: cn=dr.joao,ou=people,dc=hc,dc=gov,dc=br
+
+dn: cn=Administradores,ou=groups,dc=hc,dc=gov,dc=br
+changetype: add
+objectClass: groupOfNames
+cn: Administradores
+member: cn=admin.sistema,ou=people,dc=hc,dc=gov,dc=br
