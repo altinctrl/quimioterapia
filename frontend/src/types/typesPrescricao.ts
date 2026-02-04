@@ -17,6 +17,7 @@ export enum PrescricaoStatusEnum {
 
 export interface ItemMedicamentoForm extends ItemPrescricaoConteudo {
   tipo: 'medicamento_unico';
+  suspenso?: boolean;
 }
 
 export interface ItemGrupoForm {
@@ -24,6 +25,7 @@ export interface ItemGrupoForm {
   labelGrupo: string;
   itemSelecionado: ItemPrescricaoConteudo | null;
   opcoes: DetalhesMedicamento[];
+  suspenso?: boolean;
 }
 
 export type ItemBlocoForm = ItemMedicamentoForm | ItemGrupoForm;

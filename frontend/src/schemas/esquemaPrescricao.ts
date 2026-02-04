@@ -146,19 +146,15 @@ export const itemPrescricaoSchema = z.object({
        })
     ),
   notasEspecificas: z.string().nullish(),
+  suspenso: z.boolean().default(false),
 });
 
 export const itemGrupoSchema = z.object({
   tipo: z.literal('grupo_alternativas'),
   labelGrupo: z.string(),
-  itemSelecionado: itemPrescricaoSchema.nullable().superRefine((val, ctx) => {
-    if (!val) {
-      ctx.addIssue({code: z.ZodIssueCode.custom, message: 'Selecione uma opção'});
-      return;
-    }
-    validarRegrasMedicamento(val as ItemMedicamentoForm, ctx);
-  }),
-  opcoes: z.array(z.custom<DetalhesMedicamento>())
+  itemSelecionado: itemPrescricaoSchema.nullable(),
+  opcoes: z.array(z.custom<DetalhesMedicamento>()),
+  suspenso: z.boolean().default(false),
 });
 
 export const blocoSchema = z.object({
@@ -168,7 +164,29 @@ export const blocoSchema = z.object({
       itemPrescricaoSchema,
       itemGrupoSchema
     ]).superRefine((item, ctx) => {
-      if (item.tipo === 'medicamento_unico') validarRegrasMedicamento(item as unknown as ItemMedicamentoForm, ctx);
+      if (item.suspenso) return;
+      if (item.tipo === 'medicamento_unico') {
+         validarRegrasMedicamento(item as unknown as ItemMedicamentoForm, ctx);
+      }
+      if (item.tipo === 'grupo_alternativas') {
+         if (!item.itemSelecionado) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: 'Selecione uma opção',
+              path: ['itemSelecionado']
+            });
+            return;
+         }
+         validarRegrasMedicamento(item.itemSelecionado as ItemMedicamentoForm, {
+            ...ctx,
+            addIssue: (issue) => {
+              ctx.addIssue({
+                ...issue,
+                path: ['itemSelecionado', ...(issue.path || [])]
+              });
+            }
+         });
+      }
     })
   )
 });
