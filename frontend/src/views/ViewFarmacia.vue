@@ -15,6 +15,7 @@ import AgendamentoModalDetalhes from "@/components/comuns/AgendamentoModalDetalh
 import PrescricaoModalDetalhes from "@/components/comuns/PrescricaoModalDetalhes.vue";
 import {useLocalStorage, useSessionStorage} from "@vueuse/core";
 import {toast} from 'vue-sonner'
+import {useAutoRefresh} from "@/composables/useAutoRefresh.ts";
 
 const router = useRouter()
 const appStore = useAppStore()
@@ -53,6 +54,24 @@ const detalhesModalOpen = ref(false)
 const agendamentoSelecionado = ref<Agendamento | null>(null)
 const prescricaoModalOpen = ref(false)
 const prescricaoParaVisualizar = ref<any>(null)
+
+const isAlgumModalAberto = () => {
+  return detalhesModalOpen.value || prescricaoModalOpen.value
+}
+const isSelecaoAtiva = () => selectedIds.value.length > 0
+
+useAutoRefresh(
+  async () => {
+    await appStore.fetchAgendamentos(dataSelecionada.value, dataSelecionada.value)
+  },
+  {
+    intervaloPadrao: 60000,
+    condicoesPausa: [
+      () => isAlgumModalAberto(),
+      () => isSelecaoAtiva()
+    ]
+  }
+)
 
 const handleVerDetalhes = (row: FarmaciaTableRow) => {
   const ag = appStore.agendamentos.find(a => a.id === row.id)
