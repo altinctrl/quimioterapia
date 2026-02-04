@@ -145,16 +145,20 @@ const confirmarRemarcacaoLote = async () => {
 
   const selecionados = selectedAgendamentos.value
   if (selecionados.length === 0) return
+  const ids = selecionados.map(a => a.id)
+  try {
+    await appStore.remarcarAgendamentosLote(
+      ids,
+      bulkForm.value.novaData,
+      bulkForm.value.novoHorario,
+      bulkForm.value.motivo,
+      bulkForm.value.manterHorario
+    )
 
-  selecionados.forEach(ag => {
-    const horario = bulkForm.value.manterHorario ? ag.horarioInicio : bulkForm.value.novoHorario
-    appStore.remarcarAgendamento(ag.id, bulkForm.value.novaData, horario, bulkForm.value.motivo)
-  })
-
-  toast.success(`${selecionados.length} agendamentos remarcados.`)
-  bulkRemarcarOpen.value = false
-  limparSelecao()
-  emit('remarcado')
+    bulkRemarcarOpen.value = false
+    limparSelecao()
+    emit('remarcado')
+  } catch (error) {}
 }
 
 const opcoesStatusLote = computed<Array<{ id: string; label: string }>>(() => {

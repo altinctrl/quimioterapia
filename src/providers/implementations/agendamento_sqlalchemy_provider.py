@@ -13,6 +13,9 @@ class AgendamentoSQLAlchemyProvider(AgendamentoProviderInterface):
     def __init__(self, session: AsyncSession):
         self.session = session
 
+    async def commit(self):
+        await self.session.commit()
+
     async def listar_agendamentos(self, data_inicio: Optional[date] = None, data_fim: Optional[date] = None, paciente_id: Optional[str] = None) -> List[Agendamento]:
         query = select(Agendamento).options(selectinload(Agendamento.paciente), selectinload(Agendamento.criado_por))
 

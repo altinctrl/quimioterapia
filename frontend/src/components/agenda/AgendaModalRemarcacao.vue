@@ -7,10 +7,11 @@ import {Input} from '@/components/ui/input'
 import {Label} from '@/components/ui/label'
 import {Textarea} from '@/components/ui/textarea'
 import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle} from '@/components/ui/dialog'
+import {Agendamento} from "@/types/typesAgendamento.ts";
 
 const props = defineProps<{
   open: boolean
-  agendamento: any
+  agendamento: Agendamento | null
 }>()
 
 const emit = defineEmits<{
@@ -19,6 +20,7 @@ const emit = defineEmits<{
 }>()
 
 const appStore = useAppStore()
+const loading = ref(false)
 
 const form = ref({
   novaData: '',
@@ -47,22 +49,27 @@ const formatarDataOrigem = () => {
   return props.agendamento.data.split('-').reverse().join('/')
 }
 
-const handleConfirmar = () => {
+const handleConfirmar = async () => {
+  if (!props.agendamento?.id) return
   if (!form.value.novaData || !form.value.novoHorario || !form.value.motivo) {
     toast.error("Preencha data, horário e motivo.")
     return
   }
-
-  appStore.remarcarAgendamento(
-      props.agendamento.id,
-      form.value.novaData,
-      form.value.novoHorario,
-      form.value.motivo
-  )
-
-  toast.success("Agendamento remarcado com sucesso!")
-  emit('remarcado')
-  emit('update:open', false)
+  try {
+    loading.value = true
+    await appStore.remarcarAgendamento(
+        props.agendamento.id,
+        form.value.novaData,
+        form.value.novoHorario,
+        form.value.motivo
+    )
+    emit('remarcado')
+    emit('update:open', false)
+  } catch (error) {
+    console.error(error)
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 
@@ -106,8 +113,13 @@ const handleConfirmar = () => {
       </div>
 
       <div class="flex justify-end gap-2">
-        <Button variant="outline" @click="$emit('update:open', false)">Cancelar</Button>
-        <Button @click="handleConfirmar">Remarcar</Button>
+        <Button variant="outline" :disabled="loading" @click="$emit('update:open', false)">
+          Cancelar
+        </Button>
+        <Button :disabled="loading" @click="handleConfirmar">
+          <span v-if="loading">Processando...</span>
+          <span v-else>Remarcar</span>
+        </Button>
       </div>
     </DialogContent>
   </Dialog>

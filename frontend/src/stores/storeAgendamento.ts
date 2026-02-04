@@ -149,55 +149,36 @@ export const useAgendamentoStore = defineStore('agendamento', () => {
 
   async function remarcarAgendamento(idOriginal: string, novaData: string, novoHorario: string, motivo: string) {
     try {
-      const detalhesPayload = {
-        remarcacao: {
-          motivo_remarcacao: motivo,
-          nova_data: novaData
-        }
+      const payload = {
+        nova_data: novaData,
+        novo_horario: novoHorario,
+        motivo: motivo,
+        manter_horario: false
       }
-
-      await atualizarStatusAgendamento(idOriginal, AgendamentoStatusEnum.REMARCADO, detalhesPayload)
-
-      const original = agendamentos.value.find(a => a.id === idOriginal)
-      if (!original) return
-
-      const novosDetalhes = {...original.detalhes};
-
-      if (novosDetalhes.infusao) {
-        const {
-          prescricaoId,
-          cicloAtual,
-          diaCiclo
-        } = novosDetalhes.infusao;
-
-        novosDetalhes.infusao = {
-          statusFarmacia: FarmaciaStatusEnum.PENDENTE,
-          prescricaoId,
-          cicloAtual,
-          diaCiclo
-        };
-      }
-
-      const novoAgendamento = {
-        pacienteId: original.pacienteId,
-        tipo: original.tipo,
-        data: novaData,
-        turno: parseInt(novoHorario.split(':')[0]) < 13 ? 'manha' : 'tarde',
-        horarioInicio: novoHorario,
-        horarioFim: original.horarioFim,
-        checkin: false,
-        status: 'agendado',
-        encaixe: false,
-        observacoes: `Remarcado de ${original.data}. Motivo: ${motivo}`,
-        tags: original.tags,
-        detalhes: novosDetalhes
-      }
-
-      await adicionarAgendamento(novoAgendamento)
+      await api.post(`/api/agendamentos/${idOriginal}/remarcar`, payload)
       toast.success("Agendamento remarcado")
-    } catch (e) {
-      toast.error("Erro ao remarcar")
+    } catch (e: any) {
+      console.error(e)
+      toast.error(e.response?.data?.detail || "Erro ao remarcar agendamento")
     }
+  }
+
+  async function remarcarAgendamentosLote(ids: string[], novaData: string, novoHorario: string, motivo: string, manterHorario: boolean) {
+     try {
+       const payload = {
+         ids: ids,
+         nova_data: novaData,
+         novo_horario: manterHorario ? null : novoHorario,
+         motivo: motivo,
+         manter_horario: manterHorario
+       }
+       await api.post('/api/agendamentos/remarcar-lote', payload)
+       toast.success(`Agendamentos remarcados`)
+     } catch (e: any) {
+       console.error(e)
+       toast.error(e.response?.data?.detail || "Erro ao remarcar em lote")
+       throw e
+     }
   }
 
   async function atualizarTagsAgendamento(id: string, tags: string[]) {
@@ -279,6 +260,7 @@ export const useAgendamentoStore = defineStore('agendamento', () => {
     atualizarHorarioPrevisao,
     trocarPrescricaoAgendamento,
     remarcarAgendamento,
+    remarcarAgendamentosLote,
     atualizarTagsAgendamento,
     atualizarAgendamentosEmLote,
     salvarChecklistFarmacia
