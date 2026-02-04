@@ -185,7 +185,7 @@ async def criar_prescricao_substituicao_atomic(
         )
 
     response = PrescricaoResponse.model_validate(criado)
-    session.commit()
+    await session.commit()
     return response
 
 
