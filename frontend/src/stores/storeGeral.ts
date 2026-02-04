@@ -46,7 +46,10 @@ export const useAppStore = defineStore('app', () => {
     getPrescricoesPorPaciente,
     fetchPrescricoes,
     adicionarPrescricao,
+    adicionarPrescricaoSubstituicao,
     baixarPrescricao,
+    alterarStatusPrescricao,
+    substituirPrescricao,
   } = prescricaoStore
 
   const {
@@ -57,6 +60,7 @@ export const useAppStore = defineStore('app', () => {
     atualizarStatusAgendamento,
     atualizarStatusFarmacia,
     atualizarHorarioPrevisao,
+    trocarPrescricaoAgendamento,
     remarcarAgendamento,
     atualizarTagsAgendamento,
     atualizarAgendamentosEmLote,
@@ -93,6 +97,7 @@ export const useAppStore = defineStore('app', () => {
     atualizarStatusAgendamento,
     atualizarStatusFarmacia,
     atualizarHorarioPrevisao,
+    trocarPrescricaoAgendamento,
     remarcarAgendamento,
     atualizarTagsAgendamento,
     atualizarAgendamentosEmLote,
@@ -104,6 +109,9 @@ export const useAppStore = defineStore('app', () => {
     atualizarProtocolo,
     excluirProtocolo,
     adicionarPrescricao,
+    adicionarPrescricaoSubstituicao,
     baixarPrescricao,
+    alterarStatusPrescricao,
+    substituirPrescricao,
   }
 })

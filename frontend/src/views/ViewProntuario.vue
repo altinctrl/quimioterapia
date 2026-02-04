@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {computed, onMounted, ref} from 'vue'
+import {computed, onActivated, onMounted, ref} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
 import {useAppStore} from '@/stores/storeGeral.ts'
 import {useAuthStore} from '@/stores/storeAuth.ts'
@@ -39,6 +39,14 @@ const prescricaoDetalhesOpen = ref(false)
 const agendamentoSelecionado = ref<any>(null)
 const prescricaoSelecionada = ref<any>(null)
 
+const atualizarListas = async () => {
+  if (!pacienteSelecionado.value?.id) return
+  await Promise.all([
+    appStore.fetchPrescricoes(pacienteSelecionado.value.id),
+    appStore.fetchAgendamentos(undefined, undefined, pacienteSelecionado.value.id)
+  ])
+}
+
 onMounted(async () => {
   const id = route.params.id as string
   if (id) {
@@ -53,6 +61,10 @@ onMounted(async () => {
   } else {
     await router.push({name: 'Pacientes'})
   }
+})
+
+onActivated(async () => {
+  await atualizarListas()
 })
 
 const handleVoltar = () => {

@@ -22,6 +22,7 @@ class Agendamento(Base):
     observacoes = Column(Text, nullable=True)
     tags = Column(JSON, nullable=True)
     detalhes = Column(JSONB, nullable=True)
+    historico_alteracoes = Column(JSONB, nullable=True, default=list)
 
     paciente = relationship("Paciente", back_populates="agendamentos")
     criado_por = relationship("Profissional")

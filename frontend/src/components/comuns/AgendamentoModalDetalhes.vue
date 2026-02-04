@@ -1,18 +1,66 @@
 <script lang="ts" setup>
-import {Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle} from '@/components/ui/dialog'
+import {computed, ref, watch} from 'vue'
+import {Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription} from '@/components/ui/dialog'
 import {Button} from '@/components/ui/button'
 import {Badge} from '@/components/ui/badge'
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select'
+import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs'
 import {AlertCircle, Calendar, Clock, ExternalLink, Tag, User} from 'lucide-vue-next'
 import {Agendamento} from "@/types/typesAgendamento.ts";
 import {formatarConsulta, formatarProcedimento} from "@/utils/utilsAgenda.ts";
+import TimelineHistorico, {type TimelineItem} from '@/components/comuns/TimelineHistorico.vue'
+import {useAppStore} from '@/stores/storeGeral.ts'
+import {useAuthStore} from '@/stores/storeAuth.ts'
 
-defineProps<{
+const props = defineProps<{
   open: boolean
   agendamento: Agendamento | null
   pacienteNome?: string
 }>()
 
 const emit = defineEmits(['update:open', 'abrir-prescricao'])
+const appStore = useAppStore()
+const authStore = useAuthStore()
+
+const prescricaoSelecionada = ref('')
+const motivoTroca = ref('')
+const carregandoTroca = ref(false)
+
+const podeTrocarPrescricao = computed(() => {
+  const role = authStore.user?.role || ''
+  return ['enfermeiro', 'admin', 'medico'].includes(role)
+})
+
+const prescricoesPaciente = computed(() => {
+  if (!props.agendamento?.pacienteId) return []
+  return appStore.prescricoes.filter(p => p.pacienteId === props.agendamento?.pacienteId)
+})
+
+const handleTrocarPrescricao = async () => {
+  if (!props.agendamento?.id || !prescricaoSelecionada.value) return
+  carregandoTroca.value = true
+  try {
+    await appStore.trocarPrescricaoAgendamento(
+      props.agendamento.id,
+      prescricaoSelecionada.value,
+      motivoTroca.value,
+      props.agendamento.pacienteId
+    )
+    prescricaoSelecionada.value = ''
+    motivoTroca.value = ''
+  } finally {
+    carregandoTroca.value = false
+  }
+}
+
+watch(
+  () => props.agendamento?.pacienteId,
+  async (pacienteId) => {
+    if (!pacienteId) return
+    await appStore.fetchPrescricoes(pacienteId)
+  },
+  {immediate: true}
+)
 
 const formatarData = (data: string) => {
   return new Date(data).toLocaleDateString('pt-BR', {
@@ -22,6 +70,49 @@ const formatarData = (data: string) => {
     day: 'numeric'
   })
 }
+
+const historicoItens = computed<TimelineItem[]>(() => {
+  if (!props.agendamento) return []
+
+  const itens: TimelineItem[] = []
+  const alteracoes = props.agendamento.historicoAlteracoes || []
+  alteracoes.forEach((item, index) => {
+    const titulo = item.tipoAlteracao === 'status'
+      ? 'Status atualizado'
+      : item.tipoAlteracao === 'checkin'
+        ? 'Check-in atualizado'
+        : item.tipoAlteracao === 'prescricao'
+          ? 'Prescrição atualizada'
+          : `Alteração: ${item.tipoAlteracao}`
+
+    const descricao = item.valorAntigo || item.valorNovo
+      ? `${item.valorAntigo ?? '-'} → ${item.valorNovo ?? '-'}`
+      : undefined
+
+    itens.push({
+      id: `alt-${index}-${item.data}`,
+      data: item.data,
+      titulo,
+      descricao,
+      usuario: item.usuarioNome || item.usuarioId,
+      meta: item.motivo || item.campo
+    })
+  })
+
+  const historicoPrescricoes = props.agendamento.detalhes?.historicoPrescricoes || []
+  historicoPrescricoes.forEach((item, index) => {
+    itens.push({
+      id: `presc-${index}-${item.data}`,
+      data: item.data,
+      titulo: 'Troca de prescrição no agendamento',
+      descricao: `${item.prescricaoIdAnterior ?? '-'} → ${item.prescricaoIdNova ?? '-'}`,
+      usuario: item.usuarioNome || item.usuarioId,
+      meta: item.motivo
+    })
+  })
+
+  return itens
+})
 </script>
 
 <template>
@@ -29,9 +120,18 @@ const formatarData = (data: string) => {
     <DialogContent class="max-w-2xl">
       <DialogHeader>
         <DialogTitle>Detalhes do Agendamento</DialogTitle>
+        <DialogDescription class="sr-only">
+          Informações do agendamento e histórico de alterações.
+        </DialogDescription>
       </DialogHeader>
 
-      <div v-if="agendamento" class="space-y-4">
+      <Tabs v-if="agendamento" default-value="detalhes" class="space-y-4">
+        <TabsList class="grid w-full grid-cols-2">
+          <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
+          <TabsTrigger value="historico">Histórico</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="detalhes" class="space-y-4">
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-3 rounded-lg border">
           <div class="md:col-span-2 flex items-center justify-between border-b pb-2 mb-1">
@@ -131,6 +231,40 @@ const formatarData = (data: string) => {
               <ExternalLink class="h-3 w-3 ml-1"/>
             </Button>
           </div>
+
+          <div v-if="podeTrocarPrescricao" class="mt-4 pt-3 border-t border-blue-200/50 space-y-3">
+            <div class="space-y-1">
+              <label class="text-xs font-bold uppercase text-blue-600/80">Trocar prescrição do agendamento</label>
+              <Select
+                :model-value="prescricaoSelecionada"
+                @update:model-value="(val) => (prescricaoSelecionada = val as string)"
+              >
+                <SelectTrigger class="bg-white">
+                  <SelectValue placeholder="Selecione a prescrição" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem
+                    v-for="p in prescricoesPaciente"
+                    :key="p.id"
+                    :value="p.id"
+                  >
+                    {{ p.conteudo?.protocolo?.nome }} • Ciclo {{ p.conteudo?.protocolo?.cicloAtual }} • {{ p.id.slice(0, 6) }}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <input
+                v-model="motivoTroca"
+                class="w-full border rounded px-3 py-2 text-sm bg-white"
+                placeholder="Motivo (opcional)"
+              />
+              <Button :disabled="!prescricaoSelecionada || carregandoTroca" @click="handleTrocarPrescricao">
+                Trocar
+              </Button>
+            </div>
+          </div>
         </div>
 
         <div v-if="agendamento.detalhes?.consulta" class="bg-green-50/50 p-4 rounded-lg border border-green-100">
@@ -197,7 +331,15 @@ const formatarData = (data: string) => {
           </div>
         </div>
 
-      </div>
+        </TabsContent>
+
+        <TabsContent value="historico">
+          <TimelineHistorico
+            :itens="historicoItens"
+            vazio-texto="Nenhuma alteração registrada para este agendamento."
+          />
+        </TabsContent>
+      </Tabs>
 
       <DialogFooter>
         <Button variant="outline" @click="emit('update:open', false)">Fechar</Button>

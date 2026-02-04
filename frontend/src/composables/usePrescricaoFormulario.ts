@@ -22,6 +22,8 @@ export function usePrescricaoFormulario() {
   const {calcularSC, calcularDoseTeorica, calcularDoseFinal} = usePrescricaoCalculos()
 
   const bloqueandoWatcherTemplate = ref(false)
+  const bloqueandoTemplateInicial = ref(false)
+  const substituicaoOriginalId = ref<string | null>(null)
   const prescricaoConcluida = ref(false)
   const prescricaoGeradaId = ref<string | null>(null)
   const templateSelecionadoId = ref<string>('')
@@ -242,6 +244,44 @@ export function usePrescricaoFormulario() {
     }, 500);
   }
 
+  const aplicarPrescricaoOriginal = async (prescricao: any) => {
+    if (!prescricao?.conteudo) return
+
+    bloqueandoTemplateInicial.value = true
+
+    setFieldValue('pacienteId', prescricao.pacienteId || '')
+    setFieldValue('peso', prescricao.conteudo.paciente?.peso || 0)
+    setFieldValue('altura', prescricao.conteudo.paciente?.altura || 0)
+    setFieldValue('creatinina', prescricao.conteudo.paciente?.creatinina || undefined)
+    setFieldValue('idade', prescricao.conteudo.paciente?.idade || 0)
+    setFieldValue('sexo', prescricao.conteudo.paciente?.sexo || '')
+    setFieldValue('diagnostico', prescricao.conteudo.observacoes || '')
+    setFieldValue('protocoloNome', prescricao.conteudo.protocolo?.nome || '')
+    setFieldValue('numeroCiclo', prescricao.conteudo.protocolo?.cicloAtual || 1)
+
+    const rawBlocos = (prescricao.conteudo.blocos || []).map((b: any) => ({
+      ordem: b.ordem,
+      categoria: b.categoria,
+      itens: (b.itens || []).map((itemSalvo: any) => ({
+        ...itemSalvo,
+        idItem: `raw-${Date.now()}-${Math.random()}`,
+        tipo: 'medicamento_unico',
+        percentualAjuste: itemSalvo.percentualAjuste || 100,
+        doseReferencia: parseFloat(itemSalvo.doseReferencia as any),
+        doseTeorica: 0,
+        doseFinal: 0
+      }))
+    }))
+
+    setFieldValue('blocos', JSON.parse(JSON.stringify(rawBlocos)))
+    templateSelecionadoId.value = ''
+
+    await nextTick(() => {
+      recalcularTodasDoses()
+    })
+    bloqueandoTemplateInicial.value = false
+  }
+
   const executarValidacao = (): boolean => {
     errors.value = {};
     const parseResult = prescricaoFormSchema.safeParse(values);
@@ -316,9 +356,30 @@ export function usePrescricaoFormulario() {
         observacoesClinicas: formValues.diagnostico
       }
 
+      if (substituicaoOriginalId.value) {
+        try {
+          const resSub = await appStore.adicionarPrescricaoSubstituicao(
+            payload as any,
+            substituicaoOriginalId.value,
+            'Substituída por nova prescrição'
+          )
+          prescricaoGeradaId.value = resSub.id
+          prescricaoConcluida.value = true
+          await appStore.fetchPrescricoes(formValues.pacienteId)
+          return
+        } catch (e) {
+          console.error(e)
+          const confirmar = window.confirm(
+            'Falha ao substituir de forma atômica. Deseja criar a nova prescrição sem vincular à antiga?'
+          )
+          if (!confirmar) return
+        }
+      }
+
       const res = await appStore.adicionarPrescricao(payload as any)
       prescricaoGeradaId.value = res.id
       prescricaoConcluida.value = true
+      await appStore.fetchPrescricoes(formValues.pacienteId)
     } catch (e) {
       console.error(e)
       toast.error('Erro ao salvar prescrição.')
@@ -328,9 +389,18 @@ export function usePrescricaoFormulario() {
   const init = async () => {
     await appStore.fetchProtocolos()
     const idUrl = route.query.pacienteId as string
+    const substituirDe = route.query.substituirDe as string
+    if (substituirDe) substituicaoOriginalId.value = substituirDe
     if (idUrl) {
       await appStore.carregarPaciente(idUrl)
       setFieldValue('pacienteId', idUrl)
+      await appStore.fetchPrescricoes(idUrl)
+      if (substituirDe) {
+        const original = appStore.prescricoes.find(p => p.id === substituirDe)
+        if (original) {
+          await aplicarPrescricaoOriginal(original)
+        }
+      }
     } else {
       await appStore.fetchPacientes()
     }
@@ -369,7 +439,7 @@ export function usePrescricaoFormulario() {
     const proto = appStore.protocolos.find(p => p.nome === novoNome)
     if (proto) {
       templatesDisponiveis.value = proto.templatesCiclo || []
-      if (proto.templatesCiclo?.length > 0) {
+      if (!bloqueandoTemplateInicial.value && proto.templatesCiclo?.length > 0) {
         await nextTick(() => {
           templateSelecionadoId.value = proto.templatesCiclo[0].idTemplate
         })

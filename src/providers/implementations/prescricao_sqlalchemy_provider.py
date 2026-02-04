@@ -45,7 +45,17 @@ class PrescricaoSQLAlchemyProvider(PrescricaoProviderInterface):
         result = await self.session.execute(query)
         return result.scalars().all()
 
-    async def criar_prescricao(self, prescricao: Prescricao) -> Prescricao:
+    async def criar_prescricao(self, prescricao: Prescricao, commit: bool = True) -> Prescricao:
         self.session.add(prescricao)
-        await self.session.commit()
+        if commit:
+            await self.session.commit()
+            return await self.obter_prescricao(prescricao.id)
+        await self.session.flush()
+        return await self.obter_prescricao(prescricao.id)
+
+    async def atualizar_prescricao(self, prescricao: Prescricao, commit: bool = True) -> Prescricao:
+        if commit:
+            await self.session.commit()
+            return await self.obter_prescricao(prescricao.id)
+        await self.session.flush()
         return await self.obter_prescricao(prescricao.id)

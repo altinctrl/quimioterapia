@@ -1,5 +1,5 @@
 import enum
-from datetime import date
+from datetime import date, datetime
 from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, model_validator, Field
@@ -112,6 +112,15 @@ class DetalhesInfusao(BaseSchema):
     itens_preparados: List[str] = []
 
 
+class HistoricoPrescricaoAgendamentoItem(BaseSchema):
+    data: datetime
+    usuario_id: Optional[str] = None
+    usuario_nome: Optional[str] = None
+    prescricao_id_anterior: Optional[str] = None
+    prescricao_id_nova: Optional[str] = None
+    motivo: Optional[str] = None
+
+
 class DetalhesProcedimento(BaseSchema):
     tipo_procedimento: TipoProcedimento
 
@@ -165,6 +174,7 @@ class DetalhesAgendamento(BaseSchema):
     intercorrencia: Optional[DetalhesIntercorrencia] = None
     cancelamento: Optional[DetalhesCancelamento] = None
     remarcacao: Optional[DetalhesRemarcacao] = None
+    historico_prescricoes: Optional[List[HistoricoPrescricaoAgendamentoItem]] = []
 
 
 class DetalhesAgendamentoUpdate(BaseSchema):
@@ -175,6 +185,7 @@ class DetalhesAgendamentoUpdate(BaseSchema):
     intercorrencia: Optional[DetalhesIntercorrencia] = None
     cancelamento: Optional[DetalhesCancelamento] = None
     remarcacao: Optional[DetalhesRemarcacao] = None
+    historico_prescricoes: Optional[List[HistoricoPrescricaoAgendamentoItem]] = None
 
 
 class AgendamentoBase(BaseSchema):
@@ -217,11 +228,28 @@ class AgendamentoUpdate(BaseSchema):
     detalhes: Optional[DetalhesAgendamentoUpdate] = None
 
 
+class AgendamentoPrescricaoUpdate(BaseSchema):
+    prescricao_id: str
+    motivo: Optional[str] = None
+
+
 class AgendamentoPaciente(BaseSchema):
     id: str
     nome: str
     registro: str
     observacoes_clinicas: Optional[str] = None
+
+
+
+class AgendamentoHistoricoItem(BaseSchema):
+    data: datetime
+    usuario_id: Optional[str] = None
+    usuario_nome: Optional[str] = None
+    tipo_alteracao: str
+    valor_antigo: Optional[str] = None
+    valor_novo: Optional[str] = None
+    motivo: Optional[str] = None
+    campo: Optional[str] = None
 
 
 class AgendamentoBulkUpdateItem(AgendamentoUpdate):
@@ -238,3 +266,4 @@ class AgendamentoResponse(AgendamentoBase):
     criado_por: Optional[ProfissionalResponse] = None
     paciente: Optional[AgendamentoPaciente] = None
     prescricao: Optional[PrescricaoResponse] = None
+    historico_alteracoes: List[AgendamentoHistoricoItem] = []

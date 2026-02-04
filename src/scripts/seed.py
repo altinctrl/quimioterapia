@@ -2,6 +2,7 @@ import asyncio
 import random
 import uuid
 from datetime import date, timedelta, datetime
+from typing import Optional
 
 from faker import Faker
 from sqlalchemy import text
@@ -155,6 +156,42 @@ def criar_prescricao_payload(protocolo_model: Protocolo, paciente: Paciente, med
     }
 
     return documento_json
+
+
+def criar_historico_status_inicial(status_atual: str):
+    return [{
+        "data": datetime.now().isoformat(),
+        "usuario_id": "seed",
+        "usuario_nome": "Seed",
+        "status_anterior": status_atual,
+        "status_novo": status_atual,
+        "motivo": "Seed inicial"
+    }]
+
+
+def criar_historico_agendamento(presc_id: str, status_agendamento):
+    status_val = status_agendamento.value if hasattr(status_agendamento, 'value') else str(status_agendamento)
+    return {
+        "data": datetime.now().isoformat(),
+        "agendamento_id": presc_id,
+        "status_agendamento": status_val,
+        "usuario_id": "seed",
+        "usuario_nome": "Seed",
+        "observacoes": "Agendamento criado via seed"
+    }
+
+
+def criar_historico_alteracao_agendamento(tipo: str, campo: str, valor_antigo: Optional[str], valor_novo: Optional[str]):
+    return {
+        "data": datetime.now().isoformat(),
+        "usuario_id": "seed",
+        "usuario_nome": "Seed",
+        "tipo_alteracao": tipo,
+        "campo": campo,
+        "valor_antigo": valor_antigo,
+        "valor_novo": valor_novo,
+        "motivo": "Seed inicial"
+    }
 
 
 async def setup_aghu():
@@ -357,7 +394,9 @@ async def setup_app(aghu_pacientes):
                         data_ciclo,
                         datetime.min.time()) if status_presc == PrescricaoStatusEnum.PENDENTE else hora_emissao,
                     status=status_presc,
-                    conteudo=conteudo_json
+                    conteudo=conteudo_json,
+                    historico_status=criar_historico_status_inicial(status_presc.value if hasattr(status_presc, 'value') else str(status_presc)),
+                    historico_agendamentos=[]
                 )
                 session.add(presc)
 
@@ -419,6 +458,25 @@ async def setup_app(aghu_pacientes):
                         detalhes=DetalhesAgendamento(**detalhes_input)
                     )
 
+                    historico_alteracoes = [
+                        criar_historico_alteracao_agendamento(
+                            "status",
+                            "status",
+                            None,
+                            status_ag.value if hasattr(status_ag, 'value') else str(status_ag)
+                        )
+                    ]
+
+                    detalhes_json = ag_validator.detalhes.model_dump(mode='json', exclude_none=True)
+                    detalhes_json["historico_prescricoes"] = [{
+                        "data": datetime.now().isoformat(),
+                        "usuario_id": "seed",
+                        "usuario_nome": "Seed",
+                        "prescricao_id_anterior": None,
+                        "prescricao_id_nova": presc.id,
+                        "motivo": "Agendamento criado via seed"
+                    }]
+
                     ag = Agendamento(
                         id=str(uuid.uuid4()),
                         criado_por_id="admin",
@@ -432,9 +490,12 @@ async def setup_app(aghu_pacientes):
                         status=ag_validator.status,
                         tags=ag_validator.tags,
                         observacoes=ag_validator.observacoes,
-                        detalhes=ag_validator.detalhes.model_dump(mode='json', exclude_none=True)
+                        detalhes=detalhes_json,
+                        historico_alteracoes=historico_alteracoes
                     )
                     session.add(ag)
+
+                    presc.historico_agendamentos.append(criar_historico_agendamento(ag.id, ag.status))
 
             for _ in range(10):
                 tipo_cons = random.choice(list(TipoConsulta))
@@ -452,7 +513,15 @@ async def setup_app(aghu_pacientes):
                     horario_fim=fim,
                     checkin=True if data_cons < date.today() else False,
                     status=AgendamentoStatusEnum.CONCLUIDO if data_cons < date.today() else AgendamentoStatusEnum.AGENDADO,
-                    detalhes={"consulta": {"tipo_consulta": tipo_cons.value}}
+                    detalhes={"consulta": {"tipo_consulta": tipo_cons.value}},
+                    historico_alteracoes=[
+                        criar_historico_alteracao_agendamento(
+                            "status",
+                            "status",
+                            None,
+                            (AgendamentoStatusEnum.CONCLUIDO if data_cons < date.today() else AgendamentoStatusEnum.AGENDADO).value
+                        )
+                    ]
                 )
                 session.add(ag_cons)
 
@@ -472,7 +541,15 @@ async def setup_app(aghu_pacientes):
                     horario_fim=fim,
                     checkin=True if data_proc < date.today() else False,
                     status=AgendamentoStatusEnum.CONCLUIDO if data_proc < date.today() else AgendamentoStatusEnum.AGENDADO,
-                    detalhes={"procedimento": {"tipo_procedimento": tipo_proc.value}}
+                    detalhes={"procedimento": {"tipo_procedimento": tipo_proc.value}},
+                    historico_alteracoes=[
+                        criar_historico_alteracao_agendamento(
+                            "status",
+                            "status",
+                            None,
+                            (AgendamentoStatusEnum.CONCLUIDO if data_proc < date.today() else AgendamentoStatusEnum.AGENDADO).value
+                        )
+                    ]
                 )
                 session.add(ag_proc)
 

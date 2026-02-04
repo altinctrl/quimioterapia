@@ -7,9 +7,11 @@ import {
 
 export enum PrescricaoStatusEnum {
   PENDENTE = 'pendente',
+  AGENDADA = 'agendada',
   EM_CURSO = 'em-curso',
   CONCLUIDA = 'concluida',
   SUSPENSA = 'suspensa',
+  SUBSTITUIDA = 'substituida',
   CANCELADA = 'cancelada'
 }
 
@@ -84,6 +86,24 @@ export interface ConteudoPrescricao {
   observacoes?: string;
 }
 
+export interface PrescricaoStatusHistoricoItem {
+  data: string;
+  usuarioId?: string;
+  usuarioNome?: string;
+  statusAnterior: PrescricaoStatusEnum;
+  statusNovo: PrescricaoStatusEnum;
+  motivo?: string;
+}
+
+export interface PrescricaoHistoricoAgendamentoItem {
+  data: string;
+  agendamentoId: string;
+  statusAgendamento: string;
+  usuarioId?: string;
+  usuarioNome?: string;
+  observacoes?: string;
+}
+
 export interface PrescricaoMedica {
   id: string;
   pacienteId: string;
@@ -91,4 +111,8 @@ export interface PrescricaoMedica {
   dataEmissao: string;
   status: PrescricaoStatusEnum;
   conteudo: ConteudoPrescricao;
+  historicoStatus?: PrescricaoStatusHistoricoItem[];
+  historicoAgendamentos?: PrescricaoHistoricoAgendamentoItem[];
+  prescricaoSubstitutaId?: string | null;
+  prescricaoOriginalId?: string | null;
 }

@@ -125,6 +125,28 @@ export const useAgendamentoStore = defineStore('agendamento', () => {
     }
   }
 
+  async function trocarPrescricaoAgendamento(
+    id: string,
+    prescricaoId: string,
+    motivo?: string,
+    pacienteId?: string
+  ) {
+    try {
+      const payload: any = {prescricao_id: prescricaoId}
+      if (motivo) payload.motivo = motivo
+
+      await api.put(`/api/agendamentos/${id}/prescricao`, payload)
+      if (pacienteId) {
+        await fetchAgendamentos(undefined, undefined, pacienteId)
+      }
+      toast.success("Prescrição do agendamento atualizada")
+    } catch (e) {
+      console.error(e)
+      toast.error("Erro ao trocar prescrição do agendamento")
+      throw e
+    }
+  }
+
   async function remarcarAgendamento(idOriginal: string, novaData: string, novoHorario: string, motivo: string) {
     try {
       const detalhesPayload = {
@@ -255,6 +277,7 @@ export const useAgendamentoStore = defineStore('agendamento', () => {
     atualizarStatusAgendamento,
     atualizarStatusFarmacia,
     atualizarHorarioPrevisao,
+    trocarPrescricaoAgendamento,
     remarcarAgendamento,
     atualizarTagsAgendamento,
     atualizarAgendamentosEmLote,
