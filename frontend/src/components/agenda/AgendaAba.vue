@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {computed, ref, watch} from 'vue'
+import {computed, onUnmounted, ref, watch} from 'vue'
 import {Card, CardContent} from '@/components/ui/card'
 import {Button} from '@/components/ui/button'
 import {Checkbox} from '@/components/ui/checkbox'
@@ -27,7 +27,7 @@ const emit = defineEmits<{
   (e: 'update:filtros', value: FiltrosAgenda): void
   (e: 'reset'): void
   (e: 'remarcado'): void
-
+  (e: 'selection-change', count: number): void
   (e: 'abrir-detalhes', agendamento: Agendamento): void
   (e: 'abrir-prescricao', agendamento: Agendamento): void
   (e: 'abrir-tags', agendamento: any): void
@@ -233,6 +233,14 @@ const aplicarStatusPacienteLote = async () => {
     console.error("Falha no update em lote", error)
   }
 }
+
+watch(() => selectedIds.value.length, (newCount) => {
+  emit('selection-change', newCount)
+})
+
+onUnmounted(() => {
+  emit('selection-change', 0)
+})
 </script>
 
 <template>

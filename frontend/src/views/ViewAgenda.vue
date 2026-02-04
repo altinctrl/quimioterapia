@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {computed, onMounted, ref, watch} from 'vue'
+import {computed, onMounted, reactive, ref, watch} from 'vue'
 import {useRouter} from 'vue-router'
 import {useAppStore} from '@/stores/storeGeral.ts'
 import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs'
@@ -18,6 +18,7 @@ import {toast} from "vue-sonner";
 import AgendamentoModalDetalhes from "@/components/comuns/AgendamentoModalDetalhes.vue";
 import PrescricaoModalDetalhes from "@/components/comuns/PrescricaoModalDetalhes.vue";
 import {useLocalStorage, useSessionStorage} from "@vueuse/core";
+import {useAutoRefresh} from "@/composables/useAutoRefresh.ts";
 
 const router = useRouter()
 const appStore = useAppStore()
@@ -41,6 +42,36 @@ const remarcarModalOpen = ref(false)
 const agendamentoParaRemarcar = ref<Agendamento | null>(null)
 const statusModalOpen = ref(false)
 const statusPendingData = ref<{ id: string; novoStatus: AgendamentoStatusEnum; pacienteNome: string } | null>(null)
+
+const selecoesPorAba = reactive({
+  infusao: 0,
+  consulta: 0,
+  procedimento: 0
+})
+
+const existeSelecaoPendente = () => {
+  return (selecoesPorAba.infusao + selecoesPorAba.consulta + selecoesPorAba.procedimento) > 0
+}
+const isModalAberto = () => {
+  return detalhesModalOpen.value ||
+         prescricaoModalOpen.value ||
+         tagsModalOpen.value ||
+         remarcarModalOpen.value ||
+         statusModalOpen.value
+}
+
+useAutoRefresh(
+  async () => {
+    await appStore.fetchAgendamentos(dataSelecionada.value, dataSelecionada.value)
+  },
+  {
+    intervaloPadrao: 60000,
+    condicoesPausa: [
+      () => isModalAberto(),
+      () => existeSelecaoPendente()
+    ]
+  }
+)
 
 const abaAtiva = useSessionStorage<TipoAgendamento>('agenda_aba_ativa', 'infusao')
 
@@ -275,7 +306,8 @@ const handleRemarcado = () => {
             @abrir-remarcar="handleAbrirRemarcar"
             @alterar-checkin="handleAlterarCheckin"
             @alterar-status="handleAlterarStatus"
-          @remarcado="handleRemarcado"
+            @remarcado="handleRemarcado"
+            @selection-change="(n) => selecoesPorAba.infusao = n"
         />
       </TabsContent>
 
@@ -293,7 +325,8 @@ const handleRemarcado = () => {
             @abrir-remarcar="handleAbrirRemarcar"
             @alterar-checkin="handleAlterarCheckin"
             @alterar-status="handleAlterarStatus"
-          @remarcado="handleRemarcado"
+            @remarcado="handleRemarcado"
+            @selection-change="(n) => selecoesPorAba.consulta = n"
         />
       </TabsContent>
 
@@ -311,7 +344,8 @@ const handleRemarcado = () => {
             @abrir-remarcar="handleAbrirRemarcar"
             @alterar-checkin="handleAlterarCheckin"
             @alterar-status="handleAlterarStatus"
-          @remarcado="handleRemarcado"
+            @remarcado="handleRemarcado"
+            @selection-change="(n) => selecoesPorAba.procedimento = n"
         />
       </TabsContent>
     </Tabs>
