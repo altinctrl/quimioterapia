@@ -317,7 +317,7 @@ export function usePrescricaoFormulario() {
       const blocosPayload = formValues.blocos.map((bloco: any) => ({
         ordem: bloco.ordem,
         categoria: bloco.categoria,
-        itens: bloco.itens.map((item: any) => {
+        itens: bloco.itens.filter((item: any) => !item.suspenso).map((item: any) => {
           const dados = item.tipo === 'grupo_alternativas'
             ? item.itemSelecionado!
             : item;
@@ -346,7 +346,7 @@ export function usePrescricaoFormulario() {
             notasEspecificas: dados.notasEspecificas
           }
         })
-      }))
+      })).filter((bloco: any) => bloco.itens.length > 0);
 
       const payload = {
         pacienteId: formValues.pacienteId,
