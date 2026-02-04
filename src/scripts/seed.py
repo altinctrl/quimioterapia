@@ -152,7 +152,7 @@ def criar_prescricao_payload(protocolo_model: Protocolo, paciente: Paciente, med
         "medico": medico_snapshot.model_dump(mode='json'),
         "protocolo": protocolo_ref.model_dump(mode='json'),
         "blocos": [b.model_dump(mode='json') for b in blocos_prescricao],
-        "observacoes": "Gerado via seed com validação Pydantic."
+        "diagnostico": "Gerado via seed com validação Pydantic."
     }
 
     return documento_json

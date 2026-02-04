@@ -69,7 +69,7 @@ async def _montar_prescricao(
         "medico": medico_snapshot.model_dump(),
         "protocolo": dados.protocolo.model_dump(),
         "blocos": blocos_processados,
-        "observacoes": dados.observacoes_clinicas
+        "diagnostico": dados.diagnostico
     }
 
     return Prescricao(

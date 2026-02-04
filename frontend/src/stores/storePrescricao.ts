@@ -15,7 +15,7 @@ interface PayloadCriacaoPrescricao {
   medico_id: string;
   protocolo: ProtocoloRef;
   dados_paciente: PacienteSnapshot;
-  observacoes_clinicas?: string;
+  diagnostico?: string;
   blocos: BlocoPrescricao[];
 }
 

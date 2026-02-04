@@ -255,7 +255,7 @@ export function usePrescricaoFormulario() {
     setFieldValue('creatinina', prescricao.conteudo.paciente?.creatinina || undefined)
     setFieldValue('idade', prescricao.conteudo.paciente?.idade || 0)
     setFieldValue('sexo', prescricao.conteudo.paciente?.sexo || '')
-    setFieldValue('diagnostico', prescricao.conteudo.observacoes || '')
+    setFieldValue('diagnostico', prescricao.conteudo.diagnostico || '')
     setFieldValue('protocoloNome', prescricao.conteudo.protocolo?.nome || '')
     setFieldValue('numeroCiclo', prescricao.conteudo.protocolo?.cicloAtual || 1)
 
@@ -353,7 +353,7 @@ export function usePrescricaoFormulario() {
           nascimento: pacienteSelecionadoObj.value?.dataNascimento || ''
         },
         blocos: blocosPayload,
-        observacoesClinicas: formValues.diagnostico
+        diagnostico: formValues.diagnostico
       }
 
       if (substituicaoOriginalId.value) {

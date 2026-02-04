@@ -329,7 +329,7 @@
 
     <div style="margin-top: 5px; border-top: 1px solid #eee; padding-top: 5px;">
         <span class="label">Hipótese Diagnóstica</span>
-        <span class="value" style="font-weight: normal;">{{ prescricao.paciente.diagnostico or 'Não informado' }}</span>
+        <span class="value" style="font-weight: normal;">{{ prescricao.diagnostico or 'Não informado' }}</span>
     </div>
 </div>
 
@@ -447,13 +447,6 @@
     {% endif %}
 </div>
 {% endfor %}
-
-<div class="card" style="margin-top: 15px; min-height: 40px;">
-    <span class="label">Observações Clínicas / Médicas</span>
-    <div style="font-size: 10px; margin-top: 5px;">
-        {{ prescricao.observacoes or "Sem observações adicionais." }}
-    </div>
-</div>
 
 <div class="signature-section">
     <div class="signature-line"></div>

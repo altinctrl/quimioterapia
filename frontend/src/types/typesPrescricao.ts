@@ -83,7 +83,7 @@ export interface ConteudoPrescricao {
   medico: MedicoSnapshot;
   protocolo: ProtocoloRef;
   blocos: BlocoPrescricao[];
-  observacoes?: string;
+  diagnostico?: string;
 }
 
 export interface PrescricaoStatusHistoricoItem {
