@@ -17,6 +17,9 @@ const props = defineProps<{
   sc?: number | null
   sexo?: string
   errors?: Record<string, string | undefined>
+  medicoNome?: string | null
+  medicoCrm?: string | null
+  isPrescricaoFisica?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -25,6 +28,8 @@ const emit = defineEmits<{
   (e: 'update:altura', value: string): void
   (e: 'update:creatinina', value: string): void
   (e: 'update:diagnostico', value: string): void
+  (e: 'update:medicoNome', value: string): void
+  (e: 'update:medicoCrm', value: string): void
 }>()
 
 const route = useRoute()
@@ -59,6 +64,16 @@ const localPacienteId = computed({
 const localDiagnostico = computed({
   get: () => props.diagnostico || '',
   set: (v) => emit('update:diagnostico', v)
+})
+
+const localMedicoNome = computed({
+  get: () => props.medicoNome || '',
+  set: (v) => emit('update:medicoNome', v)
+})
+
+const localMedicoCrm = computed({
+  get: () => props.medicoCrm || '',
+  set: (v) => emit('update:medicoCrm', v)
 })
 </script>
 
@@ -141,6 +156,27 @@ const localDiagnostico = computed({
               placeholder="-"
           />
           <span v-if="errors?.sexo" class="text-xs text-red-500">{{ errors.sexo }}</span>
+        </div>
+      </div>
+
+      <div v-if="isPrescricaoFisica" class="col-span-2 grid grid-cols-2 gap-4">
+        <div>
+          <Label :class="{'text-red-500': errors?.medicoNome}">Nome do Médico *</Label>
+          <Input
+              v-model="localMedicoNome"
+              :class="{'border-red-500': errors?.medicoNome}"
+              placeholder="Dr(a). Nome Completo"
+          />
+          <span v-if="errors?.medicoNome" class="text-xs text-red-500">{{ errors.medicoNome }}</span>
+        </div>
+        <div>
+          <Label :class="{'text-red-500': errors?.medicoCrm}">CRM *</Label>
+          <Input
+              v-model="localMedicoCrm"
+              :class="{'border-red-500': errors?.medicoCrm}"
+              placeholder="CRM/UF 00000"
+          />
+          <span v-if="errors?.medicoCrm" class="text-xs text-red-500">{{ errors.medicoCrm }}</span>
         </div>
       </div>
 

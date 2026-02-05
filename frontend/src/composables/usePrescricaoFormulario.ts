@@ -52,6 +52,8 @@ export function usePrescricaoFormulario() {
       protocoloNome: '',
       numeroCiclo: 1,
       blocos: [],
+      medicoNome: '',
+      medicoCrm: '',
     }
   })
 
@@ -63,6 +65,8 @@ export function usePrescricaoFormulario() {
   const [diagnostico] = defineField('diagnostico')
   const [protocoloNome] = defineField('protocoloNome')
   const [numeroCiclo] = defineField('numeroCiclo')
+  const [medicoNome] = defineField('medicoNome')
+  const [medicoCrm] = defineField('medicoCrm')
 
   const pacienteSelecionadoObj = computed(() =>
     appStore.pacientes.find(p => p.id === values.pacienteId)
@@ -286,6 +290,20 @@ export function usePrescricaoFormulario() {
 
   const executarValidacao = (): boolean => {
     errors.value = {};
+    
+    // Validação condicional para prescrição física
+    if (route.query.prescricaoFisica === 'true') {
+      if (!values.medicoNome || values.medicoNome.trim() === '') {
+        errors.value['medicoNome'] = 'Nome do médico é obrigatório para prescrição física';
+      }
+      if (!values.medicoCrm || values.medicoCrm.trim() === '') {
+        errors.value['medicoCrm'] = 'CRM é obrigatório para prescrição física';
+      }
+      if (Object.keys(errors.value).length > 0) {
+        return false;
+      }
+    }
+    
     const parseResult = prescricaoFormSchema.safeParse(values);
     if (!parseResult.success) {
       const formattedErrors: Record<string, string> = {};
@@ -300,7 +318,7 @@ export function usePrescricaoFormulario() {
         });
         formattedErrors[pathKey] = issue.message;
       });
-      errors.value = formattedErrors;
+      errors.value = {...errors.value, ...formattedErrors};
       return false;
     }
     return true;
@@ -349,7 +367,7 @@ export function usePrescricaoFormulario() {
         })
       })).filter((bloco: any) => bloco.itens.length > 0);
 
-      const payload = {
+      const payload: any = {
         pacienteId: formValues.pacienteId,
         medicoId: 'med.carlos',
         protocolo: {
@@ -364,6 +382,11 @@ export function usePrescricaoFormulario() {
         },
         blocos: blocosPayload,
         diagnostico: formValues.diagnostico
+      }
+
+      if (route.query.prescricaoFisica === 'true' && formValues.medicoNome && formValues.medicoCrm) {
+        payload.medicoNome = formValues.medicoNome
+        payload.medicoCrm = formValues.medicoCrm
       }
 
       if (substituicaoOriginalId.value) {
@@ -522,7 +545,9 @@ export function usePrescricaoFormulario() {
       sc,
       diagnostico,
       protocoloNome,
-      numeroCiclo
+      numeroCiclo,
+      medicoNome,
+      medicoCrm
     },
     pacienteSelecionadoObj,
     ultimaPrescricao,

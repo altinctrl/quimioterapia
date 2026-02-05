@@ -68,7 +68,8 @@ const handlePrescricaoFisica = () => {
     name: 'Prescricao',
     query: {
       pacienteId: pacienteSelecionado.value.id,
-      retorno: 'agendamento'
+      retorno: 'agendamento',
+      prescricaoFisica: 'true'
     }
   })
 }

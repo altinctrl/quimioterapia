@@ -19,6 +19,7 @@ const route = useRoute()
 const appStore = useAppStore()
 
 const isSubstituicao = computed(() => Boolean(route.query.substituirDe))
+const isPrescricaoFisica = computed(() => route.query.prescricaoFisica === 'true')
 
 const {
   values,
@@ -60,6 +61,9 @@ const handleBaixar = async () => {
           <h1 class="text-3xl font-bold tracking-tight text-gray-900">
             {{ isSubstituicao ? 'Nova Prescrição (Substituição)' : 'Nova Prescrição' }}
           </h1>
+          <p v-if="isPrescricaoFisica" class="text-sm text-amber-600 mt-1">
+            📋 Cadastro de prescrição física - Informe os dados do médico prescritor
+          </p>
         </div>
       </div>
     </div>
@@ -77,6 +81,9 @@ const handleBaixar = async () => {
           v-model:errors="errors"
           v-model:pacienteId="fields.pacienteId.value"
           v-model:peso="fields.peso.value"
+          v-model:medico-nome="fields.medicoNome.value"
+          v-model:medico-crm="fields.medicoCrm.value"
+          :is-prescricao-fisica="isPrescricaoFisica"
           :sc="fields.sc.value"
           :sexo="pacienteSelecionadoObj?.sexo || ''"
       />
