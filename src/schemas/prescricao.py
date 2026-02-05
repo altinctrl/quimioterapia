@@ -104,6 +104,8 @@ class PrescricaoCreate(BaseSchema):
     dados_paciente: PacienteSnapshot
     diagnostico: Optional[str] = None
     blocos: List[BlocoPrescricao]
+    medico_nome: Optional[str] = None  # Para prescrições físicas
+    medico_crm: Optional[str] = None  # Para prescrições físicas
 
 
 class PrescricaoSubstituicaoCreate(PrescricaoCreate):
