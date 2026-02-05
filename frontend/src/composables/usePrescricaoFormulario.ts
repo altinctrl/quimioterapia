@@ -1,6 +1,6 @@
 import {computed, nextTick, ref, watch} from 'vue'
 import {useForm} from 'vee-validate'
-import {onBeforeRouteLeave, useRoute} from 'vue-router'
+import {onBeforeRouteLeave, useRoute, useRouter} from 'vue-router'
 import {toast} from 'vue-sonner'
 import {useAppStore} from '@/stores/storeGeral.ts'
 import {usePrescricaoCalculos} from './usePrescricaoCalculos'
@@ -19,6 +19,7 @@ const parseNumber = (val: string | number | null | undefined): number => {
 
 export function usePrescricaoFormulario() {
   const route = useRoute()
+  const router = useRouter()
   const appStore = useAppStore()
   const {calcularSC, calcularDoseTeorica, calcularDoseFinal} = usePrescricaoCalculos()
 
@@ -375,6 +376,16 @@ export function usePrescricaoFormulario() {
           prescricaoGeradaId.value = resSub.id
           prescricaoConcluida.value = true
           await appStore.fetchPrescricoes(formValues.pacienteId)
+
+          if (route.query.retorno === 'agendamento' && prescricaoGeradaId.value) {
+            await router.push({
+              name: 'Agendamento',
+              query: {
+                pacienteId: formValues.pacienteId,
+                prescricaoId: prescricaoGeradaId.value
+              }
+            })
+          }
           return
         } catch (e) {
           console.error(e)
@@ -389,6 +400,16 @@ export function usePrescricaoFormulario() {
       prescricaoGeradaId.value = res.id
       prescricaoConcluida.value = true
       await appStore.fetchPrescricoes(formValues.pacienteId)
+
+      if (route.query.retorno === 'agendamento' && prescricaoGeradaId.value) {
+        await router.push({
+          name: 'Agendamento',
+          query: {
+            pacienteId: formValues.pacienteId,
+            prescricaoId: prescricaoGeradaId.value
+          }
+        })
+      }
     } catch (e) {
       console.error(e)
       toast.error('Erro ao salvar prescrição.')
