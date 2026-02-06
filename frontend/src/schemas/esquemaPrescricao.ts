@@ -203,7 +203,9 @@ export const prescricaoFormSchema = z.object({
   diagnostico: z.string().min(1, 'Informe o diagnóstico'),
   protocoloNome: z.string().min(1, 'Protocolo é obrigatório'),
   numeroCiclo: z.preprocess(transformToNumber, z.number().int().min(0).default(1)),
-  blocos: z.array(blocoSchema).default([])
+  blocos: z.array(blocoSchema).default([]),
+  medicoNome: z.string().optional(),
+  medicoCrm: z.string().optional()
 }).superRefine((data, ctx) => {
   const blocos = data.blocos as BlocoForm[];
   if (verificarPresencaUnidade(blocos, UnidadeDoseEnum.AUC)) {

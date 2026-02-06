@@ -61,6 +61,18 @@ const handleConfirmar = () => {
   const vagasInfo = getStatusVagas(dataSelecionada.value)
   preValidarAgendamento(vagasInfo)
 }
+
+const handlePrescricaoFisica = () => {
+  if (!pacienteSelecionado.value) return
+  router.push({
+    name: 'Prescricao',
+    query: {
+      pacienteId: pacienteSelecionado.value.id,
+      retorno: 'agendamento',
+      prescricaoFisica: 'true'
+    }
+  })
+}
 </script>
 
 <template>
@@ -117,6 +129,7 @@ const handleConfirmar = () => {
             :horario-fechamento="appStore.parametros.horarioFechamento"
             :prescricoes-disponiveis="prescricoesFormatadas"
             @confirmar="handleConfirmar"
+            @solicitar-prescricao-fisica="handlePrescricaoFisica"
         />
       </div>
     </div>

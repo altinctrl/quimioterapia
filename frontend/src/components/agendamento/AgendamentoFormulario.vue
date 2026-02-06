@@ -10,6 +10,8 @@ import {LABELS_CONSULTA, LABELS_PROCEDIMENTO} from "@/constants/constAgenda.ts";
 import {PrescricaoMedica} from "@/types/typesPrescricao.ts";
 import {Checkbox} from "@/components/ui/checkbox";
 
+const PRESCRICAO_FISICA_ID = '__prescricao_fisica__'
+
 export type PrescricaoComLabel = PrescricaoMedica & { labelFormatado: string };
 
 defineProps<{
@@ -37,8 +39,18 @@ const emit = defineEmits<{
   (e: 'update:tipoConsulta', value: string): void
   (e: 'update:tipoProcedimento', value: string): void
   (e: 'update:encaixe', value: boolean): void
+  (e: 'solicitar-prescricao-fisica'): void
   (e: 'confirmar'): void
 }>()
+
+const handlePrescricaoChange = (val: string) => {
+  if (val === PRESCRICAO_FISICA_ID) {
+    emit('update:prescricaoSelecionadaId', '')
+    emit('solicitar-prescricao-fisica')
+    return
+  }
+  emit('update:prescricaoSelecionadaId', val)
+}
 </script>
 
 <template>
@@ -69,7 +81,7 @@ const emit = defineEmits<{
           <Label>Prescrição</Label>
           <Select
               :model-value="prescricaoSelecionadaId"
-              @update:model-value="(val) => emit('update:prescricaoSelecionadaId', val as string)"
+              @update:model-value="(val) => handlePrescricaoChange(val as string)"
           >
             <SelectTrigger>
               <SelectValue placeholder="Selecione a prescrição"/>
@@ -77,6 +89,9 @@ const emit = defineEmits<{
             <SelectContent>
               <SelectItem v-for="p in prescricoesDisponiveis" :key="p.id" :value="p.id">
                 {{ p.labelFormatado }}
+              </SelectItem>
+              <SelectItem :value="PRESCRICAO_FISICA_ID">
+                Prescrição física (criar no sistema)
               </SelectItem>
             </SelectContent>
           </Select>
