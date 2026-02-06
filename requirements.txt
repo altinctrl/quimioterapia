@@ -7,12 +7,13 @@ cffi==2.0.0
 click==8.3.1
 cssselect2==0.8.0
 Faker==40.1.2
-fastapi==0.128.0
+fastapi==0.128.2
 fonttools==4.61.1
 greenlet==3.3.1
 h11==0.16.0
 idna==3.11
 Jinja2==3.1.6
+ldap3==2.9.1
 MarkupSafe==3.0.3
 pillow==12.1.0
 psycopg2-binary==2.9.11
@@ -25,10 +26,9 @@ pydyf==0.12.1
 PyJWT==2.11.0
 pyphen==0.17.2
 python-dotenv==1.2.1
-python-ldap==3.4.5
 python-multipart==0.0.22
 SQLAlchemy==2.0.46
-starlette==0.52.1
+starlette==0.50.0
 tinycss2==1.5.1
 tinyhtml5==2.0.0
 typing-inspection==0.4.2
