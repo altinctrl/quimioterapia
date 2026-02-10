@@ -33,14 +33,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(agendamento.router)
-app.include_router(auth.router)
-app.include_router(configuracao.router)
-app.include_router(equipe.router)
-app.include_router(paciente.router)
-app.include_router(prescricao.router)
-app.include_router(protocolo.router)
-app.include_router(relatorio.router)
+app.include_router(agendamento_router.router)
+app.include_router(auth_router.router)
+app.include_router(configuracao_router.router)
+app.include_router(equipe_router.router)
+app.include_router(paciente_router.router)
+app.include_router(prescricao_router.router)
+app.include_router(protocolo_router.router)
+app.include_router(relatorio_router.router)
 
 if __name__ == "__main__":
     import uvicorn
