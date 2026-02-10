@@ -3,12 +3,12 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query, HTTPException
 
-from src.auth.auth import auth_handler, require_groups
+from src.auth.auth_handler import auth_handler, require_groups
 from src.controllers import agendamento_controller
 from src.dependencies import get_agendamento_provider, get_prescricao_provider
 from src.providers.interfaces.agendamento_provider_interface import AgendamentoProviderInterface
 from src.providers.interfaces.prescricao_provider_interface import PrescricaoProviderInterface
-from src.schemas.agendamento import AgendamentoCreate, AgendamentoUpdate, AgendamentoResponse, \
+from src.schemas.agendamento_schema import AgendamentoCreate, AgendamentoUpdate, AgendamentoResponse, \
     AgendamentoBulkUpdateList, AgendamentoPrescricaoUpdate, AgendamentoRemarcacaoRequest, \
     AgendamentoRemarcacaoLoteRequest
 

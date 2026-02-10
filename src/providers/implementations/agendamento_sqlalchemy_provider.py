@@ -5,8 +5,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from src.models.agendamento import Agendamento
-from src.models.equipe import Profissional
+from src.models.agendamento_model import Agendamento
+from src.models.equipe_model import Profissional
 from src.providers.interfaces.agendamento_provider_interface import AgendamentoProviderInterface
 
 

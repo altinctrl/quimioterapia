@@ -5,7 +5,7 @@ from typing import List, Optional, Union
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
-from src.schemas.protocolo import CategoriaBlocoEnum, UnidadeDoseEnum, ViaAdministracaoEnum
+from src.schemas.protocolo_schema import CategoriaBlocoEnum, UnidadeDoseEnum, ViaAdministracaoEnum
 
 
 class BaseSchema(BaseModel):

@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.models.configuracao import Configuracao
+from src.models.configuracao_model import Configuracao
 from src.providers.interfaces.configuracao_provider_interface import ConfiguracaoProviderInterface
 
 

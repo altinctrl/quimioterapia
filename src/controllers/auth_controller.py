@@ -4,9 +4,9 @@ from datetime import datetime, timedelta
 
 from fastapi import HTTPException
 
-from src.auth.auth import auth_handler
+from src.auth.auth_handler import auth_handler
 from src.providers.interfaces.auth_provider_interface import AuthProviderInterface
-from src.schemas.auth import LoginResponse, UserSchema, UserUpdate
+from src.schemas.auth_schema import LoginResponse, UserSchema, UserUpdate
 
 
 async def processar_login_ldap(

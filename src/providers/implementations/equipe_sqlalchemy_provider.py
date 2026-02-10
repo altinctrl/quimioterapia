@@ -7,9 +7,9 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
 from src.models.auth_model import User
-from src.models.equipe import Profissional, EscalaPlantao, AusenciaProfissional
+from src.models.equipe_model import Profissional, EscalaPlantao, AusenciaProfissional
 from src.providers.interfaces.equipe_provider_interface import EquipeProviderInterface
-from src.schemas.equipe import ProfissionalCreate, EscalaPlantaoCreate, AusenciaProfissionalCreate
+from src.schemas.equipe_schema import ProfissionalCreate, EscalaPlantaoCreate, AusenciaProfissionalCreate
 
 
 class EquipeSqlAlchemyProvider(EquipeProviderInterface):

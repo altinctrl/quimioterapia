@@ -3,7 +3,7 @@ from datetime import date
 from fastapi import HTTPException, status
 
 from src.providers.interfaces.equipe_provider_interface import EquipeProviderInterface
-from src.schemas.equipe import (
+from src.schemas.equipe_schema import (
     ProfissionalCreate,
     EscalaPlantaoCreate,
     AusenciaProfissionalCreate

@@ -5,14 +5,14 @@ from typing import List, Optional
 from fastapi import HTTPException, status
 from sqlalchemy.orm.attributes import flag_modified
 
-from src.models.agendamento import Agendamento
+from src.models.agendamento_model import Agendamento
 from src.providers.interfaces.agendamento_provider_interface import AgendamentoProviderInterface
 from src.providers.interfaces.prescricao_provider_interface import PrescricaoProviderInterface
 from src.controllers import prescricao_controller
-from src.schemas.agendamento import AgendamentoCreate, AgendamentoUpdate, AgendamentoResponse, TipoAgendamento, \
+from src.schemas.agendamento_schema import AgendamentoCreate, AgendamentoUpdate, AgendamentoResponse, TipoAgendamento, \
     AgendamentoBulkUpdateList, AgendamentoPrescricaoUpdate, AgendamentoStatusEnum, FarmaciaStatusEnum, \
     AgendamentoRemarcacaoLoteRequest, AgendamentoRemarcacaoRequest
-from src.schemas.prescricao import PrescricaoResponse
+from src.schemas.prescricao_schema import PrescricaoResponse
 
 def _aplicar_regras_atualizacao(
         agendamento: Agendamento,

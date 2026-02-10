@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from src.models.protocolo import Protocolo
+from src.models.protocolo_model import Protocolo
 from src.providers.interfaces.protocolo_provider_interface import ProtocoloProviderInterface
 
 

@@ -10,10 +10,10 @@ from weasyprint import HTML
 from src.providers.interfaces.agendamento_provider_interface import AgendamentoProviderInterface
 from src.providers.interfaces.equipe_provider_interface import EquipeProviderInterface
 from src.providers.interfaces.prescricao_provider_interface import PrescricaoProviderInterface
-from src.schemas.agendamento import AgendamentoResponse, TipoAgendamento, TipoConsulta, AgendamentoStatusEnum, \
+from src.schemas.agendamento_schema import AgendamentoResponse, TipoAgendamento, TipoConsulta, AgendamentoStatusEnum, \
     TipoIntercorrencia, MotivoSuspensao, FarmaciaStatusEnum, MAPA_PROCEDIMENTOS, MAPA_MOTIVOS_SUSPENSAO
-from src.schemas.equipe import EscalaPlantaoResponse, AusenciaProfissionalResponse
-from src.schemas.protocolo import TipoTerapiaEnum
+from src.schemas.equipe_schema import EscalaPlantaoResponse, AusenciaProfissionalResponse
+from src.schemas.protocolo_schema import TipoTerapiaEnum
 
 
 def calcular_duracao_horas(inicio_str: str, fim_str: str) -> float:

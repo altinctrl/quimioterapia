@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
-from src.models.protocolo import Protocolo
+from src.models.protocolo_model import Protocolo
 
 
 class ProtocoloProviderInterface(ABC):

@@ -4,7 +4,7 @@ from typing import Optional, List
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 
-from src.schemas.auth import UserSchema
+from src.schemas.auth_schema import UserSchema
 
 
 class CargoEnum(str, enum.Enum):

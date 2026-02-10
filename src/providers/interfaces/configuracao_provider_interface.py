@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from src.models.configuracao import Configuracao
+from src.models.configuracao_model import Configuracao
 
 
 class ConfiguracaoProviderInterface(ABC):
