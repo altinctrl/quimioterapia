@@ -18,6 +18,7 @@ import {
   DURACOES_PROCEDIMENTO
 } from "@/constants/constAgenda.ts";
 import {somarMinutosAoHorario} from "@/utils/utilsAgenda.ts";
+import {PrescricaoStatusEnum} from "@/types/typesPrescricao.ts";
 
 export function useAgendamentoFormulario() {
   const appStore = useAppStore()
@@ -46,7 +47,12 @@ export function useAgendamentoFormulario() {
     if (!pacienteSelecionado.value) return []
     return appStore.prescricoes.filter(p =>
       p.pacienteId === pacienteSelecionado.value?.id &&
-      ['pendente', 'em-curso'].includes(p.status)
+      ![
+        PrescricaoStatusEnum.CONCLUIDA,
+        PrescricaoStatusEnum.SUSPENSA,
+        PrescricaoStatusEnum.SUBSTITUIDA,
+        PrescricaoStatusEnum.CANCELADA,
+      ].includes(p.status)
     )
   })
 
