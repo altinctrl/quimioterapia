@@ -1,6 +1,6 @@
 import {computed, ref, watch} from 'vue'
 import {useAppStore} from '@/stores/storeGeral.ts'
-import {useRouter} from 'vue-router'
+import {useRoute, useRouter} from 'vue-router'
 import {toast} from 'vue-sonner'
 import {
   GrupoInfusao,
@@ -22,6 +22,7 @@ import {somarMinutosAoHorario} from "@/utils/utilsAgenda.ts";
 export function useAgendamentoFormulario() {
   const appStore = useAppStore()
   const router = useRouter()
+  const route = useRoute()
 
   const buscaPaciente = ref('')
   const pacienteSelecionado = ref<Paciente | null>(null)
@@ -39,6 +40,7 @@ export function useAgendamentoFormulario() {
 
   const confirmacaoOpen = ref(false)
   const listaAvisos = ref<string[]>([])
+  const carregandoPorQuery = ref(false)
 
   const prescricoesDisponiveis = computed(() => {
     if (!pacienteSelecionado.value) return []
@@ -184,6 +186,7 @@ export function useAgendamentoFormulario() {
   })
 
   watch(pacienteSelecionado, async (novoPaciente) => {
+    if (carregandoPorQuery.value) return
     if (novoPaciente) {
       await Promise.all([
         appStore.fetchPrescricoes(novoPaciente.id),
@@ -191,6 +194,32 @@ export function useAgendamentoFormulario() {
       ])
     }
   })
+
+  watch(() => route.query.pacienteId, async (id) => {
+    if (!id || typeof id !== 'string') return
+
+    carregandoPorQuery.value = true
+    await appStore.carregarPaciente(id)
+    const paciente = appStore.getPacienteById(id)
+    if (paciente) {
+      pacienteSelecionado.value = paciente
+      buscaPaciente.value = paciente.nome
+      mostrarResultadosBusca.value = false
+      tipoAgendamento.value = 'infusao'
+    }
+
+    await Promise.all([
+      appStore.fetchPrescricoes(id),
+      appStore.fetchAgendamentos(undefined, undefined, id)
+    ])
+
+    const prescricaoId = route.query.prescricaoId
+    if (prescricaoId && typeof prescricaoId === 'string') {
+      prescricaoSelecionadaId.value = prescricaoId
+    }
+
+    carregandoPorQuery.value = false
+  }, {immediate: true})
 
   const handleSelecionarPaciente = (p: Paciente) => {
     pacienteSelecionado.value = p

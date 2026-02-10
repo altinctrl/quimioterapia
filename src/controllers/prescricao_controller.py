@@ -49,11 +49,16 @@ async def _montar_prescricao(
         equipe_provider: EquipeProviderInterface,
         dados: PrescricaoCreate,
 ) -> Prescricao:
-    try:
-        medico = await equipe_provider.buscar_profissional_por_username(dados.medico_id)
-        medico_snapshot = MedicoSnapshot(nome=medico.nome, crm_uf=medico.registro)
-    except:
-        medico_snapshot = MedicoSnapshot(nome="Médico não identificado", crm_uf="")  # TODO: Remover
+    # Se possui medico_nome e medico_crm (prescrição física), usa esses dados
+    if dados.medico_nome and dados.medico_crm:
+        medico_snapshot = MedicoSnapshot(nome=dados.medico_nome, crm_uf=dados.medico_crm)
+    else:
+        # Caso contrário, busca o médico no sistema
+        try:
+            medico = await equipe_provider.buscar_profissional_por_username(dados.medico_id)
+            medico_snapshot = MedicoSnapshot(nome=medico.nome, crm_uf=medico.registro)
+        except:
+            medico_snapshot = MedicoSnapshot(nome="Médico não identificado", crm_uf="")  # TODO: Remover
 
     blocos_processados = []
     for bloco in dados.blocos:

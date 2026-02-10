@@ -1,6 +1,6 @@
 import {computed, nextTick, ref, watch} from 'vue'
 import {useForm} from 'vee-validate'
-import {onBeforeRouteLeave, useRoute} from 'vue-router'
+import {onBeforeRouteLeave, useRoute, useRouter} from 'vue-router'
 import {toast} from 'vue-sonner'
 import {useAppStore} from '@/stores/storeGeral.ts'
 import {usePrescricaoCalculos} from './usePrescricaoCalculos'
@@ -19,6 +19,7 @@ const parseNumber = (val: string | number | null | undefined): number => {
 
 export function usePrescricaoFormulario() {
   const route = useRoute()
+  const router = useRouter()
   const appStore = useAppStore()
   const {calcularSC, calcularDoseTeorica, calcularDoseFinal} = usePrescricaoCalculos()
 
@@ -51,6 +52,8 @@ export function usePrescricaoFormulario() {
       protocoloNome: '',
       numeroCiclo: 1,
       blocos: [],
+      medicoNome: '',
+      medicoCrm: '',
     }
   })
 
@@ -62,6 +65,8 @@ export function usePrescricaoFormulario() {
   const [diagnostico] = defineField('diagnostico')
   const [protocoloNome] = defineField('protocoloNome')
   const [numeroCiclo] = defineField('numeroCiclo')
+  const [medicoNome] = defineField('medicoNome')
+  const [medicoCrm] = defineField('medicoCrm')
 
   const pacienteSelecionadoObj = computed(() =>
     appStore.pacientes.find(p => p.id === values.pacienteId)
@@ -285,6 +290,20 @@ export function usePrescricaoFormulario() {
 
   const executarValidacao = (): boolean => {
     errors.value = {};
+    
+    // Validação condicional para prescrição física
+    if (route.query.prescricaoFisica === 'true') {
+      if (!values.medicoNome || values.medicoNome.trim() === '') {
+        errors.value['medicoNome'] = 'Nome do médico é obrigatório para prescrição física';
+      }
+      if (!values.medicoCrm || values.medicoCrm.trim() === '') {
+        errors.value['medicoCrm'] = 'CRM é obrigatório para prescrição física';
+      }
+      if (Object.keys(errors.value).length > 0) {
+        return false;
+      }
+    }
+    
     const parseResult = prescricaoFormSchema.safeParse(values);
     if (!parseResult.success) {
       const formattedErrors: Record<string, string> = {};
@@ -299,7 +318,7 @@ export function usePrescricaoFormulario() {
         });
         formattedErrors[pathKey] = issue.message;
       });
-      errors.value = formattedErrors;
+      errors.value = {...errors.value, ...formattedErrors};
       return false;
     }
     return true;
@@ -348,7 +367,7 @@ export function usePrescricaoFormulario() {
         })
       })).filter((bloco: any) => bloco.itens.length > 0);
 
-      const payload = {
+      const payload: any = {
         pacienteId: formValues.pacienteId,
         medicoId: 'med.carlos',
         protocolo: {
@@ -365,6 +384,11 @@ export function usePrescricaoFormulario() {
         diagnostico: formValues.diagnostico
       }
 
+      if (route.query.prescricaoFisica === 'true' && formValues.medicoNome && formValues.medicoCrm) {
+        payload.medicoNome = formValues.medicoNome
+        payload.medicoCrm = formValues.medicoCrm
+      }
+
       if (substituicaoOriginalId.value) {
         try {
           const resSub = await appStore.adicionarPrescricaoSubstituicao(
@@ -375,6 +399,16 @@ export function usePrescricaoFormulario() {
           prescricaoGeradaId.value = resSub.id
           prescricaoConcluida.value = true
           await appStore.fetchPrescricoes(formValues.pacienteId)
+
+          if (route.query.retorno === 'agendamento' && prescricaoGeradaId.value) {
+            await router.push({
+              name: 'Agendamento',
+              query: {
+                pacienteId: formValues.pacienteId,
+                prescricaoId: prescricaoGeradaId.value
+              }
+            })
+          }
           return
         } catch (e) {
           console.error(e)
@@ -389,6 +423,16 @@ export function usePrescricaoFormulario() {
       prescricaoGeradaId.value = res.id
       prescricaoConcluida.value = true
       await appStore.fetchPrescricoes(formValues.pacienteId)
+
+      if (route.query.retorno === 'agendamento' && prescricaoGeradaId.value) {
+        await router.push({
+          name: 'Agendamento',
+          query: {
+            pacienteId: formValues.pacienteId,
+            prescricaoId: prescricaoGeradaId.value
+          }
+        })
+      }
     } catch (e) {
       console.error(e)
       toast.error('Erro ao salvar prescrição.')
@@ -501,7 +545,9 @@ export function usePrescricaoFormulario() {
       sc,
       diagnostico,
       protocoloNome,
-      numeroCiclo
+      numeroCiclo,
+      medicoNome,
+      medicoCrm
     },
     pacienteSelecionadoObj,
     ultimaPrescricao,
