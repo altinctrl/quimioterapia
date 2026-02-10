@@ -10,18 +10,35 @@ import {toast} from "vue-sonner";
 const tipoRelatorio = ref('fim-plantao')
 const dataSelecionada = ref(new Date().toISOString().split('T')[0])
 const loading = ref(false)
+const modoSelecao = ref('dia')
+const dataInicio = ref(new Date().toISOString().split('T')[0])
+const dataFim = ref(new Date().toISOString().split('T')[0])
+const mesSelecionado = ref(new Date().toISOString().slice(0, 7))
 
 const opcoes = [
   {label: 'Fechamento de Plantão', value: 'fim-plantao'},
   {label: 'Farmácia', value: 'medicacoes'}
 ]
 
+const getParams = () => {
+  if (modoSelecao.value === 'dia') {
+    return `data_inicio=${dataInicio.value}&data_fim=${dataInicio.value}`
+  } else if (modoSelecao.value === 'mes') {
+    const [ano, mes] = mesSelecionado.value.split('-')
+    const ultimoDia = new Date(parseInt(ano), parseInt(mes), 0).getDate()
+    return `data_inicio=${ano}-${mes}-01&data_fim=${ano}-${mes}-${ultimoDia}`
+  } else {
+    return `data_inicio=${dataInicio.value}&data_fim=${dataFim.value}`
+  }
+}
+
 const gerarRelatorio = async () => {
   if (!dataSelecionada.value) return
 
   loading.value = true
   try {
-    const url = `/api/relatorios/${tipoRelatorio.value}?data=${dataSelecionada.value}`
+    const params = getParams()
+    const url = `/api/relatorios/${tipoRelatorio.value}?${params}`
     const {data} = await api.get(url, {responseType: 'blob'})
     const downloadUrl = window.URL.createObjectURL(data)
     const link = document.createElement('a')
@@ -67,13 +84,38 @@ const gerarRelatorio = async () => {
         </div>
 
         <div>
-          <Label>
-            Data de Referência
-          </Label>
-          <Input
-              v-model="dataSelecionada"
-              type="date"
-          />
+          <Label>Modo de Seleção</Label>
+          <Select v-model="modoSelecao">
+            <SelectTrigger>
+              <SelectValue/>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="dia">Diário</SelectItem>
+              <SelectItem value="mes">Mensal</SelectItem>
+              <SelectItem value="periodo">Período Personalizado</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div v-if="modoSelecao === 'dia'">
+          <Label>Data</Label>
+          <Input v-model="dataInicio" type="date"/>
+        </div>
+
+        <div v-if="modoSelecao === 'mes'">
+          <Label>Mês de Referência</Label>
+          <Input v-model="mesSelecionado" type="month"/>
+        </div>
+
+        <div v-if="modoSelecao === 'periodo'" class="flex gap-2">
+          <div class="w-1/2">
+            <Label>Início</Label>
+            <Input v-model="dataInicio" type="date"/>
+          </div>
+          <div class="w-1/2">
+            <Label>Fim</Label>
+            <Input v-model="dataFim" type="date"/>
+          </div>
         </div>
 
         <div class="pt-4">

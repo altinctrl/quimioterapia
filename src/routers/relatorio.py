@@ -1,4 +1,5 @@
 from datetime import date
+
 from fastapi import APIRouter, Depends
 
 from src.auth.auth import auth_handler
@@ -12,13 +13,16 @@ router = APIRouter(prefix="/api/relatorios", tags=["Relatórios"], dependencies=
 
 @router.get("/fim-plantao")
 async def relatorio_fim_plantao(
-    data: date,
-    agendamento_provider: AgendamentoProviderInterface = Depends(get_agendamento_provider),
-    prescricao_provider: PrescricaoProviderInterface = Depends(get_prescricao_provider),
-    equipe_provider: EquipeProviderInterface = Depends(get_equipe_provider)
+        data_inicio: date,
+        data_fim: date = None,
+        agendamento_provider: AgendamentoProviderInterface = Depends(get_agendamento_provider),
+        prescricao_provider: PrescricaoProviderInterface = Depends(get_prescricao_provider),
+        equipe_provider: EquipeProviderInterface = Depends(get_equipe_provider)
 ):
+    if not data_fim: data_fim = data_inicio
     return await relatorio_controller.gerar_relatorio_fim_plantao(
-        data,
+        data_inicio,
+        data_fim,
         agendamento_provider,
         prescricao_provider,
         equipe_provider
@@ -26,13 +30,15 @@ async def relatorio_fim_plantao(
 
 @router.get("/medicacoes")
 async def relatorio_medicacoes(
-    data: date,
-    agendamento_provider: AgendamentoProviderInterface = Depends(get_agendamento_provider),
-    prescricao_provider: PrescricaoProviderInterface = Depends(get_prescricao_provider)
+        data_inicio: date,
+        data_fim: date = None,
+        agendamento_provider: AgendamentoProviderInterface = Depends(get_agendamento_provider),
+        prescricao_provider: PrescricaoProviderInterface = Depends(get_prescricao_provider)
 ):
+    if not data_fim: data_fim = data_inicio
     return await relatorio_controller.gerar_relatorio_medicacoes(
-        data,
-        data,
+        data_inicio,
+        data_fim,
         agendamento_provider,
         prescricao_provider
     )
