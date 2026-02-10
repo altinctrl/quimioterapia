@@ -1,3 +1,5 @@
+import uuid
+
 from sqlalchemy import Column, Integer, String, Text, Boolean, JSON
 from sqlalchemy.dialects.postgresql import JSONB
 
@@ -7,7 +9,7 @@ from src.resources.database import Base
 class Protocolo(Base):
     __tablename__ = "protocolos"
 
-    id = Column(String, primary_key=True)
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     nome = Column(String, nullable=False, index=True)
     indicacao = Column(String, nullable=True)
     tipo_terapia = Column(String, nullable=True)
