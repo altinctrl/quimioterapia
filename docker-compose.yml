@@ -1,10 +1,11 @@
 version: '3.8'
 
 services:
-  db:
+  db_app:
     image: postgres:15-alpine
+    container_name: quimio_db_app
     volumes:
-      - postgres_data:/var/lib/postgresql/data/
+      - postgres_app_data:/var/lib/postgresql/data/
     environment:
       - POSTGRES_USER=user
       - POSTGRES_PASSWORD=password
@@ -12,36 +13,16 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d db_quimio"]
+      test: [ "CMD-SHELL", "pg_isready -U user -d db_quimio" ]
       interval: 5s
       timeout: 5s
       retries: 5
-
-  ldap:
-    image: osixia/openldap:latest
-    container_name: openldap_server
-    environment:
-      LDAP_ORGANISATION: "Hospital"
-      LDAP_DOMAIN: "hc.gov.br"
-      LDAP_ADMIN_PASSWORD: "admin"
-      LDAP_RFC2307BIS_SCHEMA: "true"
-    volumes:
-      - ./ldap_bootstrap:/container/service/slapd/assets/config/bootstrap/ldif/custom:Z
-    ports:
-      - "3389:389"
-      - "3636:636"
-    command: --copy-service
-
-  ldap-admin:
-    image: osixia/phpldapadmin:latest
-    container_name: phpldapadmin
-    environment:
-      PHPLDAPADMIN_LDAP_HOSTS: "ldap"
-      PHPLDAPADMIN_HTTPS: "false"
-    ports:
-      - "8081:80"
-    depends_on:
-      - ldap
+    networks:
+      - quimio_network
 
 volumes:
-  postgres_data:
+  postgres_app_data:
+
+networks:
+  quimio_network:
+    driver: bridge

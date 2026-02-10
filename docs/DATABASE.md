@@ -1,7 +1,5 @@
 # Banco de Dados e Migrações
 
-Este documento explica a arquitetura de dados do projeto e como gerenciar as alterações no esquema do banco de dados utilizando o **Alembic**.
-
 ## Arquitetura de Dados
 
 O sistema interage com duas fontes de dados distintas (ambas PostgreSQL em desenvolvimento):
@@ -18,66 +16,26 @@ O sistema interage com duas fontes de dados distintas (ambas PostgreSQL em desen
 
 ---
 
-## Gerenciando Migrações (Alembic)
-
-As migrações controlam apenas o banco `db_quimio`.
-
-### Comandos Principais
-
-#### Criar uma nova migração
-Sempre que um modelo em `src/models/` é alterado, uma nova revisão deve ser gerada:
-
-```bash
-alembic revision --autogenerate -m "descricao_da_mudanca"
-```
-
-*O arquivo gerado em `alembic/versions/` deve ser verificado para garantir que o script está correto.*
-
-#### Aplicar migrações (Atualizar o banco)
-
-Para aplicar as mudanças pendentes no banco de dados:
-
-```bash
-alembic upgrade head
-```
-
-#### Reverter migrações
-
-Para desfazer a última migração aplicada:
-
-```bash
-alembic downgrade -1
-```
-
-Ou para voltar ao estado zero (cuidado, apaga todos os dados):
-
-```bash
-alembic downgrade base
-```
-
----
-
 ## Resetando o Ambiente de Dados (Desenvolvimento)
 
 Se o banco de dados local estiver inconsistente ou seja necessário começar "do zero":
 
 1. **Pare os containers e apague os volumes:**
-Isso apaga fisicamente os dados do container.
-```bash
-podman-compose down -v
-```
+    Isso apaga fisicamente os dados do container.
+    ```bash
+    podman-compose down -v
+    ```
 
 2. **Inicie novamente:**
-```bash
-podman-compose up --build
-```
+    ```bash
+    podman-compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+    ```
 
-3. **Recrie o banco legado:**
-```bash
-podman-compose exec db psql -U user -d postgres -c "CREATE DATABASE db_aghu;"
-```
+3. **Execute os scripts de seed:**
+    ```bash
+    # Primeiro popular o AGHU (Executar apenas uma vez ou se resetar volumes)
+    python src/scripts/seed_aghu.py
 
-4. **Execute as migrações e seeds:**
-```bash
-python src/scripts/seed_dev.py
-```
+    # Depois popular o banco da aplicação (Desenvolvimento diário)
+    python src/scripts/seed_dev.py
+    ```

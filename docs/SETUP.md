@@ -11,34 +11,27 @@ Este guia detalha como configurar o ambiente de desenvolvimento. Atualmente, uti
 
 ---
 
-## 1. Configuração dos Bancos de Dados
+## 1. Configuração dos Containers
 
-O projeto depende de dois bancos de dados PostgreSQL que rodam no mesmo container:
+O projeto depende de dois bancos de dados PostgreSQL e dos serviços LDAP:
 1.  `db_quimio`: Banco de dados principal da aplicação.
 2.  `db_aghu`: Banco de dados que simula o sistema legado do hospital (apenas leitura/validação).
+3.  `openldap_server`: Servidor LDAP para autenticação.
+4.  `phpldapadmin`: Interface web para o servidor LDAP.
 
-### Passo a passo:
+### Alternativas:
 
-1.  **Inicie o container do banco de dados:**
+1.  **Inicie todos os serviços no ambiente de desenvolvimento:**
+    Na raiz do projeto, execute:
+    ```bash
+    podman-compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+    ```
+
+2.  **Inicie apenas o banco de dados principal em produção:**
     Na raiz do projeto, execute:
     ```bash
     podman-compose up --build
     ```
-
-2.  **Verifique/Crie o banco legado (`db_aghu`):**
-    O container padrão cria apenas o `db_quimio`. Você precisa criar o segundo banco manualmente na primeira vez.
-
-    Execute o comando abaixo para criar o `db_aghu`:
-    ```bash
-    podman-compose exec db psql -U user -d postgres -c "CREATE DATABASE db_aghu;"
-    ```
-    *Se retornar um erro dizendo que o banco já existe, pode ignorar.*
-
-3.  **Confira se ambos existem:**
-    ```bash
-    podman-compose exec db psql -U user -l
-    ```
-    Você deve ver `db_quimio` e `db_aghu` na lista.
 
 ---
 
@@ -64,7 +57,10 @@ O projeto depende de dois bancos de dados PostgreSQL que rodam no mesmo containe
 4.  **Popule os bancos de dados (Seeds):**
     Para ter dados iniciais para trabalhar:
     ```bash
-    # Popula o banco de dados com pacientes/prescrições simulados
+    # Primeiro popular o AGHU (Executar apenas uma vez ou se resetar volumes)
+    python src/scripts/seed_aghu.py
+
+    # Depois popular o banco da aplicação (Desenvolvimento diário)
     python src/scripts/seed_dev.py
     ```
 
