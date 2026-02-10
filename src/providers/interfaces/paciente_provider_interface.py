@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
-from src.models.paciente import Paciente
+from src.models.paciente_model import Paciente
 
 
 class PacienteProviderInterface(ABC):

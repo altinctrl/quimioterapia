@@ -10,13 +10,13 @@ from fastapi.responses import StreamingResponse
 from jinja2 import Environment, FileSystemLoader
 from weasyprint import HTML
 
-from src.models.prescricao import Prescricao
+from src.models.prescricao_model import Prescricao
 from src.providers.interfaces.auth_provider_interface import AuthProviderInterface
 from sqlalchemy.orm.attributes import flag_modified
 
 from src.providers.interfaces.agendamento_provider_interface import AgendamentoProviderInterface
 from src.providers.interfaces.prescricao_provider_interface import PrescricaoProviderInterface
-from src.schemas.prescricao import PrescricaoCreate, PrescricaoResponse, MedicoSnapshot, PrescricaoStatusEnum, PrescricaoStatusUpdate, PrescricaoSubstituicaoCreate
+from src.schemas.prescricao_schema import PrescricaoCreate, PrescricaoResponse, MedicoSnapshot, PrescricaoStatusEnum, PrescricaoStatusUpdate, PrescricaoSubstituicaoCreate
 
 
 async def listar_prescricoes_por_paciente(

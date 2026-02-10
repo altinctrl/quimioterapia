@@ -2,13 +2,13 @@ from typing import List
 
 from fastapi import APIRouter, Depends
 
-from src.auth.auth import auth_handler, require_groups
+from src.auth.auth_handler import auth_handler, require_groups
 from src.controllers import prescricao_controller
 from src.dependencies import get_prescricao_provider, get_agendamento_provider, get_auth_provider
 from src.providers.interfaces.agendamento_provider_interface import AgendamentoProviderInterface
 from src.providers.interfaces.auth_provider_interface import AuthProviderInterface
 from src.providers.interfaces.prescricao_provider_interface import PrescricaoProviderInterface
-from src.schemas.prescricao import PrescricaoCreate, PrescricaoResponse, PrescricaoStatusUpdate, PrescricaoSubstituicaoCreate
+from src.schemas.prescricao_schema import PrescricaoCreate, PrescricaoResponse, PrescricaoStatusUpdate, PrescricaoSubstituicaoCreate
 
 router = APIRouter(prefix="/api/prescricoes", tags=["Prescrições"], dependencies=[Depends(auth_handler.decode_token)])
 

@@ -1,4 +1,4 @@
-from src.schemas.protocolo import CategoriaBlocoEnum, UnidadeDoseEnum, ViaAdministracaoEnum, FaseEnum
+from src.schemas.protocolo_schema import CategoriaBlocoEnum, UnidadeDoseEnum, ViaAdministracaoEnum, FaseEnum
 
 PROTOCOLOS_DATA = [
     {

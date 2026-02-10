@@ -4,9 +4,9 @@ from typing import List
 from fastapi import HTTPException, status
 from sqlalchemy.orm.attributes import flag_modified
 
-from src.models.protocolo import Protocolo
+from src.models.protocolo_model import Protocolo
 from src.providers.interfaces.protocolo_provider_interface import ProtocoloProviderInterface
-from src.schemas.protocolo import ProtocoloCreate, ProtocoloUpdate, ProtocoloResponse
+from src.schemas.protocolo_schema import ProtocoloCreate, ProtocoloUpdate, ProtocoloResponse
 
 
 def _montar_resposta(protocolo: Protocolo) -> ProtocoloResponse:

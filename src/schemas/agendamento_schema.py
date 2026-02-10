@@ -5,8 +5,8 @@ from typing import List, Optional
 from pydantic import BaseModel, ConfigDict, model_validator, Field
 from pydantic.alias_generators import to_camel
 
-from src.schemas.equipe import ProfissionalResponse
-from src.schemas.prescricao import PrescricaoResponse
+from src.schemas.equipe_schema import ProfissionalResponse
+from src.schemas.prescricao_schema import PrescricaoResponse
 
 
 class BaseSchema(BaseModel):

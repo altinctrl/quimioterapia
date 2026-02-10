@@ -2,8 +2,8 @@ from abc import ABC, abstractmethod
 from datetime import date
 from typing import List, Optional
 
-from src.models.equipe import Profissional, EscalaPlantao, AusenciaProfissional
-from src.schemas.equipe import ProfissionalCreate, EscalaPlantaoCreate, AusenciaProfissionalCreate
+from src.models.equipe_model import Profissional, EscalaPlantao, AusenciaProfissional
+from src.schemas.equipe_schema import ProfissionalCreate, EscalaPlantaoCreate, AusenciaProfissionalCreate
 
 
 class EquipeProviderInterface(ABC):

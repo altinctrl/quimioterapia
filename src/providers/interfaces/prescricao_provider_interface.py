@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
-from src.models.prescricao import Prescricao
+from src.models.prescricao_model import Prescricao
 
 
 class PrescricaoProviderInterface(ABC):

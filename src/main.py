@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.resources.database import app_engine, aghu_engine
-from src.routers import auth, agendamento, configuracao, paciente, prescricao, protocolo, equipe, relatorio
+from src.routers import auth_router, agendamento_router, configuracao_router, paciente_router, prescricao_router, protocolo_router, equipe_router, relatorio_router
 
 
 @asynccontextmanager

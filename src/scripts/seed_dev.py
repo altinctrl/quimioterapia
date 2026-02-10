@@ -7,22 +7,22 @@ from typing import Optional
 from faker import Faker
 from sqlalchemy import text
 
-from src.models.agendamento import Agendamento
-from src.models.aghu import AghuPaciente
+from src.models.agendamento_model import Agendamento
+from src.models.aghu_model import AghuPaciente
 from src.models.auth_model import RefreshToken
-from src.models.configuracao import Configuracao
-from src.models.equipe import Profissional, EscalaPlantao, AusenciaProfissional
-from src.models.paciente import Paciente, ContatoEmergencia
-from src.models.prescricao import Prescricao
-from src.models.protocolo import Protocolo
+from src.models.configuracao_model import Configuracao
+from src.models.equipe_model import Profissional, EscalaPlantao, AusenciaProfissional
+from src.models.paciente_model import Paciente, ContatoEmergencia
+from src.models.prescricao_model import Prescricao
+from src.models.protocolo_model import Protocolo
 from src.resources.database import app_engine, aghu_engine, AppSessionLocal, AghuSessionLocal, Base
-from src.schemas.agendamento import AgendamentoCreate, DetalhesAgendamento, TipoAgendamento, AgendamentoStatusEnum, \
+from src.schemas.agendamento_schema import AgendamentoCreate, DetalhesAgendamento, TipoAgendamento, AgendamentoStatusEnum, \
     FarmaciaStatusEnum, TipoConsulta, TipoProcedimento
 from src.models.auth_model import User
-from src.schemas.equipe import MotivoAusenciaEnum
-from src.schemas.prescricao import ProtocoloRef, PacienteSnapshot, BlocoPrescricao, ItemPrescricao, \
+from src.schemas.equipe_schema import MotivoAusenciaEnum
+from src.schemas.prescricao_schema import ProtocoloRef, PacienteSnapshot, BlocoPrescricao, ItemPrescricao, \
     PrescricaoStatusEnum, MedicoSnapshot
-from src.schemas.protocolo import ProtocoloCreate, TemplateCiclo, UnidadeDoseEnum
+from src.schemas.protocolo_schema import ProtocoloCreate, TemplateCiclo, UnidadeDoseEnum
 from src.scripts.const_protocolos_teste import PROTOCOLOS_DATA
 
 fake = Faker('pt_BR')

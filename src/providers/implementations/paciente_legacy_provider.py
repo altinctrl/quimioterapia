@@ -3,8 +3,8 @@ from typing import List, Optional
 from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.models.aghu import AghuPaciente
-from src.models.paciente import Paciente
+from src.models.aghu_model import AghuPaciente
+from src.models.paciente_model import Paciente
 from src.providers.interfaces.paciente_provider_interface import PacienteProviderInterface
 
 

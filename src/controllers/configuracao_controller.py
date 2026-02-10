@@ -1,5 +1,5 @@
 from src.providers.interfaces.configuracao_provider_interface import ConfiguracaoProviderInterface
-from src.schemas.configuracao import ConfiguracaoUpdate, ConfiguracaoResponse
+from src.schemas.configuracao_schema import ConfiguracaoUpdate, ConfiguracaoResponse
 
 
 async def obter_configuracao(provider: ConfiguracaoProviderInterface) -> ConfiguracaoResponse:

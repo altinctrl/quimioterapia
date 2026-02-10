@@ -65,7 +65,7 @@ O projeto depende de dois bancos de dados PostgreSQL que rodam no mesmo containe
     Para ter dados iniciais para trabalhar:
     ```bash
     # Popula o banco de dados com pacientes/prescrições simulados
-    python src/scripts/seed.py
+    python src/scripts/seed_dev.py
     ```
 
 5.  **Inicie o servidor:**

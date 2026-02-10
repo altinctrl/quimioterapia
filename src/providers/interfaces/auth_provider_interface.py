@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import List, Optional
 
 from src.models.auth_model import RefreshToken
-from src.schemas.auth import UserSchema
+from src.schemas.auth_schema import UserSchema
 
 
 class AuthProviderInterface(ABC):

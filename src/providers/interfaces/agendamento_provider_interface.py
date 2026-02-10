@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from datetime import date
 from typing import List, Optional
 
-from src.models.agendamento import Agendamento
+from src.models.agendamento_model import Agendamento
 
 
 class AgendamentoProviderInterface(ABC):

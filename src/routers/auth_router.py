@@ -6,11 +6,11 @@ from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 
-from src.auth.auth import auth_handler
+from src.auth.auth_handler import auth_handler
 from src.controllers import auth_controller
 from src.dependencies import get_auth_provider
 from src.providers.interfaces.auth_provider_interface import AuthProviderInterface
-from src.schemas.auth import LoginResponse, UserSchema, RefreshTokenRequest, UserUpdate
+from src.schemas.auth_schema import LoginResponse, UserSchema, RefreshTokenRequest, UserUpdate
 from src.services.ldap_service import authenticate_ldap
 
 router = APIRouter(prefix="/api", tags=["Autenticação"])

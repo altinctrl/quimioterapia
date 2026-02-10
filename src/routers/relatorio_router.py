@@ -2,7 +2,7 @@ from datetime import date
 
 from fastapi import APIRouter, Depends
 
-from src.auth.auth import auth_handler
+from src.auth.auth_handler import auth_handler
 from src.controllers import relatorio_controller
 from src.dependencies import get_agendamento_provider, get_prescricao_provider, get_equipe_provider
 from src.providers.interfaces.agendamento_provider_interface import AgendamentoProviderInterface

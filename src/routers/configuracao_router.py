@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends
 
-from src.auth.auth import auth_handler
+from src.auth.auth_handler import auth_handler
 from src.controllers import configuracao_controller
 from src.dependencies import get_configuracao_provider
 from src.providers.interfaces.configuracao_provider_interface import ConfiguracaoProviderInterface
-from src.schemas.configuracao import ConfiguracaoUpdate, ConfiguracaoResponse
+from src.schemas.configuracao_schema import ConfiguracaoUpdate, ConfiguracaoResponse
 
 router = APIRouter(prefix="/api/configuracoes", tags=["Configurações"],
     dependencies=[Depends(auth_handler.decode_token)])

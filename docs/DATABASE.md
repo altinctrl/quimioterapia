@@ -79,5 +79,5 @@ podman-compose exec db psql -U user -d postgres -c "CREATE DATABASE db_aghu;"
 
 4. **Execute as migrações e seeds:**
 ```bash
-python src/scripts/seed.py
+python src/scripts/seed_dev.py
 ```

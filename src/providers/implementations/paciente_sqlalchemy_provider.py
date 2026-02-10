@@ -4,8 +4,8 @@ from sqlalchemy import select, or_, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from src.models.paciente import Paciente
-from src.models.prescricao import Prescricao
+from src.models.paciente_model import Paciente
+from src.models.prescricao_model import Prescricao
 from src.providers.interfaces.paciente_provider_interface import PacienteProviderInterface
 
 

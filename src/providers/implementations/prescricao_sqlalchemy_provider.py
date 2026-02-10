@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from src.models.prescricao import Prescricao
+from src.models.prescricao_model import Prescricao
 from src.providers.interfaces.prescricao_provider_interface import PrescricaoProviderInterface
 
 

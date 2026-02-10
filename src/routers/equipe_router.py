@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends
 import src.controllers.equipe_controller as controller
 from src.dependencies import get_equipe_provider
 from src.providers.interfaces.equipe_provider_interface import EquipeProviderInterface
-from src.schemas.equipe import ProfissionalCreate, ProfissionalResponse, EscalaPlantaoCreate, EscalaPlantaoResponse, \
+from src.schemas.equipe_schema import ProfissionalCreate, ProfissionalResponse, EscalaPlantaoCreate, EscalaPlantaoResponse, \
     AusenciaProfissionalCreate, AusenciaProfissionalResponse
 
 router = APIRouter(prefix="/api/equipe", tags=["Equipe"])

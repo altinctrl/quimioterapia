@@ -2,11 +2,11 @@ from typing import List, Optional, Union
 
 from fastapi import APIRouter, Depends, Query
 
-from src.auth.auth import auth_handler
+from src.auth.auth_handler import auth_handler
 from src.controllers import protocolo_controller
 from src.dependencies import get_protocolo_provider
 from src.providers.interfaces.protocolo_provider_interface import ProtocoloProviderInterface
-from src.schemas.protocolo import ProtocoloCreate, ProtocoloUpdate, ProtocoloResponse
+from src.schemas.protocolo_schema import ProtocoloCreate, ProtocoloUpdate, ProtocoloResponse
 
 router = APIRouter(prefix="/api/protocolos", tags=["Protocolos"], dependencies=[Depends(auth_handler.decode_token)])
 

@@ -4,9 +4,9 @@ from typing import List
 
 from fastapi import HTTPException, status
 
-from src.models.paciente import Paciente, ContatoEmergencia
+from src.models.paciente_model import Paciente, ContatoEmergencia
 from src.providers.interfaces.paciente_provider_interface import PacienteProviderInterface
-from src.schemas.paciente import PacienteCreate, PacienteUpdate, PacienteResponse, PacientePagination, \
+from src.schemas.paciente_schema import PacienteCreate, PacienteUpdate, PacienteResponse, PacientePagination, \
     PacienteImportResponse
 
 

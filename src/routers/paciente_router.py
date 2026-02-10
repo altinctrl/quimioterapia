@@ -2,11 +2,11 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query
 
-from src.auth.auth import auth_handler
+from src.auth.auth_handler import auth_handler
 from src.controllers import paciente_controller
 from src.dependencies import get_paciente_provider, get_paciente_legacy_provider
 from src.providers.interfaces.paciente_provider_interface import PacienteProviderInterface
-from src.schemas.paciente import PacienteCreate, PacienteUpdate, PacienteResponse, PacientePagination, \
+from src.schemas.paciente_schema import PacienteCreate, PacienteUpdate, PacienteResponse, PacientePagination, \
     PacienteImportResponse
 
 router = APIRouter(prefix="/api/pacientes", tags=["Pacientes"], dependencies=[Depends(auth_handler.decode_token)])
