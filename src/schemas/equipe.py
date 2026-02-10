@@ -2,15 +2,14 @@ import enum
 from datetime import date
 from typing import Optional, List
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, computed_field
+
+from src.schemas.auth import UserSchema
 
 
 class CargoEnum(str, enum.Enum):
     ENFERMEIRO = "Enfermeiro"
     TECNICO = "Técnico de Enfermagem"
-    FARMACEUTICO = "Farmacêutico"
-    MEDICO = "Médico"
-    ADMINISTRATIVO = "Administrativo"
 
 
 class TurnoEnum(str, enum.Enum):
@@ -29,9 +28,7 @@ class MotivoAusenciaEnum(str, enum.Enum):
 
 class ProfissionalBase(BaseModel):
     username: str
-    nome: str
     cargo: str
-    registro: Optional[str] = None
     ativo: bool = True
 
 
@@ -63,7 +60,20 @@ class AusenciaProfissionalCreate(AusenciaProfissionalBase):
 
 
 class ProfissionalResponse(ProfissionalBase):
+    usuario: Optional[UserSchema] = Field(default=None, exclude=True)
     model_config = ConfigDict(from_attributes=True)
+
+    @computed_field
+    def nome(self) -> str:
+        if self.usuario:
+            return self.usuario.display_name or self.usuario.username
+        return self.username
+
+    @computed_field
+    def registro(self) -> Optional[str]:
+        if self.usuario:
+            return self.usuario.registro_profissional
+        return None
 
 
 class AusenciaProfissionalResponse(AusenciaProfissionalBase):

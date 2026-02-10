@@ -4,9 +4,9 @@ from fastapi import APIRouter, Depends
 
 from src.auth.auth import auth_handler, require_groups
 from src.controllers import prescricao_controller
-from src.dependencies import get_prescricao_provider, get_equipe_provider, get_agendamento_provider
+from src.dependencies import get_prescricao_provider, get_agendamento_provider, get_auth_provider
 from src.providers.interfaces.agendamento_provider_interface import AgendamentoProviderInterface
-from src.providers.interfaces.equipe_provider_interface import EquipeProviderInterface
+from src.providers.interfaces.auth_provider_interface import AuthProviderInterface
 from src.providers.interfaces.prescricao_provider_interface import PrescricaoProviderInterface
 from src.schemas.prescricao import PrescricaoCreate, PrescricaoResponse, PrescricaoStatusUpdate, PrescricaoSubstituicaoCreate
 
@@ -25,17 +25,17 @@ async def listar_prescricoes_por_paciente(
 async def criar_prescricao(
         dados: PrescricaoCreate,
         prescricao_provider: PrescricaoProviderInterface = Depends(get_prescricao_provider),
-        equipe_provider: EquipeProviderInterface = Depends(get_equipe_provider),
+        auth_provider: AuthProviderInterface = Depends(get_auth_provider),
         current_user: dict = Depends(require_groups(["Medicos", "Administradores"]))
 ):
-    return await prescricao_controller.criar_prescricao(prescricao_provider, equipe_provider, dados)
+    return await prescricao_controller.criar_prescricao(prescricao_provider, auth_provider, dados)
 
 
 @router.post("/substituir", response_model=PrescricaoResponse)
 async def criar_prescricao_substituicao(
                 dados: PrescricaoSubstituicaoCreate,
                 prescricao_provider: PrescricaoProviderInterface = Depends(get_prescricao_provider),
-                equipe_provider: EquipeProviderInterface = Depends(get_equipe_provider),
+                auth_provider: AuthProviderInterface = Depends(get_auth_provider),
                 agendamento_provider: AgendamentoProviderInterface = Depends(get_agendamento_provider),
                 current_user: dict = Depends(require_groups(["Medicos", "Administradores"]))
 ):
@@ -44,7 +44,7 @@ async def criar_prescricao_substituicao(
 
         return await prescricao_controller.criar_prescricao_substituicao_atomic(
                 prescricao_provider,
-                equipe_provider,
+                auth_provider,
                 agendamento_provider,
                 dados,
                 usuario_id=user_id,
@@ -52,7 +52,6 @@ async def criar_prescricao_substituicao(
         )
 
 
-# TODO: Criar endpoint para atualizar status da prescrição
 @router.put("/{prescricao_id}/status", response_model=PrescricaoResponse)
 async def atualizar_status_prescricao(
                 prescricao_id: str,

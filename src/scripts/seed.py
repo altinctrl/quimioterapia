@@ -18,6 +18,7 @@ from src.models.protocolo import Protocolo
 from src.resources.database import app_engine, aghu_engine, AppSessionLocal, AghuSessionLocal, Base
 from src.schemas.agendamento import AgendamentoCreate, DetalhesAgendamento, TipoAgendamento, AgendamentoStatusEnum, \
     FarmaciaStatusEnum, TipoConsulta, TipoProcedimento
+from src.models.auth_model import User
 from src.schemas.equipe import MotivoAusenciaEnum
 from src.schemas.prescricao import ProtocoloRef, PacienteSnapshot, BlocoPrescricao, ItemPrescricao, \
     PrescricaoStatusEnum, MedicoSnapshot
@@ -46,7 +47,7 @@ DILUENTES_CONFIG = [
     "Sem Diluente (Bolus)"
 ]
 
-CARGOS = ["Enfermeiro", "Técnico de Enfermagem", "Farmacêutico", "Médico", "Administrador"]
+CARGOS = ["Enfermeiro", "Técnico de Enfermagem"]
 FUNCOES = ["Gestão", "Salão QT", "Triagem/Marcação", "Consulta de Enfermagem", "Apoio"]
 MEDICOS_USERNAMES = ["med.carlos", "med.fernanda", "med.roberto"]
 
@@ -78,7 +79,7 @@ def gerar_horario(turno: str, duracao_minutos: int) -> tuple[str, str]:
     return dt_inicio.strftime("%H:%M"), dt_fim.strftime("%H:%M")
 
 
-def criar_prescricao_payload(protocolo_model: Protocolo, paciente: Paciente, medico_obj: Profissional, ciclo: int):
+def criar_prescricao_payload(protocolo_model: Protocolo, paciente: Paciente, medico_obj: User, ciclo: int):
     bsa = calcular_bsa(paciente.peso, paciente.altura)
     templates = [TemplateCiclo(**t) for t in protocolo_model.templates_ciclo]
     template = templates[0]
@@ -139,8 +140,8 @@ def criar_prescricao_payload(protocolo_model: Protocolo, paciente: Paciente, med
     )
 
     medico_snapshot = MedicoSnapshot(
-        nome=medico_obj.nome,
-        crm_uf=medico_obj.registro if medico_obj.registro else "CRM-UF 00000"
+        nome=medico_obj.display_name,
+        crm_uf=medico_obj.registro_profissional if medico_obj.registro_profissional else "CRM-UF 00000"
     )
 
     protocolo_ref = ProtocoloRef(
@@ -244,6 +245,7 @@ async def setup_app(aghu_pacientes):
         await conn.execute(text("DROP TABLE IF EXISTS protocolos CASCADE"))
         await conn.execute(text("DROP TABLE IF EXISTS configuracoes CASCADE"))
         await conn.execute(text("DROP TABLE IF EXISTS refresh_tokens CASCADE"))
+        await conn.execute(text("DROP TABLE IF EXISTS users CASCADE"))
 
         await conn.run_sync(Base.metadata.create_all)
 
@@ -271,24 +273,52 @@ async def setup_app(aghu_pacientes):
         )
         session.add(conf)
 
-        print("Criando profissionais e equipe...")
-        profissionais = [
-            Profissional(username="admin", nome="Louro José", cargo="Administrador", ativo=True),
-            Profissional(username="enf.ana", nome="Ana Maria", cargo="Enfermeiro", registro="123456-ENF/UF",
-                         ativo=True),
-            Profissional(username="tec.joao", nome="João Silva", cargo="Técnico de Enfermagem", registro="987654-TE/UF",
-                         ativo=True),
+        print("Criando usuários...")
+        users = [
+            User(username="admin",
+                 display_name="Louro José",
+                 role="admin",
+                 registro_profissional="CRM-TEST 99999",
+                 tipo_registro="CRM",
+                 groups=["admins"],
+                 ),
+            User(username="enf.ana",
+                 display_name="Ana Maria",
+                 role="enfermeiro",
+                 registro_profissional="123456",
+                 tipo_registro="COREN",
+                 groups=["enfermeiros"]
+                 ),
+            User(username="tec.joao",
+                 display_name="João Silva",
+                 role="tecnico",
+                 registro_profissional="987654",
+                 tipo_registro="COREN",
+                 groups=["tecnicos"]
+                 ),
         ]
+
         medicos_objs = []
         for m in MEDICOS_USERNAMES:
-            p = Profissional(
+            u = User(
                 username=m,
-                nome=f"Dr(a). {m.split('.')[1].title()}",
-                cargo="Médico",
-                registro=f"CRM-UF {random.randint(10000, 99999)}",
-                ativo=True)
-            profissionais.append(p)
-            medicos_objs.append(p)
+                display_name=f"Dr(a). {m.split('.')[1].title()}",
+                role="medico",
+                registro_profissional=f"CRM-UF {random.randint(10000, 99999)}",
+                tipo_registro="CRM",
+                groups=["medicos"]
+            )
+            users.append(u)
+            medicos_objs.append(u)
+
+        session.add_all(users)
+        await session.commit()
+
+        print("Criando equipe...")
+        profissionais = [
+            Profissional(username="enf.ana", cargo="Enfermeiro", ativo=True),
+            Profissional(username="tec.joao", cargo="Técnico de Enfermagem", ativo=True),
+        ]
 
         session.add_all(profissionais)
         await session.commit()
@@ -482,7 +512,7 @@ async def setup_app(aghu_pacientes):
 
                     ag = Agendamento(
                         id=str(uuid.uuid4()),
-                        criado_por_id="admin",
+                        criado_por_id="enf.ana",
                         paciente_id=ag_validator.paciente_id,
                         tipo=ag_validator.tipo,
                         data=ag_validator.data,
@@ -507,7 +537,7 @@ async def setup_app(aghu_pacientes):
 
                 ag_cons = Agendamento(
                     id=str(uuid.uuid4()),
-                    criado_por_id="admin",
+                    criado_por_id="enf.ana",
                     paciente_id=p_app.id,
                     tipo=TipoAgendamento.CONSULTA,
                     data=data_cons,
@@ -535,7 +565,7 @@ async def setup_app(aghu_pacientes):
 
                 ag_proc = Agendamento(
                     id=str(uuid.uuid4()),
-                    criado_por_id="admin",
+                    criado_por_id="enf.ana",
                     paciente_id=p_app.id,
                     tipo=TipoAgendamento.PROCEDIMENTO,
                     data=data_proc,

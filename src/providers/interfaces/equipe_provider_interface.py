@@ -9,10 +9,6 @@ from src.schemas.equipe import ProfissionalCreate, EscalaPlantaoCreate, Ausencia
 class EquipeProviderInterface(ABC):
 
     @abstractmethod
-    async def criar_profissional(self, profissional: ProfissionalCreate) -> Profissional:
-        pass
-
-    @abstractmethod
     async def buscar_profissional_por_username(self, username: str) -> Optional[Profissional]:
         pass
 
@@ -46,4 +42,8 @@ class EquipeProviderInterface(ABC):
 
     @abstractmethod
     async def remover_ausencia(self, ausencia_id: str) -> bool:
+        pass
+
+    @abstractmethod
+    async def promover_usuario_a_profissional(self, dados) -> Optional[Profissional]:
         pass

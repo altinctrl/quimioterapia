@@ -7,6 +7,7 @@ export interface User {
   role: UserRole;
   grupo: string;
   email?: string;
+  registro?: string;
   token?: string;
   refreshToken?: string;
 }

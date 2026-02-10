@@ -14,13 +14,14 @@ async def criar_profissional(
         dados: ProfissionalCreate,
         provider: EquipeProviderInterface
 ):
-    existente = await provider.buscar_profissional_por_username(dados.username)
-    if existente:
+    novo_prof = await provider.promover_usuario_a_profissional(dados)
+
+    if not novo_prof:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Profissional já cadastrado com este usuário."
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuário não encontrado. O profissional deve fazer login no sistema ao menos uma vez antes de ser adicionado à equipe."
         )
-    return await provider.criar_profissional(dados)
+    return novo_prof
 
 
 async def listar_profissionais(

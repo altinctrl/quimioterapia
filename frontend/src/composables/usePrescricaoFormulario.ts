@@ -3,6 +3,7 @@ import {useForm} from 'vee-validate'
 import {onBeforeRouteLeave, useRoute, useRouter} from 'vue-router'
 import {toast} from 'vue-sonner'
 import {useAppStore} from '@/stores/storeGeral.ts'
+import {useAuthStore} from "@/stores/storeAuth.ts";
 import {usePrescricaoCalculos} from './usePrescricaoCalculos'
 import {prescricaoFormSchema, type PrescricaoFormValues} from '@/schemas/esquemaPrescricao.ts'
 import {TemplateCiclo} from "@/types/typesProtocolo.ts";
@@ -21,6 +22,7 @@ export function usePrescricaoFormulario() {
   const route = useRoute()
   const router = useRouter()
   const appStore = useAppStore()
+  const authStore = useAuthStore()
   const {calcularSC, calcularDoseTeorica, calcularDoseFinal} = usePrescricaoCalculos()
 
   const bloqueandoWatcherTemplate = ref(false)
@@ -291,7 +293,6 @@ export function usePrescricaoFormulario() {
   const executarValidacao = (): boolean => {
     errors.value = {};
     
-    // Validação condicional para prescrição física
     if (route.query.prescricaoFisica === 'true') {
       if (!values.medicoNome || values.medicoNome.trim() === '') {
         errors.value['medicoNome'] = 'Nome do médico é obrigatório para prescrição física';
@@ -301,6 +302,11 @@ export function usePrescricaoFormulario() {
       }
       if (Object.keys(errors.value).length > 0) {
         return false;
+      }
+    } else {
+      if (authStore.user?.role === 'medico' && !authStore.user.registro) {
+         toast.error("CRM não configurado. Por favor, atualize seu perfil clicando no seu nome na barra lateral.");
+         return false;
       }
     }
     
@@ -367,9 +373,11 @@ export function usePrescricaoFormulario() {
         })
       })).filter((bloco: any) => bloco.itens.length > 0);
 
+      const usuarioIdLogado = authStore.user?.username;
+
       const payload: any = {
         pacienteId: formValues.pacienteId,
-        medicoId: 'med.carlos',
+        medicoId: usuarioIdLogado,
         protocolo: {
           nome: formValues.protocoloNome,
           cicloAtual: formValues.numeroCiclo || 1
