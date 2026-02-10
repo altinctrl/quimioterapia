@@ -5,6 +5,7 @@ import type {User, UserRole} from '@/types/typesAuth.ts'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User & { token?: string, refreshToken?: string } | null>(null)
+  const isJustLoggedIn = ref(false)
 
   const savedUser = localStorage.getItem('user')
   if (savedUser) {
@@ -39,10 +40,12 @@ export const useAuthStore = defineStore('auth', () => {
         email: userDataBackend.email,
         grupo: userDataBackend.groups ? userDataBackend.groups.join(', ') : '',
         role: userDataBackend.role as UserRole,
+        registro: userDataBackend.registroProfissional || '',
         token: data.access_token,
         refreshToken: data.refresh_token
       }
       user.value = userObj
+      isJustLoggedIn.value = true
       localStorage.setItem('user', JSON.stringify(userObj))
       return {success: true}
     } catch (err: any) {
@@ -51,6 +54,25 @@ export const useAuthStore = defineStore('auth', () => {
         return {success: false, error: 'Usuário ou senha incorretos'}
       }
       return {success: false, error: 'Erro de conexão com o servidor'}
+    }
+  }
+
+  async function atualizarRegistro(novoRegistro: string): Promise<boolean> {
+    if (!user.value) return false
+    try {
+      const tipo = user.value.role === 'medico' ? 'CRM' : 'COREN'
+
+      const response = await api.patch('/api/users/me/registro', {
+        registro_profissional: novoRegistro,
+        tipo_registro: tipo
+      })
+
+      user.value.registro = response.data.registroProfissional
+      localStorage.setItem('user', JSON.stringify(user.value))
+      return true
+    } catch (error) {
+      console.error('Erro ao atualizar registro', error)
+      return false
     }
   }
 
@@ -91,6 +113,6 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   return {
-    user, isAuthenticated, login, updateTokens, logout, hasAccess
+    user, isJustLoggedIn, isAuthenticated, login, atualizarRegistro, updateTokens, logout, hasAccess
   }
 })

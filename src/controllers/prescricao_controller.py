@@ -11,7 +11,7 @@ from jinja2 import Environment, FileSystemLoader
 from weasyprint import HTML
 
 from src.models.prescricao import Prescricao
-from src.providers.interfaces.equipe_provider_interface import EquipeProviderInterface
+from src.providers.interfaces.auth_provider_interface import AuthProviderInterface
 from sqlalchemy.orm.attributes import flag_modified
 
 from src.providers.interfaces.agendamento_provider_interface import AgendamentoProviderInterface
@@ -46,19 +46,36 @@ async def buscar_prescricao_multi(
 
 
 async def _montar_prescricao(
-        equipe_provider: EquipeProviderInterface,
+        auth_provider: AuthProviderInterface,
         dados: PrescricaoCreate,
 ) -> Prescricao:
-    # Se possui medico_nome e medico_crm (prescrição física), usa esses dados
+    # 1. Prescrição Física (Digitada manualmente)
     if dados.medico_nome and dados.medico_crm:
         medico_snapshot = MedicoSnapshot(nome=dados.medico_nome, crm_uf=dados.medico_crm)
+
+    # 2. Prescrição Digital (Médico logado)
     else:
-        # Caso contrário, busca o médico no sistema
-        try:
-            medico = await equipe_provider.buscar_profissional_por_username(dados.medico_id)
-            medico_snapshot = MedicoSnapshot(nome=medico.nome, crm_uf=medico.registro)
-        except:
-            medico_snapshot = MedicoSnapshot(nome="Médico não identificado", crm_uf="")  # TODO: Remover
+        usuario_medico = await auth_provider.buscar_usuario_por_username(dados.medico_id)
+
+        if not usuario_medico:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Usuário médico (ID: {dados.medico_id}) não encontrado no sistema."
+            )
+
+        if not usuario_medico.registro_profissional:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"O médico {usuario_medico.display_name} não possui CRM cadastrado. "
+                    "Atualize o perfil do usuário."
+                )
+            )
+
+        medico_snapshot = MedicoSnapshot(
+            nome=usuario_medico.display_name,
+            crm_uf=usuario_medico.registro_profissional
+        )
 
     blocos_processados = []
     for bloco in dados.blocos:
@@ -89,17 +106,17 @@ async def _montar_prescricao(
 
 async def criar_prescricao(
         prescricao_provider: PrescricaoProviderInterface,
-        equipe_provider: EquipeProviderInterface,
+        auth_provider: AuthProviderInterface,
         dados: PrescricaoCreate,
 ) -> PrescricaoResponse:
-    nova_prescricao = await _montar_prescricao(equipe_provider, dados)
+    nova_prescricao = await _montar_prescricao(auth_provider, dados)
     criado = await prescricao_provider.criar_prescricao(nova_prescricao)
     return PrescricaoResponse.model_validate(criado)
 
 
 async def criar_prescricao_substituicao_atomic(
         prescricao_provider: PrescricaoProviderInterface,
-        equipe_provider: EquipeProviderInterface,
+        auth_provider: AuthProviderInterface,
         agendamento_provider: AgendamentoProviderInterface,
         dados: PrescricaoSubstituicaoCreate,
         usuario_id: Optional[str],
@@ -121,7 +138,7 @@ async def criar_prescricao_substituicao_atomic(
     if not prescricao_original:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Prescrição original não encontrada")
 
-    nova_prescricao = await _montar_prescricao(equipe_provider, dados)
+    nova_prescricao = await _montar_prescricao(auth_provider, dados)
 
     async with _maybe_transaction(session):
         criado = await prescricao_provider.criar_prescricao(nova_prescricao, commit=False)

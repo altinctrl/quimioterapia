@@ -6,6 +6,11 @@ import jwt
 from dotenv import load_dotenv
 from fastapi import HTTPException, Security, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.models.auth_model import User
+from src.resources.database import get_app_db_session
 
 load_dotenv()
 
@@ -13,7 +18,7 @@ load_dotenv()
 class AuthHandler:
     security = HTTPBearer()
     secret = os.getenv("JWT_SECRET")
-    exp_time = int(os.getenv("JWT_EXP_MINUTES"))
+    exp_time = int(os.getenv("JWT_EXP_MINUTES")) * 60
     algorithm = "HS256"
 
     def encode_token(self, user_id: str, claims: Optional[Dict] = None) -> str:
@@ -43,27 +48,38 @@ class AuthHandler:
         except jwt.InvalidTokenError:
             raise HTTPException(status_code=401, detail="Token inválido")
 
-    async def get_current_user(self, auth: HTTPAuthorizationCredentials = Security(security)):
+    async def get_current_user(
+            self,
+            auth: HTTPAuthorizationCredentials = Security(security),
+            session: AsyncSession = Depends(get_app_db_session)
+    ):
         token = auth.credentials
         payload = self.decode_token(token)
 
-        # Compatibilidade, deve ser resolvido depois:
-        if "username" not in payload and "sub" in payload:
-            payload["username"] = payload["sub"]
-        if "display_name" not in payload:
-            if "displayName" in payload:
-                val = payload["displayName"]
-                payload["display_name"] = val[0] if isinstance(val, list) and val else str(val)
-            elif "name" in payload:
-                payload["display_name"] = payload["name"]
-            else:
-                payload["display_name"] = payload.get("username", "Usuário")
-        if "displayName" not in payload and "display_name" in payload:
-            payload["displayName"] = payload["display_name"]
-        if "groups" not in payload or payload["groups"] is None:
-            payload["groups"] = []
+        username = payload.get("sub") or payload.get("username")
 
-        return payload
+        if not username:
+            raise HTTPException(status_code=401, detail="Token inválido: identificador ausente")
+
+        stmt = select(User).where(User.username == username)
+        result = await session.execute(stmt)
+        user_db = result.scalars().first()
+
+        if not user_db:
+            raise HTTPException(status_code=401, detail="Usuário não encontrado ou inativo")
+
+        return {
+            "sub": user_db.username,
+            "username": user_db.username,
+            "email": user_db.email,
+            "display_name": user_db.display_name,
+            "displayName": user_db.display_name,
+            "name": user_db.display_name,
+            "groups": user_db.groups if user_db.groups else [],
+            "role": user_db.role,
+            "registro_profissional": user_db.registro_profissional,
+            "tipo_registro": user_db.tipo_registro
+        }
 
 
 auth_handler = AuthHandler()

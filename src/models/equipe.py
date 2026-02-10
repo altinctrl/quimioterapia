@@ -9,12 +9,11 @@ from src.resources.database import Base
 class Profissional(Base):
     __tablename__ = "profissionais"
 
-    username = Column(String, primary_key=True, index=True)
-    nome = Column(String, nullable=False)
+    username = Column(String, ForeignKey("users.username"), primary_key=True)
     cargo = Column(String, nullable=False)
-    registro = Column(String, nullable=True)
     ativo = Column(Boolean, default=True)
 
+    usuario = relationship("User", back_populates="profissional_equipe")
     escalas = relationship("EscalaPlantao", back_populates="profissional")
     ausencias = relationship("AusenciaProfissional", back_populates="profissional")
 

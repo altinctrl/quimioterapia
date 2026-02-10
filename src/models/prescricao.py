@@ -13,7 +13,7 @@ class Prescricao(Base):
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     paciente_id = Column(String, ForeignKey("pacientes.id"), nullable=False, index=True)
-    medico_id = Column(String, ForeignKey("profissionais.username"), nullable=False)
+    medico_id = Column(String, ForeignKey("users.username"), nullable=False)
     data_emissao = Column(DateTime, default=datetime.now)
     status = Column(String, default="pendente")
     conteudo = Column(JSONB, nullable=False)
@@ -23,4 +23,4 @@ class Prescricao(Base):
     prescricao_original_id = Column(String, ForeignKey("prescricoes.id"), nullable=True)
 
     paciente = relationship("Paciente", back_populates="prescricoes")
-    medico = relationship("Profissional")
+    medico = relationship("User")

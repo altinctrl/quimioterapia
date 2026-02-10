@@ -75,7 +75,7 @@ defineEmits<{
               <TableRow class="hover:bg-transparent">
                 <TableHead class="pl-4">Nome</TableHead>
                 <TableHead>Cargo</TableHead>
-                <TableHead>Registro</TableHead>
+                <TableHead>COREN</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead class="text-right pr-4"></TableHead>
               </TableRow>
@@ -128,8 +128,8 @@ defineEmits<{
             </Select>
           </div>
           <div class="grid grid-cols-4 items-center gap-4">
-            <Label class="text-right">Registro</Label>
-            <Input v-model="formState.registro" class="col-span-3" placeholder="COREN, CRM..."/>
+            <Label class="text-right">COREN</Label>
+            <Input v-model="formState.registro" class="col-span-3"/>
           </div>
           <div v-if="isEditing" class="grid grid-cols-4 items-center gap-4">
             <Label class="text-right">Ativo</Label>
