@@ -28,16 +28,19 @@ def calcular_duracao_horas(inicio_str: str, fim_str: str) -> float:
 
 
 async def gerar_relatorio_fim_plantao(
-        data_ref: date,
+        data_inicio: date,
+        data_fim: date,
         agendamento_provider: AgendamentoProviderInterface,
         prescricao_provider: PrescricaoProviderInterface,
         equipe_provider: EquipeProviderInterface
 ):
-    agendamentos_orm = await agendamento_provider.listar_agendamentos(data_inicio=data_ref, data_fim=data_ref)
+    agendamentos_orm = await agendamento_provider.listar_agendamentos(data_inicio=data_inicio, data_fim=data_fim)
     agendamentos = [AgendamentoResponse.model_validate(ag) for ag in agendamentos_orm]
-    escala_orm = await equipe_provider.listar_escala_dia(data_ref)
-    escala = [EscalaPlantaoResponse.model_validate(item) for item in escala_orm]
-    ausencias_orm = await equipe_provider.listar_ausencias_periodo(data_inicio=data_ref, data_fim=data_ref)
+    escala = []
+    if data_inicio == data_fim:
+        escala_orm = await equipe_provider.listar_escala_dia(data_inicio)
+        escala = [EscalaPlantaoResponse.model_validate(item) for item in escala_orm]
+    ausencias_orm = await equipe_provider.listar_ausencias_periodo(data_inicio=data_inicio, data_fim=data_fim)
     ausencias = [AusenciaProfissionalResponse.model_validate(a) for a in ausencias_orm]
 
     prescricao_ids = set()
@@ -160,7 +163,8 @@ async def gerar_relatorio_fim_plantao(
     template = env.get_template('relatorio_fim_plantao.html')
 
     html_content = template.render(
-        data_formatada=data_ref.strftime("%d/%m/%Y"),
+        data_formatada=data_inicio.strftime(
+            "%d/%m/%Y") if data_inicio == data_fim else f"{data_inicio.strftime('%d/%m/%Y')} a {data_fim.strftime('%d/%m/%Y')}",
         data_hora_geracao=datetime.now().strftime("%d/%m/%Y às %H:%M"),
         equipe=escala,
         ausencias=ausencias,
@@ -169,10 +173,11 @@ async def gerar_relatorio_fim_plantao(
 
     pdf_file = HTML(string=html_content).write_pdf()
 
+    nome_arquivo = f"plantao_{data_inicio}" if data_inicio == data_fim else f"plantao_{data_inicio}_{data_fim}"
     return StreamingResponse(
         io.BytesIO(pdf_file),
         media_type="application/pdf",
-        headers={"Content-Disposition": f"inline; filename=plantao_{data_ref}.pdf"}
+        headers={"Content-Disposition": f"inline; filename={nome_arquivo}.pdf"}
     )
 
 
