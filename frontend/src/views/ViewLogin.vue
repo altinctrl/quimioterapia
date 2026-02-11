@@ -2,7 +2,7 @@
 import {ref} from 'vue'
 import {useRouter} from 'vue-router'
 import {useAuthStore} from '@/stores/storeAuth.ts'
-import {Activity, AlertCircle, Lock, User} from 'lucide-vue-next'
+import {AlertCircle, Hospital, Lock, User} from 'lucide-vue-next'
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card'
 import {Button} from '@/components/ui/button'
 import {Input} from '@/components/ui/input'
@@ -27,11 +27,11 @@ const handleSubmit = async () => {
     } else {
       const role = authStore.user?.role
       if (role === 'farmacia') {
-        router.push('/farmacia')
+        void router.push('/farmacia')
       } else if (role === 'medico') {
-        router.push('/pacientes')
+        void router.push('/pacientes')
       } else {
-        router.push('/agenda')
+        void router.push('/agenda')
       }
     }
   } catch (err) {
@@ -44,13 +44,13 @@ const handleSubmit = async () => {
 
 <template>
   <div class="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center p-4">
-    <div class="w-full max-w-md">
-      <div class="text-center mb-8">
+    <div class="w-full max-w-md relative">
+      <div class="text-center mb-8 absolute bottom-full left-0 right-0">
         <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-4">
-          <Activity class="h-8 w-8 text-white"/>
+          <Hospital class="h-8 w-8 text-white"/>
         </div>
-        <h1 class="text-gray-900 mb-2 text-2xl font-medium">Sistema de Quimioterapia</h1>
-        <p class="text-sm text-gray-600">Hospital das Clínicas</p>
+        <h1 class="text-gray-900 mb-2 text-2xl font-medium">Sistema de Oncologia</h1>
+        <p class="text-sm text-gray-600">Hospital das Clínicas UFPE</p>
       </div>
 
       <Card>
@@ -107,34 +107,8 @@ const handleSubmit = async () => {
               {{ loading ? 'Autenticando...' : 'Entrar' }}
             </Button>
           </form>
-
-          <div class="mt-6 pt-6 border-t border-gray-200">
-            <p class="text-xs text-gray-500 mb-3">Usuários de desenvolvimento:</p>
-            <div class="space-y-2 text-xs">
-              <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
-                <span class="text-gray-700">Administrador:</span>
-                <code class="text-gray-600">admin.sistema / 123</code>
-              </div>
-              <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
-                <span class="text-gray-700">Enfermagem:</span>
-                <code class="text-gray-600">ana.enfermagem / 123</code>
-              </div>
-              <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
-                <span class="text-gray-700">Médico:</span>
-                <code class="text-gray-600">dr.joao / 123</code>
-              </div>
-              <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
-                <span class="text-gray-700">Farmácia:</span>
-                <code class="text-gray-600">ana.farmacia / 123</code>
-              </div>
-            </div>
-          </div>
         </CardContent>
       </Card>
-
-      <p class="text-center text-xs text-gray-500 mt-6">
-        Autenticação via Active Directory
-      </p>
     </div>
   </div>
 </template>
