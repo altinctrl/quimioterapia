@@ -2,10 +2,9 @@ import enum
 from datetime import date, datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, ConfigDict, model_validator, Field
+from pydantic import BaseModel, ConfigDict, model_validator, Field, computed_field
 from pydantic.alias_generators import to_camel
 
-from src.schemas.equipe_schema import ProfissionalResponse
 from src.schemas.prescricao_schema import PrescricaoResponse
 
 
@@ -261,10 +260,20 @@ class AgendamentoBulkUpdateList(BaseSchema):
     itens: List[AgendamentoBulkUpdateItem]
 
 
+class CriadoPorResponse(BaseModel):
+    username: str
+    display_name: Optional[str] = Field(default=None, exclude=True)
+    model_config = ConfigDict(from_attributes=True)
+
+    @computed_field
+    def nome(self) -> str:
+        return getattr(self, 'display_name', None) or self.username
+
+
 class AgendamentoResponse(AgendamentoBase):
     id: str
     criado_por_id: Optional[str] = None
-    criado_por: Optional[ProfissionalResponse] = None
+    criado_por: Optional[CriadoPorResponse] = None
     paciente: Optional[AgendamentoPaciente] = None
     prescricao: Optional[PrescricaoResponse] = None
     historico_alteracoes: List[AgendamentoHistoricoItem] = []
