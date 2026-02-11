@@ -3,7 +3,6 @@ import {computed, onMounted, ref, watch} from 'vue'
 import {useRouter} from 'vue-router'
 import {useAppStore} from '@/stores/storeGeral.ts'
 import {
-  Agendamento,
   AgendamentoStatusEnum,
   FarmaciaStatusEnum,
   FarmaciaTableRow,
@@ -15,8 +14,7 @@ import FarmaciaCabecalho from '@/components/farmacia/FarmaciaCabecalho.vue'
 import FarmaciaMetricas from '@/components/farmacia/FarmaciaMetricas.vue'
 import FarmaciaTabela from '@/components/farmacia/FarmaciaTabela.vue'
 import FarmaciaControles from '@/components/farmacia/FarmaciaControles.vue'
-import {getDataLocal} from '@/lib/utils.ts'
-import {isInfusao, somarDias} from '@/utils/utilsAgenda.ts'
+import {isInfusao} from '@/utils/utilsAgenda.ts'
 import AgendamentoModalDetalhes from "@/components/comuns/AgendamentoModalDetalhes.vue";
 import PrescricaoModalDetalhes from "@/components/comuns/PrescricaoModalDetalhes.vue";
 import {useLocalStorage, useSessionStorage} from "@vueuse/core";
@@ -24,10 +22,31 @@ import {toast} from 'vue-sonner'
 import {useAutoRefresh} from "@/composables/useAutoRefresh.ts";
 import {extrairMedicamentosDoAgendamento} from "@/utils/utilsFarmacia.ts";
 import {STATUS_ORDER} from "@/constants/constFarmacia.ts";
+import {useAgendaNavegacao} from "@/composables/useAgendaNavegacao.ts";
+import {useAgendaModals} from "@/composables/useAgendaModals.ts";
+import {useAgendaMetricas} from "@/composables/useAgendaMetricas.ts";
 
 const router = useRouter()
 const appStore = useAppStore()
-const dataSelecionada = useSessionStorage('farmacia_data_selecionada', getDataLocal())
+
+const {
+  dataSelecionada,
+  handleHoje,
+  handleDiaAnterior,
+  handleProximoDia,
+} = useAgendaNavegacao('farmacia_data_selecionada')
+
+const {
+  detalhesModalOpen,
+  agendamentoSelecionado,
+  abrirDetalhesAgendamento,
+
+  prescricaoModalOpen,
+  prescricaoParaVisualizar,
+  abrirPrescricao,
+
+  isAlgumModalAberto
+} = useAgendaModals()
 
 onMounted(() => {
   appStore.fetchConfiguracoes()
@@ -43,44 +62,29 @@ const mostrarMetricas = useLocalStorage('farmacia_mostrar_metricas', true)
 const expandedIdsMap = useSessionStorage<Record<string, string[]>>('farmacia_listas_expandidas_map', {})
 const selectedIds = ref<string[]>([])
 const bulkStatus = ref<FarmaciaStatusEnum | ''>('')
-
-const detalhesModalOpen = ref(false)
-const agendamentoSelecionado = ref<Agendamento | null>(null)
-const prescricaoModalOpen = ref(false)
-const prescricaoParaVisualizar = ref<any>(null)
-
-const isAlgumModalAberto = () => {
-  return detalhesModalOpen.value || prescricaoModalOpen.value
-}
 const isSelecaoAtiva = () => selectedIds.value.length > 0
 
 useAutoRefresh(
-  async () => {
-    await appStore.fetchAgendamentos(dataSelecionada.value, dataSelecionada.value)
-  },
-  {
-    intervaloPadrao: 60000,
-    condicoesPausa: [
-      () => isAlgumModalAberto(),
-      () => isSelecaoAtiva()
-    ]
-  }
+    async () => {
+      await appStore.fetchAgendamentos(dataSelecionada.value, dataSelecionada.value)
+    },
+    {
+      intervaloPadrao: 60000,
+      condicoesPausa: [
+        () => isAlgumModalAberto.value,
+        () => isSelecaoAtiva()
+      ]
+    }
 )
 
 const handleVerDetalhes = (row: FarmaciaTableRow) => {
   const ag = appStore.agendamentos.find(a => a.id === row.id)
-  if (ag) {
-    agendamentoSelecionado.value = ag
-    detalhesModalOpen.value = true
-  }
+  abrirDetalhesAgendamento(ag)
 }
 
 const handleAbrirPrescricao = (row: FarmaciaTableRow) => {
   const ag = appStore.agendamentos.find(a => a.id === row.id)
-  if (ag && ag.prescricao) {
-    prescricaoParaVisualizar.value = ag.prescricao
-    prescricaoModalOpen.value = true
-  }
+  abrirPrescricao(ag)
 }
 
 const getStatusDotColor = (statusId: string) => {
@@ -93,6 +97,18 @@ const agendamentosDoDia = computed(() => {
       ag.tipo === 'infusao' && ag.detalhes?.infusao
   )
 })
+
+const {
+  metricas: metricasGerais
+} = useAgendaMetricas(agendamentosDoDia)
+
+const metricas = computed(() => ({
+  total: metricasGerais.value.total,
+  pendente: metricasGerais.value.farmaciaPendentes,
+  emPreparacao: metricasGerais.value.farmaciaPreparando,
+  pronta: metricasGerais.value.farmaciaProntas,
+  enviada: metricasGerais.value.farmaciaEnviadas
+}))
 
 const tableRows = computed<FarmaciaTableRow[]>(() => {
   return agendamentosDoDia.value.map(ag => {
@@ -166,18 +182,6 @@ const expandedIdsDoDia = computed({
   }
 })
 
-const handleDiaAnterior = () => {
-  dataSelecionada.value = somarDias(dataSelecionada.value, -1)
-}
-
-const handleProximoDia = () => {
-  dataSelecionada.value = somarDias(dataSelecionada.value, 1)
-}
-
-const handleHoje = () => {
-  dataSelecionada.value = getDataLocal()
-}
-
 const handleResetFiltros = () => {
   filtros.value = {ordenacao: 'horario', turno: 'todos', status: []}
 }
@@ -230,17 +234,6 @@ const handleToggleCheckItem = async (agId: string, itemKey: string, statusAtual:
     console.error("Erro ao sincronizar farmácia", error)
   }
 }
-
-const metricas = computed(() => {
-  const rows = tableRows.value
-  return {
-    total: rows.length,
-    pendente: rows.filter(r => r.statusFarmacia === FarmaciaStatusEnum.PENDENTE).length,
-    emPreparacao: rows.filter(r => r.statusFarmacia === FarmaciaStatusEnum.EM_PREPARACAO).length,
-    pronta: rows.filter(r => r.statusFarmacia === FarmaciaStatusEnum.PRONTO).length,
-    enviada: rows.filter(r => r.statusFarmacia === FarmaciaStatusEnum.ENVIADO).length
-  }
-})
 
 const selectedRows = computed(() => {
   const ids = new Set(selectedIds.value)
