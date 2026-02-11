@@ -63,10 +63,14 @@ O projeto depende de dois bancos de dados PostgreSQL e dos serviços LDAP:
     # Depois popular o banco da aplicação (Desenvolvimento diário)
     python src/scripts/seed_dev.py
     ```
+    Ou apenas crie as tabelas e carregue as configurações padrão se estiver em produção:
+    ```bash
+    python src/scripts/seed_prod.py
+    ```
 
 5.  **Inicie o servidor:**
     ```bash
-    uvicorn src.main:app --reload
+    uvicorn src.main:app --reload # Remova a flag --reload se estiver em produção
     ```
 
 ---
