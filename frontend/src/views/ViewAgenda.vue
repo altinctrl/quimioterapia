@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {computed, onMounted, reactive, ref, watch} from 'vue'
+import {computed, onMounted, reactive, watch} from 'vue'
 import {useRouter} from 'vue-router'
 import {useAppStore} from '@/stores/storeGeral.ts'
 import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs'
@@ -9,24 +9,55 @@ import AgendaModalRemarcacao from '@/components/agenda/AgendaModalRemarcacao.vue
 import AgendaModalStatus from '@/components/agenda/AgendaModalStatus.vue'
 import AgendaModalEtiquetas from '@/components/agenda/AgendaModalEtiquetas.vue'
 import AgendaAba from '@/components/agenda/AgendaAba.vue'
-import {getDuracaoAgendamento, getGrupoInfusao, somarDias} from '@/utils/utilsAgenda.ts'
 import {
   Agendamento,
   AgendamentoStatusEnum,
-  FarmaciaStatusEnum,
   FiltrosAgenda,
   TipoAgendamento
 } from "@/types/typesAgendamento.ts";
 import {STATUS_INFUSAO_PRE_CHECKIN} from "@/constants/constAgenda.ts";
-import {getDataLocal} from '@/lib/utils.ts';
 import {toast} from "vue-sonner";
 import AgendamentoModalDetalhes from "@/components/comuns/AgendamentoModalDetalhes.vue";
 import PrescricaoModalDetalhes from "@/components/comuns/PrescricaoModalDetalhes.vue";
 import {useLocalStorage, useSessionStorage} from "@vueuse/core";
 import {useAutoRefresh} from "@/composables/useAutoRefresh.ts";
+import {useAgendaNavegacao} from "@/composables/useAgendaNavegacao.ts";
+import {useAgendaModals} from "@/composables/useAgendaModals.ts";
+import {useAgendaMetricas} from "@/composables/useAgendaMetricas.ts";
 
 const router = useRouter()
 const appStore = useAppStore()
+
+const {
+  dataSelecionada,
+  handleHoje,
+  handleDiaAnterior,
+  handleProximoDia,
+} = useAgendaNavegacao('agenda_data_selecionada')
+
+const {
+  detalhesModalOpen,
+  agendamentoSelecionado,
+  abrirDetalhesAgendamento: handleVerDetalhes,
+
+  prescricaoModalOpen,
+  prescricaoParaVisualizar,
+  abrirPrescricao: handleAbrirPrescricao,
+
+  tagsModalOpen,
+  tagsModalData,
+  abrirTags: handleAbrirTags,
+
+  remarcarModalOpen,
+  agendamentoParaRemarcar,
+  abrirRemarcar: handleAbrirRemarcar,
+
+  statusModalOpen,
+  statusPendingData,
+  abrirAlterarStatus,
+
+  isAlgumModalAberto
+} = useAgendaModals()
 
 onMounted(async () => {
   await Promise.all([
@@ -34,19 +65,6 @@ onMounted(async () => {
     appStore.fetchProtocolos()
   ])
 })
-
-const dataSelecionada = useSessionStorage('agenda_data_selecionada', getDataLocal())
-
-const detalhesModalOpen = ref(false)
-const agendamentoSelecionado = ref<Agendamento | null>(null)
-const prescricaoModalOpen = ref(false)
-const prescricaoParaVisualizar = ref<any>(null)
-const tagsModalOpen = ref(false)
-const tagsModalData = ref<{ id: string; tags: string[] } | null>(null)
-const remarcarModalOpen = ref(false)
-const agendamentoParaRemarcar = ref<Agendamento | null>(null)
-const statusModalOpen = ref(false)
-const statusPendingData = ref<{ id: string; novoStatus: AgendamentoStatusEnum; pacienteNome: string } | null>(null)
 
 const selecoesPorAba = reactive({
   infusao: 0,
@@ -57,25 +75,18 @@ const selecoesPorAba = reactive({
 const existeSelecaoPendente = () => {
   return (selecoesPorAba.infusao + selecoesPorAba.consulta + selecoesPorAba.procedimento) > 0
 }
-const isModalAberto = () => {
-  return detalhesModalOpen.value ||
-         prescricaoModalOpen.value ||
-         tagsModalOpen.value ||
-         remarcarModalOpen.value ||
-         statusModalOpen.value
-}
 
 useAutoRefresh(
-  async () => {
-    await appStore.fetchAgendamentos(dataSelecionada.value, dataSelecionada.value)
-  },
-  {
-    intervaloPadrao: 60000,
-    condicoesPausa: [
-      () => isModalAberto(),
-      () => existeSelecaoPendente()
-    ]
-  }
+    async () => {
+      await appStore.fetchAgendamentos(dataSelecionada.value, dataSelecionada.value)
+    },
+    {
+      intervaloPadrao: 60000,
+      condicoesPausa: [
+        () => isAlgumModalAberto.value,
+        () => existeSelecaoPendente()
+      ]
+    }
 )
 
 const abaAtiva = useSessionStorage<TipoAgendamento>('agenda_aba_ativa', 'infusao')
@@ -116,78 +127,13 @@ const agendamentosTipoAtivo = computed(() => agendamentosPorTipo.value[abaAtiva.
 
 const mostrarMetricas = useLocalStorage('agenda_mostrar_metricas', true)
 
-const metricas = computed(() => {
-  const list = agendamentosTipoAtivo.value
-
-  let rapido = 0
-  let medio = 0
-  let longo = 0
-  let extraLongo = 0
-
-  const getStatusFarmacia = (a: any) => a.detalhes?.infusao?.status_farmacia
-  list.forEach(a => {
-    const minutos = getDuracaoAgendamento(a)
-    const grupo = getGrupoInfusao(minutos)
-    if (grupo === 'rapido') rapido++
-    else if (grupo === 'medio') medio++
-    else if (grupo === 'longo') longo++
-    else if (grupo === 'extra_longo') extraLongo++
-  })
-
-  return {
-    total: list.length,
-    manha: list.filter(a => a.turno === 'manha').length,
-    tarde: list.filter(a => a.turno === 'tarde').length,
-    emAndamento: list.filter(a => [AgendamentoStatusEnum.EM_INFUSAO, AgendamentoStatusEnum.AGUARDANDO_MEDICAMENTO].includes(a.status)).length,
-    concluidos: list.filter(a => a.status === AgendamentoStatusEnum.CONCLUIDO).length,
-    encaixes: list.filter(a => a.encaixe).length,
-    suspensos: list.filter(a => a.status === AgendamentoStatusEnum.SUSPENSO).length,
-    rapido,
-    medio,
-    longo,
-    extraLongo,
-    intercorrencias: list.filter(a => a.status === AgendamentoStatusEnum.INTERCORRENCIA).length,
-    farmaciaPendentes: list.filter(a => getStatusFarmacia(a) === FarmaciaStatusEnum.PENDENTE).length,
-    farmaciaPreparando: list.filter(a => getStatusFarmacia(a) === FarmaciaStatusEnum.EM_PREPARACAO).length,
-    farmaciaProntas: list.filter(a => getStatusFarmacia(a) === FarmaciaStatusEnum.PRONTO).length
-  }
-})
-
-const handleDiaAnterior = () => {
-  dataSelecionada.value = somarDias(dataSelecionada.value, -1)
-}
-
-const handleProximoDia = () => {
-  dataSelecionada.value = somarDias(dataSelecionada.value, 1)
-}
-
-const handleHoje = () => {
-  dataSelecionada.value = getDataLocal()
-}
+const {
+  metricas
+} = useAgendaMetricas(agendamentosTipoAtivo)
 
 watch(dataSelecionada, async (novaData) => {
   await appStore.fetchAgendamentos(novaData, novaData)
 }, {immediate: true})
-
-const handleVerDetalhes = (ag: Agendamento) => {
-  agendamentoSelecionado.value = ag
-  detalhesModalOpen.value = true
-}
-
-const handleAbrirPrescricao = (agendamento: Agendamento) => {
-  if (detalhesModalOpen.value) detalhesModalOpen.value = false
-  if (agendamento.prescricao) {
-    prescricaoParaVisualizar.value = agendamento.prescricao
-    prescricaoModalOpen.value = true
-  } else {
-    toast.error("Nenhuma prescrição vinculada a este agendamento.")
-  }
-}
-
-const handleAbrirTags = (agendamento: Agendamento) => {
-  tagsModalData.value = {id: agendamento.id, tags: agendamento.tags || []}
-  tagsModalOpen.value = true
-}
 
 const salvarTags = async (id: string, tags: string[]) => {
   await appStore.atualizarTagsAgendamento(id, tags)
@@ -207,12 +153,7 @@ const handleAlterarCheckin = async (agendamento: any, novoCheckin: boolean) => {
 
 const handleAlterarStatus = (agendamento: Agendamento, novoStatus: string) => {
   if ([AgendamentoStatusEnum.SUSPENSO, AgendamentoStatusEnum.INTERCORRENCIA].includes(novoStatus as AgendamentoStatusEnum)) {
-    statusPendingData.value = {
-      id: agendamento.id,
-      novoStatus: novoStatus as AgendamentoStatusEnum,
-      pacienteNome: agendamento.paciente?.nome || 'Paciente'
-    }
-    statusModalOpen.value = true
+    abrirAlterarStatus(agendamento, novoStatus as AgendamentoStatusEnum)
   } else {
     appStore.atualizarStatusAgendamento(agendamento.id, novoStatus as AgendamentoStatusEnum)
   }
@@ -227,11 +168,6 @@ const confirmarAlteracaoStatus = (detalhes: any) => {
     )
     statusPendingData.value = null
   }
-}
-
-const handleAbrirRemarcar = (agendamento: Agendamento) => {
-  agendamentoParaRemarcar.value = agendamento
-  remarcarModalOpen.value = true
 }
 
 const handleRemarcado = () => {
