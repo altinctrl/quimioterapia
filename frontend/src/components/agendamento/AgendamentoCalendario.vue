@@ -3,7 +3,7 @@ import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card'
 import {Input} from '@/components/ui/input'
 import {Label} from '@/components/ui/label'
 import {Calendar as CalendarIcon, ChevronDown} from 'lucide-vue-next'
-import {MESES} from "@/constants/constAgenda.ts";
+import {LABELS_MESES} from "@/constants/constAgenda.ts";
 
 interface VagasInfo {
   count: number
@@ -49,7 +49,7 @@ const emit = defineEmits<{
                    appearance-none"
                 @input="emit('update:mes', ($event.target as HTMLSelectElement).value)"
             >
-              <option v-for="m in MESES" :key="m.value" :value="m.value">{{ m.label }}</option>
+              <option v-for="m in LABELS_MESES" :key="m.value" :value="m.value">{{ m.label }}</option>
             </select>
             <ChevronDown class="absolute right-3 top-3 h-4 w-4 opacity-50 pointer-events-none"/>
           </div>

@@ -7,6 +7,7 @@ import {Textarea} from '@/components/ui/textarea'
 import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select'
 import {Checkbox} from '@/components/ui/checkbox'
 import {AlertTriangle, Ban, Syringe} from 'lucide-vue-next'
+import {OPCOES_MEDICAMENTOS_FALTA, LABELS_MOTIVOS_SUSPENSAO, LABELS_TIPOS_INTERCORRENCIA} from "@/constants/constAgenda.ts";
 
 const props = defineProps<{
   open: boolean
@@ -25,26 +26,6 @@ const medicamentoFalta = ref('')
 const tipoIntercorrencia = ref('')
 const medicamentoIntercorrencia = ref('')
 const vigihospFeito = ref(false)
-
-const MOTIVOS_SUSPENSAO = [
-  {value: 'alteracoes_clinicas', label: 'Alterações clínicas'},
-  {value: 'mudanca_protocolo', label: 'Mudança de protocolo'},
-  {value: 'medicacao_falta', label: 'Medicação em falta'},
-  {value: 'alteracoes_laboratoriais', label: 'Alterações laboratoriais'},
-  {value: 'obito', label: 'Óbito'},
-  {value: 'sem_processo', label: 'Sem processo para liberação de QTAN'}
-]
-
-const MEDICAMENTOS_FALTA = [
-  'Paclitaxel', 'Carboplatina', 'Docetaxel', '5FU',
-  'Medicações judicializadas', 'Outros'
-]
-
-const TIPOS_INTERCORRENCIA = [
-  {value: 'hipersensibilidade', label: 'Reação de Hipersensibilidade'},
-  {value: 'extravasamento', label: 'Extravasamento'},
-  {value: 'derramamento', label: 'Derramamento Acidental de QT'}
-]
 
 watch(() => props.open, (isOpen) => {
   if (isOpen) {
@@ -129,7 +110,7 @@ const handleConfirm = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
-                  <SelectItem v-for="m in MOTIVOS_SUSPENSAO" :key="m.value" :value="m.value">
+                  <SelectItem v-for="m in LABELS_MOTIVOS_SUSPENSAO" :key="m.value" :value="m.value">
                     {{ m.label }}
                   </SelectItem>
                 </SelectGroup>
@@ -145,7 +126,7 @@ const handleConfirm = () => {
                 <SelectValue placeholder="Selecione a droga..."/>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem v-for="d in MEDICAMENTOS_FALTA" :key="d" :value="d">
+                <SelectItem v-for="d in OPCOES_MEDICAMENTOS_FALTA" :key="d" :value="d">
                   {{ d }}
                 </SelectItem>
               </SelectContent>
@@ -161,7 +142,7 @@ const handleConfirm = () => {
                 <SelectValue placeholder="Selecione o tipo..."/>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem v-for="t in TIPOS_INTERCORRENCIA" :key="t.value" :value="t.value">
+                <SelectItem v-for="t in LABELS_TIPOS_INTERCORRENCIA" :key="t.value" :value="t.value">
                   {{ t.label }}
                 </SelectItem>
               </SelectContent>

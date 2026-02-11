@@ -8,11 +8,16 @@ import AgendaMetricas from '@/components/agenda/AgendaMetricas.vue'
 import AgendaModalRemarcacao from '@/components/agenda/AgendaModalRemarcacao.vue'
 import AgendaModalStatus from '@/components/agenda/AgendaModalStatus.vue'
 import AgendaModalEtiquetas from '@/components/agenda/AgendaModalEtiquetas.vue'
-import {type FiltrosAgenda} from '@/components/agenda/AgendaControles.vue'
 import AgendaAba from '@/components/agenda/AgendaAba.vue'
 import {getDuracaoAgendamento, getGrupoInfusao, somarDias} from '@/utils/utilsAgenda.ts'
-import {Agendamento, AgendamentoStatusEnum, FarmaciaStatusEnum, TipoAgendamento} from "@/types/typesAgendamento.ts";
-import {statusPermitidosSemCheckin} from "@/constants/constAgenda.ts";
+import {
+  Agendamento,
+  AgendamentoStatusEnum,
+  FarmaciaStatusEnum,
+  FiltrosAgenda,
+  TipoAgendamento
+} from "@/types/typesAgendamento.ts";
+import {STATUS_INFUSAO_PRE_CHECKIN} from "@/constants/constAgenda.ts";
 import {getDataLocal} from '@/lib/utils.ts';
 import {toast} from "vue-sonner";
 import AgendamentoModalDetalhes from "@/components/comuns/AgendamentoModalDetalhes.vue";
@@ -190,7 +195,7 @@ const salvarTags = async (id: string, tags: string[]) => {
 }
 
 const handleAlterarCheckin = async (agendamento: any, novoCheckin: boolean) => {
-  if (!novoCheckin && !statusPermitidosSemCheckin.includes(agendamento.status)) {
+  if (!novoCheckin && !STATUS_INFUSAO_PRE_CHECKIN.includes(agendamento.status)) {
     toast.error("Ação Bloqueada", {
       description: `Não é possível remover o check-in pois o status "${agendamento.status}" exige presença do paciente.`
     })

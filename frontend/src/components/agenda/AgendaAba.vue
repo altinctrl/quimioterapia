@@ -7,11 +7,11 @@ import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle} fro
 import {Input} from '@/components/ui/input'
 import {Label} from '@/components/ui/label'
 import {Textarea} from '@/components/ui/textarea'
-import AgendaControles, {type FiltrosAgenda} from '@/components/agenda/AgendaControles.vue'
+import AgendaControles from '@/components/agenda/AgendaControles.vue'
 import AgendaTabela from '@/components/agenda/AgendaTabela.vue'
 import {getDuracaoAgendamento, getGrupoInfusao} from '@/utils/utilsAgenda.ts'
-import {Agendamento, AgendamentoStatusEnum, TipoAgendamento} from "@/types/typesAgendamento.ts";
-import {statusPermitidosSemCheckin} from "@/constants/constAgenda.ts"
+import {Agendamento, AgendamentoStatusEnum, FiltrosAgenda, TipoAgendamento} from "@/types/typesAgendamento.ts";
+import {LABELS_STATUS_LOTE_AGENDA, STATUS_INFUSAO_PRE_CHECKIN} from "@/constants/constAgenda.ts"
 import {useAppStore} from '@/stores/storeGeral.ts'
 import {toast} from 'vue-sonner'
 import {ChevronDown} from "lucide-vue-next";
@@ -164,17 +164,7 @@ const confirmarRemarcacaoLote = async () => {
 const opcoesStatusLote = computed<Array<{ id: string; label: string }>>(() => {
   const selecionados = selectedAgendamentos.value
   if (selecionados.length === 0) return []
-
-  return [
-    {id: AgendamentoStatusEnum.AGENDADO, label: 'Agendado'},
-    {id: AgendamentoStatusEnum.AGUARDANDO_CONSULTA, label: 'Aguardando Consulta'},
-    {id: AgendamentoStatusEnum.AGUARDANDO_EXAME, label: 'Aguardando Exame'},
-    {id: AgendamentoStatusEnum.AGUARDANDO_MEDICAMENTO, label: 'Aguardando Medicamento'},
-    {id: AgendamentoStatusEnum.INTERNADO, label: 'Internado'},
-    {id: AgendamentoStatusEnum.EM_TRIAGEM, label: 'Em Triagem'},
-    {id: AgendamentoStatusEnum.EM_INFUSAO, label: 'Em Infusão'},
-    {id: AgendamentoStatusEnum.CONCLUIDO, label: 'Concluído'},
-  ]
+  return LABELS_STATUS_LOTE_AGENDA
 })
 
 const aplicarStatusPacienteLote = async () => {
@@ -187,7 +177,7 @@ const aplicarStatusPacienteLote = async () => {
   if (selecionados.length === 0) return
 
   const novoStatus = bulkStatusPaciente.value as AgendamentoStatusEnum
-  const exigeCheckin = !statusPermitidosSemCheckin.includes(novoStatus)
+  const exigeCheckin = !STATUS_INFUSAO_PRE_CHECKIN.includes(novoStatus)
   const precisaMarcarCheckin = selecionados.some(ag => !ag.checkin)
 
   let forcarCheckin = false

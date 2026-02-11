@@ -2,13 +2,19 @@
 import {computed, onMounted, ref, watch} from 'vue'
 import {useRouter} from 'vue-router'
 import {useAppStore} from '@/stores/storeGeral.ts'
-import {Agendamento, AgendamentoStatusEnum, FarmaciaStatusEnum} from "@/types/typesAgendamento.ts";
+import {
+  Agendamento,
+  AgendamentoStatusEnum,
+  FarmaciaStatusEnum,
+  FarmaciaTableRow,
+  FiltrosFarmacia
+} from "@/types/typesAgendamento.ts";
 import {Card, CardContent} from '@/components/ui/card'
 import {Button} from '@/components/ui/button'
 import FarmaciaCabecalho from '@/components/farmacia/FarmaciaCabecalho.vue'
 import FarmaciaMetricas from '@/components/farmacia/FarmaciaMetricas.vue'
-import FarmaciaTabela, {type FarmaciaTableRow} from '@/components/farmacia/FarmaciaTabela.vue'
-import FarmaciaControles, {type FiltrosFarmacia} from '@/components/farmacia/FarmaciaControles.vue'
+import FarmaciaTabela from '@/components/farmacia/FarmaciaTabela.vue'
+import FarmaciaControles from '@/components/farmacia/FarmaciaControles.vue'
 import {getDataLocal} from '@/lib/utils.ts'
 import {isInfusao, somarDias} from '@/utils/utilsAgenda.ts'
 import AgendamentoModalDetalhes from "@/components/comuns/AgendamentoModalDetalhes.vue";
@@ -17,6 +23,7 @@ import {useLocalStorage, useSessionStorage} from "@vueuse/core";
 import {toast} from 'vue-sonner'
 import {useAutoRefresh} from "@/composables/useAutoRefresh.ts";
 import {extrairMedicamentosDoAgendamento} from "@/utils/utilsFarmacia.ts";
+import {STATUS_ORDER} from "@/constants/constFarmacia.ts";
 
 const router = useRouter()
 const appStore = useAppStore()
@@ -25,20 +32,6 @@ const dataSelecionada = useSessionStorage('farmacia_data_selecionada', getDataLo
 onMounted(() => {
   appStore.fetchConfiguracoes()
 })
-
-const STATUS_ORDER: Record<string, number> = {
-  [FarmaciaStatusEnum.AGENDADO]: 0,
-  [FarmaciaStatusEnum.AGUARDA_PRESCRICAO]: 1,
-  [FarmaciaStatusEnum.VALIDANDO_PRESCRICAO]: 2,
-  [FarmaciaStatusEnum.PENDENTE]: 3,
-  [FarmaciaStatusEnum.EM_PREPARACAO]: 4,
-  [FarmaciaStatusEnum.PRONTO]: 5,
-  [FarmaciaStatusEnum.ENVIADO]: 6,
-  [FarmaciaStatusEnum.MED_EM_FALTA]: 7,
-  [FarmaciaStatusEnum.MED_JUD_EM_FALTA]: 8,
-  [FarmaciaStatusEnum.SEM_PROCESSO]: 9,
-  [FarmaciaStatusEnum.PRESCRICAO_DEVOLVIDA]: 10,
-}
 
 const filtros = useLocalStorage<FiltrosFarmacia>('farmacia_filtros', {
   ordenacao: 'horario',

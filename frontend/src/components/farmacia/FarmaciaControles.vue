@@ -10,12 +10,7 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import {ArrowUpDown, ChevronDown, ChevronUp, Clock, Filter, Pill, X} from 'lucide-vue-next'
-
-export interface FiltrosFarmacia {
-  ordenacao: string
-  turno: string
-  status: string[]
-}
+import {FiltrosFarmacia} from "@/types/typesAgendamento.ts";
 
 const props = defineProps<{
   modelValue: FiltrosFarmacia
