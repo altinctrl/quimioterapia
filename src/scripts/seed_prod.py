@@ -1,7 +1,5 @@
 import asyncio
 
-from sqlalchemy import text
-
 from src.models.agendamento_model import Agendamento
 from src.models.auth_model import User, RefreshToken
 from src.models.configuracao_model import Configuracao
@@ -25,7 +23,6 @@ async def setup_app():
     print("Configurando banco de dados...")
     async with app_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-        await conn.execute(text(f"DROP TABLE IF EXISTS aip_pacientes CASCADE"))
 
     async with AppSessionLocal() as session:
         print("Criando configurações...")

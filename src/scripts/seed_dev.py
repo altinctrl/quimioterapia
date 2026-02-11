@@ -11,7 +11,8 @@ from src.models.auth_model import User
 from src.models.configuracao_model import Configuracao
 from src.models.equipe_model import Profissional, EscalaPlantao, AusenciaProfissional
 from src.models.protocolo_model import Protocolo
-from src.resources.database import app_engine, AppSessionLocal, AghuSessionLocal, Base
+from src.resources.database import app_engine, AppSessionLocal, Base
+from src.resources.database_aghu import AghuSessionLocal
 from src.schemas.protocolo_schema import ProtocoloCreate
 from src.scripts.seed_utils.constants import (
     TAGS_CONFIG, DILUENTES_CONFIG, CARGOS, FUNCOES, VAGAS_CONFIG, DIAS_FUNCIONAMENTO, HORARIO_ABERTURA,
@@ -56,7 +57,6 @@ async def reset_database(conn):
     for t in tables:
         await conn.execute(text(f"DROP TABLE IF EXISTS {t} CASCADE"))
     await conn.run_sync(Base.metadata.create_all)
-    await conn.execute(text(f"DROP TABLE IF EXISTS aip_pacientes CASCADE"))
 
 
 async def criar_usuarios_e_equipe(session: AsyncSession) -> list[User]:

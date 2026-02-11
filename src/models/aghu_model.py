@@ -1,9 +1,9 @@
 from sqlalchemy import Column, Integer, String, Date
 
-from src.resources.database import Base
+from src.resources.database_aghu import AghuBase
 
 
-class AghuPaciente(Base):
+class AghuPaciente(AghuBase):
     __tablename__ = "aip_pacientes"
 
     codigo = Column(Integer, primary_key=True)

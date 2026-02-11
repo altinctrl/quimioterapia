@@ -16,7 +16,8 @@ from src.providers.interfaces.equipe_provider_interface import EquipeProviderInt
 from src.providers.interfaces.paciente_provider_interface import PacienteProviderInterface
 from src.providers.interfaces.prescricao_provider_interface import PrescricaoProviderInterface
 from src.providers.interfaces.protocolo_provider_interface import ProtocoloProviderInterface
-from src.resources.database import get_aghu_db_session, get_app_db_session
+from src.resources.database import get_app_db_session
+from src.resources.database_aghu import get_aghu_db_session
 
 
 def get_paciente_legacy_provider(session: AsyncSession = Depends(get_aghu_db_session)) -> PacienteProviderInterface:

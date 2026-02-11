@@ -7,20 +7,20 @@ from sqlalchemy.orm import declarative_base
 
 load_dotenv()
 
-APP_DB_URL = os.getenv("APP_DB_URL")
+AGHU_DB_URL = os.getenv("AGHU_DB_URL")
 
-app_engine = create_async_engine(APP_DB_URL, echo=False)
+aghu_engine = create_async_engine(AGHU_DB_URL, echo=False)
 
-AppSessionLocal = async_sessionmaker(
-    bind=app_engine,
+AghuSessionLocal = async_sessionmaker(
+    bind=aghu_engine,
     class_=AsyncSession,
     expire_on_commit=False,
     autoflush=False
 )
 
-Base = declarative_base()
+AghuBase = declarative_base()
 
 
-async def get_app_db_session() -> AsyncGenerator[AsyncSession, None]:
-    async with AppSessionLocal() as session:
+async def get_aghu_db_session() -> AsyncGenerator[AsyncSession, None]:
+    async with AghuSessionLocal() as session:
         yield session
