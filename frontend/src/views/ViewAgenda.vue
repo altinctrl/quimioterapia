@@ -15,8 +15,6 @@ import {
   FiltrosAgenda,
   TipoAgendamento
 } from "@/types/typesAgendamento.ts";
-import {STATUS_INFUSAO_PRE_CHECKIN} from "@/constants/constAgenda.ts";
-import {toast} from "vue-sonner";
 import AgendamentoModalDetalhes from "@/components/comuns/AgendamentoModalDetalhes.vue";
 import PrescricaoModalDetalhes from "@/components/comuns/PrescricaoModalDetalhes.vue";
 import {useLocalStorage, useSessionStorage} from "@vueuse/core";
@@ -24,6 +22,7 @@ import {useAutoRefresh} from "@/composables/useAutoRefresh.ts";
 import {useAgendaNavegacao} from "@/composables/useAgendaNavegacao.ts";
 import {useAgendaModals} from "@/composables/useAgendaModals.ts";
 import {useAgendaMetricas} from "@/composables/useAgendaMetricas.ts";
+import {useAgendaOperacoes} from "@/composables/useAgendaOperacoes.ts";
 
 const router = useRouter()
 const appStore = useAppStore()
@@ -58,6 +57,11 @@ const {
 
   isAlgumModalAberto
 } = useAgendaModals()
+
+const {
+  alterarStatusPaciente,
+  alterarCheckin: handleAlterarCheckin
+} = useAgendaOperacoes()
 
 onMounted(async () => {
   await Promise.all([
@@ -140,23 +144,11 @@ const salvarTags = async (id: string, tags: string[]) => {
   tagsModalOpen.value = false
 }
 
-const handleAlterarCheckin = async (agendamento: any, novoCheckin: boolean) => {
-  if (!novoCheckin && !STATUS_INFUSAO_PRE_CHECKIN.includes(agendamento.status)) {
-    toast.error("Ação Bloqueada", {
-      description: `Não é possível remover o check-in pois o status "${agendamento.status}" exige presença do paciente.`
-    })
-    return
-  }
-
-  await appStore.atualizarCheckin(agendamento.id, novoCheckin)
-}
-
 const handleAlterarStatus = (agendamento: Agendamento, novoStatus: string) => {
-  if ([AgendamentoStatusEnum.SUSPENSO, AgendamentoStatusEnum.INTERCORRENCIA].includes(novoStatus as AgendamentoStatusEnum)) {
-    abrirAlterarStatus(agendamento, novoStatus as AgendamentoStatusEnum)
-  } else {
-    appStore.atualizarStatusAgendamento(agendamento.id, novoStatus as AgendamentoStatusEnum)
-  }
+  alterarStatusPaciente(agendamento, novoStatus, {
+    abrirRemarcar: (ag) => handleAbrirRemarcar(ag),
+    abrirModalStatus: (ag, status) => abrirAlterarStatus(ag, status)
+  })
 }
 
 const confirmarAlteracaoStatus = (detalhes: any) => {
