@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {computed, onMounted, reactive, watch} from 'vue'
+import {computed, onMounted, reactive} from 'vue'
 import {useRouter} from 'vue-router'
 import {useAppStore} from '@/stores/storeGeral.ts'
 import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs'
@@ -23,6 +23,7 @@ import {useAgendaNavegacao} from "@/composables/useAgendaNavegacao.ts";
 import {useAgendaModals} from "@/composables/useAgendaModals.ts";
 import {useAgendaMetricas} from "@/composables/useAgendaMetricas.ts";
 import {useAgendaOperacoes} from "@/composables/useAgendaOperacoes.ts";
+import {useAgendaDados} from "@/composables/useAgendaDados.ts";
 
 const router = useRouter()
 const appStore = useAppStore()
@@ -63,6 +64,11 @@ const {
   alterarCheckin: handleAlterarCheckin
 } = useAgendaOperacoes()
 
+const {
+  agendamentosPorTipo,
+  recarregarDados
+} = useAgendaDados(dataSelecionada)
+
 onMounted(async () => {
   await Promise.all([
     appStore.fetchConfiguracoes(),
@@ -81,9 +87,7 @@ const existeSelecaoPendente = () => {
 }
 
 useAutoRefresh(
-    async () => {
-      await appStore.fetchAgendamentos(dataSelecionada.value, dataSelecionada.value)
-    },
+    recarregarDados,
     {
       intervaloPadrao: 60000,
       condicoesPausa: [
@@ -94,11 +98,6 @@ useAutoRefresh(
 )
 
 const abaAtiva = useSessionStorage<TipoAgendamento>('agenda_aba_ativa', 'infusao')
-
-const agendamentosDoDia = computed(() => {
-  return appStore.getAgendamentosDoDia(dataSelecionada.value)
-      .sort((a, b) => a.horarioInicio.localeCompare(b.horarioInicio))
-})
 
 const defaultFiltros = (): FiltrosAgenda => ({
   ordenacao: 'horario',
@@ -118,15 +117,6 @@ const resetFiltros = (tipo: TipoAgendamento) => {
   if (tipo === 'procedimento') filtrosProcedimento.value = defaultFiltros()
 }
 
-const agendamentosPorTipo = computed(() => {
-  const base = agendamentosDoDia.value
-  return {
-    infusao: base.filter(a => a.tipo === 'infusao'),
-    consulta: base.filter(a => a.tipo === 'consulta'),
-    procedimento: base.filter(a => a.tipo === 'procedimento')
-  } satisfies Record<TipoAgendamento, Agendamento[]>
-})
-
 const agendamentosTipoAtivo = computed(() => agendamentosPorTipo.value[abaAtiva.value])
 
 const mostrarMetricas = useLocalStorage('agenda_mostrar_metricas', true)
@@ -134,10 +124,6 @@ const mostrarMetricas = useLocalStorage('agenda_mostrar_metricas', true)
 const {
   metricas
 } = useAgendaMetricas(agendamentosTipoAtivo)
-
-watch(dataSelecionada, async (novaData) => {
-  await appStore.fetchAgendamentos(novaData, novaData)
-}, {immediate: true})
 
 const salvarTags = async (id: string, tags: string[]) => {
   await appStore.atualizarTagsAgendamento(id, tags)
@@ -160,10 +146,6 @@ const confirmarAlteracaoStatus = (detalhes: any) => {
     )
     statusPendingData.value = null
   }
-}
-
-const handleRemarcado = () => {
-  appStore.fetchAgendamentos(dataSelecionada.value, dataSelecionada.value)
 }
 </script>
 
@@ -197,7 +179,7 @@ const handleRemarcado = () => {
     <AgendaModalRemarcacao
         v-model:open="remarcarModalOpen"
         :agendamento="agendamentoParaRemarcar"
-        @remarcado="handleRemarcado"
+        @remarcado="recarregarDados"
     />
 
     <AgendaModalStatus
@@ -239,7 +221,7 @@ const handleRemarcado = () => {
             @abrir-remarcar="handleAbrirRemarcar"
             @alterar-checkin="handleAlterarCheckin"
             @alterar-status="handleAlterarStatus"
-            @remarcado="handleRemarcado"
+            @remarcado="recarregarDados"
             @selection-change="(n) => selecoesPorAba.infusao = n"
         />
       </TabsContent>
@@ -258,7 +240,7 @@ const handleRemarcado = () => {
             @abrir-remarcar="handleAbrirRemarcar"
             @alterar-checkin="handleAlterarCheckin"
             @alterar-status="handleAlterarStatus"
-            @remarcado="handleRemarcado"
+            @remarcado="recarregarDados"
             @selection-change="(n) => selecoesPorAba.consulta = n"
         />
       </TabsContent>
@@ -277,7 +259,7 @@ const handleRemarcado = () => {
             @abrir-remarcar="handleAbrirRemarcar"
             @alterar-checkin="handleAlterarCheckin"
             @alterar-status="handleAlterarStatus"
-            @remarcado="handleRemarcado"
+            @remarcado="recarregarDados"
             @selection-change="(n) => selecoesPorAba.procedimento = n"
         />
       </TabsContent>

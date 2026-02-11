@@ -1,6 +1,7 @@
 import {useAppStore} from '@/stores/storeGeral.ts'
 import {toast} from 'vue-sonner'
 import {FarmaciaStatusEnum} from "@/types/typesAgendamento.ts"
+import {isInfusao} from "@/utils/utilsAgenda.ts"
 
 export function useFarmaciaOperacoes() {
   const appStore = useAppStore()
@@ -15,6 +16,47 @@ export function useFarmaciaOperacoes() {
 
   const salvarChecklist = async (id: string, itens: string[]) => {
     await appStore.salvarChecklistFarmacia(id, itens)
+  }
+
+  const toggleItemChecklist = async (
+    agId: string,
+    itemKey: string,
+    statusAtual: FarmaciaStatusEnum,
+    totalItensNoAgendamento: number
+  ) => {
+    const agendamento = appStore.agendamentos.find(a => a.id === agId)
+    if (!agendamento || !isInfusao(agendamento)) return
+
+    const currentChecklist = new Set(agendamento.detalhes.infusao.itensPreparados || [])
+    if (currentChecklist.has(itemKey)) {
+      currentChecklist.delete(itemKey)
+    } else {
+      currentChecklist.add(itemKey)
+    }
+    const novoChecklist = Array.from(currentChecklist)
+    const totalChecked = currentChecklist.size
+
+    let proximoStatus: FarmaciaStatusEnum | null = null
+
+    if (statusAtual === FarmaciaStatusEnum.PENDENTE && totalChecked > 0) {
+      proximoStatus = FarmaciaStatusEnum.EM_PREPARACAO
+    }
+    else if (totalChecked === totalItensNoAgendamento && totalItensNoAgendamento > 0 && statusAtual !== FarmaciaStatusEnum.PRONTO) {
+      proximoStatus = FarmaciaStatusEnum.PRONTO
+    }
+    else if (totalChecked < totalItensNoAgendamento && statusAtual === FarmaciaStatusEnum.PRONTO) {
+      proximoStatus = FarmaciaStatusEnum.EM_PREPARACAO
+    }
+
+    try {
+      await salvarChecklist(agId, novoChecklist)
+      if (proximoStatus && proximoStatus !== statusAtual) {
+        await alterarStatusFarmacia(agId, proximoStatus)
+      }
+    } catch (error) {
+      console.error("Erro ao sincronizar farmácia", error)
+      toast.error("Erro ao atualizar checklist")
+    }
   }
 
   const aplicarStatusFarmaciaLote = async (
@@ -70,5 +112,6 @@ export function useFarmaciaOperacoes() {
     alterarHorarioPrevisao,
     aplicarStatusFarmaciaLote,
     salvarChecklist,
+    toggleItemChecklist,
   }
 }
