@@ -2,9 +2,10 @@ import asyncio
 import random
 
 from faker import Faker
+from sqlalchemy import text
 
 from src.models.aghu_model import AghuPaciente
-from src.resources.database import aghu_engine, AghuSessionLocal
+from src.resources.database_aghu import aghu_engine, AghuSessionLocal, AghuBase
 from src.scripts.seed_utils.constants import NUM_PACIENTES_AGHU
 
 fake = Faker('pt_BR')
@@ -14,8 +15,8 @@ async def setup_aghu():
     print("Configurando AGHU...")
 
     async with aghu_engine.begin() as conn:
-        await conn.run_sync(AghuPaciente.__table__.drop, checkfirst=True)
-        await conn.run_sync(AghuPaciente.__table__.create)
+        await conn.execute(text(f"DROP TABLE IF EXISTS aip_pacientes CASCADE"))
+        await conn.run_sync(AghuBase.metadata.create_all)
 
     pacientes = []
     print(f"Gerando {NUM_PACIENTES_AGHU} pacientes simulados...")
