@@ -11,7 +11,11 @@ import AgendaControles from '@/components/agenda/AgendaControles.vue'
 import AgendaTabela from '@/components/agenda/AgendaTabela.vue'
 import {getDuracaoAgendamento, getGrupoInfusao} from '@/utils/utilsAgenda.ts'
 import {Agendamento, AgendamentoStatusEnum, FiltrosAgenda, TipoAgendamento} from "@/types/typesAgendamento.ts";
-import {LABELS_STATUS_LOTE_AGENDA, STATUS_INFUSAO_PRE_CHECKIN} from "@/constants/constAgenda.ts"
+import {
+  LABELS_STATUS_LOTE_AGENDA,
+  STATUS_GERAL_POS_CHECKIN,
+  STATUS_INFUSAO_PRE_CHECKIN
+} from "@/constants/constAgenda.ts"
 import {useAppStore} from '@/stores/storeGeral.ts'
 import {toast} from 'vue-sonner'
 import {ChevronDown} from "lucide-vue-next";
@@ -164,7 +168,14 @@ const confirmarRemarcacaoLote = async () => {
 const opcoesStatusLote = computed<Array<{ id: string; label: string }>>(() => {
   const selecionados = selectedAgendamentos.value
   if (selecionados.length === 0) return []
-  return LABELS_STATUS_LOTE_AGENDA
+
+  if (props.tipo === 'infusao') {
+    return LABELS_STATUS_LOTE_AGENDA
+  }
+
+  return LABELS_STATUS_LOTE_AGENDA.filter(op =>
+    STATUS_GERAL_POS_CHECKIN.includes(op.id as any)
+  )
 })
 
 const aplicarStatusPacienteLote = async () => {
