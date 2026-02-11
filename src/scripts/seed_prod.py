@@ -1,5 +1,7 @@
 import asyncio
 
+from sqlalchemy import select
+
 from src.models.agendamento_model import Agendamento
 from src.models.auth_model import User, RefreshToken
 from src.models.configuracao_model import Configuracao
@@ -25,21 +27,27 @@ async def setup_app():
         await conn.run_sync(Base.metadata.create_all)
 
     async with AppSessionLocal() as session:
-        print("Criando configurações...")
-        session.add(Configuracao(
-            id=1,
-            horario_abertura=HORARIO_ABERTURA,
-            horario_fechamento=HORARIO_FECHAMENTO,
-            dias_funcionamento=DIAS_FUNCIONAMENTO,
-            vagas=VAGAS_CONFIG,
-            tags=TAGS_CONFIG,
-            cargos=CARGOS,
-            funcoes=FUNCOES,
-            diluentes=DILUENTES_CONFIG,
-        ))
+        query = select(Configuracao).where(Configuracao.id == 1)
+        result = await session.execute(query)
+        config_existente = result.scalars().first()
 
-        await session.commit()
-        print("Seed concluído com sucesso!")
+        if config_existente:
+            print("O banco de dados já está populado. Nenhuma ação necessária.")
+        else:
+            print("Criando configurações...")
+            session.add(Configuracao(
+                id=1,
+                horario_abertura=HORARIO_ABERTURA,
+                horario_fechamento=HORARIO_FECHAMENTO,
+                dias_funcionamento=DIAS_FUNCIONAMENTO,
+                vagas=VAGAS_CONFIG,
+                tags=TAGS_CONFIG,
+                cargos=CARGOS,
+                funcoes=FUNCOES,
+                diluentes=DILUENTES_CONFIG,
+            ))
+            await session.commit()
+            print("Seed concluído com sucesso!")
 
 
 async def main():

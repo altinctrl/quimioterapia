@@ -51,10 +51,10 @@ Prontuário eletrônico focado na oncologia.
 
 ## 🛠️ Stack Tecnológico
 
-- **Backend:** Python 3.10+ (FastAPI).
+- **Backend:** Python 3.14, FastAPI, SQLAlchemy.
 - **Frontend:** Vue.js 3, Vite, TypeScript, TailwindCSS, Pinia.
-- **Banco de Dados:** PostgreSQL (Em container).
-- **ORM/Migrações:** SQLAlchemy e Alembic.
+- **Bancos de Dados:** PostgreSQL (em container).
+- **ORM:** SQLAlchemy.
 
 ---
 
@@ -65,5 +65,5 @@ Para aprofundamento, consulte a pasta `docs/`:
 * **[Guia de Configuração](docs/SETUP.md):** Como preparar e iniciar a aplicação.
 * **[Guia de Contribuição](docs/CONTRIBUTING.md):** Padrões de código, commits e fluxo de Git.
 * **[Arquitetura do Sistema](docs/ARCHITECTURE.md):** Explicação das camadas, providers e decisões técnicas.
-* **[Banco de Dados e Migrações](docs/DATABASE.md):** Comandos do Alembic e modelagem de dados.
+* **[Banco de Dados](docs/DATABASE.md):** Estrutura de dados e seed.
 * **[Autenticação](docs/AUTHENTICATION.md):** Como funciona a autenticação.
