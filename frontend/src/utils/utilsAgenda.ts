@@ -1,13 +1,16 @@
-import {Agendamento, DetalhesInfusao, GrupoInfusao} from "@/types/typesAgendamento.ts";
+import {Agendamento, AgendamentoStatusEnum, DetalhesInfusao, GrupoInfusao} from "@/types/typesAgendamento.ts";
 import {
-  LABELS_CONSULTA, LABELS_GRUPO_INFUSAO,
+  LABELS_CONSULTA,
+  LABELS_GRUPO_INFUSAO,
   LABELS_PROCEDIMENTO,
   LIMITE_LONGO_MINUTOS,
   LIMITE_MEDIO_MINUTOS,
   LIMITE_RAPIDO_MINUTOS,
-  statusInfusaoPermitidosSemCheckin,
-  statusOutrosPermitidosComCheckin,
-  statusOutrosPermitidosSemCheckin
+  STATUS_INFUSAO_PRE_CHECKIN,
+  STATUS_GERAL_POS_CHECKIN,
+  STATUS_GERAL_PRE_CHECKIN,
+  CORES_GRUPOS_INFUSAO,
+  ESTILOS_BADGE_GRUPOS_INFUSAO,
 } from "@/constants/constAgenda.ts";
 import {computed} from "vue";
 import {useAppStore} from '@/stores/storeGeral.ts'
@@ -52,23 +55,11 @@ export function getGrupoInfusao(minutos: number): GrupoInfusao {
 }
 
 export function getCorGrupo(grupo: GrupoInfusao): string {
-  switch (grupo) {
-    case 'rapido': return 'bg-blue-500'
-    case 'medio': return 'bg-emerald-500'
-    case 'longo': return 'bg-amber-500'
-    case 'extra_longo': return 'bg-rose-600'
-    default: return 'bg-gray-200'
-  }
+  return CORES_GRUPOS_INFUSAO[grupo] || CORES_GRUPOS_INFUSAO.indefinido;
 }
 
 export function getBadgeGrupo(grupo: GrupoInfusao): string {
-  switch (grupo) {
-    case 'rapido': return 'text-blue-700 bg-blue-50 border-blue-100'
-    case 'medio': return 'text-emerald-700 bg-emerald-50 border-emerald-100'
-    case 'longo': return 'text-amber-700 bg-amber-50 border-amber-100'
-    case 'extra_longo': return 'text-rose-700 bg-rose-50 border-rose-100'
-    default: return 'text-gray-500 bg-gray-50 border-gray-100'
-  }
+  return ESTILOS_BADGE_GRUPOS_INFUSAO[grupo] || ESTILOS_BADGE_GRUPOS_INFUSAO.indefinido;
 }
 
 export const somarDias = (dataStr: string, dias: number): string => {
@@ -105,10 +96,10 @@ export const formatarProcedimento = (tipo: string | undefined) => {
 export const getOpcoesStatus = (ag: Agendamento) => {
   if (ag.tipo == 'infusao') {
     if (ag.checkin) return opcoesStatusPaciente.value
-    return opcoesStatusPaciente.value.filter(op => statusInfusaoPermitidosSemCheckin.includes(op.id))
+    return opcoesStatusPaciente.value.filter(op => STATUS_INFUSAO_PRE_CHECKIN.includes(op.id as AgendamentoStatusEnum))
   }
-  if (ag.checkin) return opcoesStatusPaciente.value.filter(op => statusOutrosPermitidosComCheckin.includes(op.id))
-  return opcoesStatusPaciente.value.filter(op => statusOutrosPermitidosSemCheckin.includes(op.id))
+  if (ag.checkin) return opcoesStatusPaciente.value.filter(op => STATUS_GERAL_POS_CHECKIN.includes(op.id as AgendamentoStatusEnum))
+  return opcoesStatusPaciente.value.filter(op => STATUS_GERAL_PRE_CHECKIN.includes(op.id as AgendamentoStatusEnum))
 }
 
 export const getStatusDotColor = (statusId: string) => {

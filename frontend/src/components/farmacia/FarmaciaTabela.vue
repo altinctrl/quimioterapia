@@ -5,33 +5,8 @@ import {Badge} from '@/components/ui/badge'
 import {Button} from '@/components/ui/button'
 import {Checkbox} from '@/components/ui/checkbox'
 import {ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Clock} from 'lucide-vue-next'
-import {FarmaciaStatusEnum} from "@/types/typesAgendamento.ts";
+import {FarmaciaStatusEnum, FarmaciaTableRow} from "@/types/typesAgendamento.ts";
 import PacienteCelula from '@/components/comuns/PacienteCelula.vue'
-
-export interface FarmaciaTableRow {
-  id: string
-  pacienteId: string
-  horario: string
-  pacienteNome: string
-  pacienteRegistro: string
-  observacoesClinicas: string | undefined
-  protocoloNome: string
-  checkin: boolean
-  statusTexto: string
-  statusBloqueado: boolean
-  statusFarmacia: FarmaciaStatusEnum
-  statusFarmaciaCor: string
-  previsaoEntrega: string
-  medicamentos: Array<{
-    key: string
-    nome: string
-    dose: string
-    unidade: string
-    checked: boolean
-  }>
-  checklistLabel: string
-  hasMedicamentos: boolean
-}
 
 const props = defineProps<{
   rows: FarmaciaTableRow[]

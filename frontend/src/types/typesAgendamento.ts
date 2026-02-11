@@ -120,10 +120,49 @@ export interface Agendamento {
   historicoAlteracoes?: AgendamentoHistoricoItem[];
 }
 
+export interface FiltrosAgenda {
+  ordenacao: string
+  turno: string
+  statusFarmacia: string[]
+  gruposInfusao: string[]
+  esconderRemarcados: boolean
+}
+
+export interface FiltrosFarmacia {
+  ordenacao: string
+  turno: string
+  status: string[]
+}
+
 export interface MedicamentoFarmacia {
   key: string
   nome: string
   dose: string
   unidade: string
   checked: boolean
+}
+
+export interface FarmaciaTableRow {
+  id: string
+  pacienteId: string
+  horario: string
+  pacienteNome: string
+  pacienteRegistro: string
+  observacoesClinicas: string | undefined
+  protocoloNome: string
+  checkin: boolean
+  statusTexto: string
+  statusBloqueado: boolean
+  statusFarmacia: FarmaciaStatusEnum
+  statusFarmaciaCor: string
+  previsaoEntrega: string
+  medicamentos: Array<{
+    key: string
+    nome: string
+    dose: string
+    unidade: string
+    checked: boolean
+  }>
+  checklistLabel: string
+  hasMedicamentos: boolean
 }
