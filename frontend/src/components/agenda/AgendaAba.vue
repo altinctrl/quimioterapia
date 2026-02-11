@@ -14,11 +14,9 @@ import {Agendamento, AgendamentoStatusEnum, FiltrosAgenda, TipoAgendamento} from
 import {
   LABELS_STATUS_LOTE_AGENDA,
   STATUS_GERAL_POS_CHECKIN,
-  STATUS_INFUSAO_PRE_CHECKIN
 } from "@/constants/constAgenda.ts"
-import {useAppStore} from '@/stores/storeGeral.ts'
-import {toast} from 'vue-sonner'
 import {ChevronDown} from "lucide-vue-next";
+import {useAgendaOperacoes} from "@/composables/useAgendaOperacoes.ts";
 
 const props = defineProps<{
   agendamentos: Agendamento[]
@@ -40,7 +38,10 @@ const emit = defineEmits<{
   (e: 'alterar-status', agendamento: Agendamento, novoStatus: string): void
 }>()
 
-const appStore = useAppStore()
+const {
+  aplicarStatusPacienteLote,
+  remarcarLote,
+} = useAgendaOperacoes()
 
 const filtrosModel = computed({
   get: () => props.filtros,
@@ -137,28 +138,11 @@ const abrirRemarcacaoLote = () => {
 }
 
 const confirmarRemarcacaoLote = async () => {
-  if (!bulkForm.value.novaData || !bulkForm.value.motivo) {
-    toast.error('Preencha data e motivo.')
-    return
-  }
-
-  if (!bulkForm.value.manterHorario && !bulkForm.value.novoHorario) {
-    toast.error('Informe o novo horário ou mantenha o horário original.')
-    return
-  }
-
   const selecionados = selectedAgendamentos.value
   if (selecionados.length === 0) return
   const ids = selecionados.map(a => a.id)
   try {
-    await appStore.remarcarAgendamentosLote(
-      ids,
-      bulkForm.value.novaData,
-      bulkForm.value.novoHorario,
-      bulkForm.value.motivo,
-      bulkForm.value.manterHorario
-    )
-
+    await remarcarLote(ids, bulkForm.value)
     bulkRemarcarOpen.value = false
     limparSelecao()
     emit('remarcado')
@@ -178,61 +162,9 @@ const opcoesStatusLote = computed<Array<{ id: string; label: string }>>(() => {
   )
 })
 
-const aplicarStatusPacienteLote = async () => {
-  if (!bulkStatusPaciente.value) {
-    toast.error('Selecione um status para aplicar.')
-    return
-  }
-
-  const selecionados = selectedAgendamentos.value
-  if (selecionados.length === 0) return
-
-  const novoStatus = bulkStatusPaciente.value as AgendamentoStatusEnum
-  const exigeCheckin = !STATUS_INFUSAO_PRE_CHECKIN.includes(novoStatus)
-  const precisaMarcarCheckin = selecionados.some(ag => !ag.checkin)
-
-  let forcarCheckin = false
-  if (exigeCheckin && precisaMarcarCheckin) {
-    const confirmacao = window.confirm(
-      `O status "${novoStatus}" exige que o paciente esteja em sala.\n\nDeseja marcar os pacientes como "em sala" para os agendamentos selecionados e continuar?`
-    )
-    if (!confirmacao) return
-    forcarCheckin = true
-  }
-
-  const itensParaAtualizar = selecionados.map(ag => {
-    const payload: any = {
-      id: ag.id,
-      status: novoStatus
-    }
-    if (forcarCheckin && !ag.checkin) {
-      payload.checkin = true
-    }
-    return payload
-  })
-
-  const itensFiltrados = itensParaAtualizar.filter(item => {
-    const original = selecionados.find(s => s.id === item.id)
-    if (!original) return false
-
-    const statusMudou = original.status !== item.status
-    const checkinMudou = item.checkin === true && !original.checkin
-
-    return statusMudou || checkinMudou
-  })
-
-  if (itensFiltrados.length === 0) {
-    toast.info('Nenhuma alteração necessária nos itens selecionados.')
-    limparSelecao()
-    return
-  }
-
-  try {
-    await appStore.atualizarAgendamentosEmLote(itensFiltrados)
-    limparSelecao()
-  } catch (error) {
-    console.error("Falha no update em lote", error)
-  }
+const handleAplicarStatusPacienteLote = async () => {
+  await aplicarStatusPacienteLote(selectedAgendamentos.value, bulkStatusPaciente.value as AgendamentoStatusEnum)
+  limparSelecao()
 }
 
 watch(() => selectedIds.value.length, (newCount) => {
@@ -283,7 +215,7 @@ onUnmounted(() => {
           <Button class="h-8" size="sm" variant="outline" @click="limparSelecao">
             Cancelar
           </Button>
-          <Button class="h-8" size="sm" @click="aplicarStatusPacienteLote">
+          <Button class="h-8" size="sm" @click="handleAplicarStatusPacienteLote">
             Confirmar
           </Button>
           <Button class="h-8" size="sm" @click="abrirRemarcacaoLote">

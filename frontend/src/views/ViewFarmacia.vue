@@ -18,13 +18,13 @@ import {isInfusao} from '@/utils/utilsAgenda.ts'
 import AgendamentoModalDetalhes from "@/components/comuns/AgendamentoModalDetalhes.vue";
 import PrescricaoModalDetalhes from "@/components/comuns/PrescricaoModalDetalhes.vue";
 import {useLocalStorage, useSessionStorage} from "@vueuse/core";
-import {toast} from 'vue-sonner'
 import {useAutoRefresh} from "@/composables/useAutoRefresh.ts";
 import {extrairMedicamentosDoAgendamento} from "@/utils/utilsFarmacia.ts";
 import {STATUS_ORDER} from "@/constants/constFarmacia.ts";
 import {useAgendaNavegacao} from "@/composables/useAgendaNavegacao.ts";
 import {useAgendaModals} from "@/composables/useAgendaModals.ts";
 import {useAgendaMetricas} from "@/composables/useAgendaMetricas.ts";
+import {useFarmaciaOperacoes} from "@/composables/useFarmaciaOperacoes.ts";
 
 const router = useRouter()
 const appStore = useAppStore()
@@ -47,6 +47,13 @@ const {
 
   isAlgumModalAberto
 } = useAgendaModals()
+
+const {
+  alterarStatusFarmacia: handleAlterarStatus,
+  alterarHorarioPrevisao: handleAlterarHorario,
+  aplicarStatusFarmaciaLote: aplicarStatusLote,
+  salvarChecklist,
+} = useFarmaciaOperacoes()
 
 onMounted(() => {
   appStore.fetchConfiguracoes()
@@ -186,14 +193,6 @@ const handleResetFiltros = () => {
   filtros.value = {ordenacao: 'horario', turno: 'todos', status: []}
 }
 
-const handleAlterarStatus = (agendamentoId: string, novoStatus: FarmaciaStatusEnum) => {
-  appStore.atualizarStatusFarmacia(agendamentoId, novoStatus)
-}
-
-const handleAlterarHorario = (agendamentoId: string, novoHorario: string) => {
-  appStore.atualizarHorarioPrevisao(agendamentoId, novoHorario)
-}
-
 const handleNavigatePaciente = (pacienteId: string) => {
   router.push({path: '/pacientes', query: {pacienteId}})
 }
@@ -226,9 +225,9 @@ const handleToggleCheckItem = async (agId: string, itemKey: string, statusAtual:
   }
 
   try {
-    await appStore.salvarChecklistFarmacia(agId, novoChecklist)
+    await salvarChecklist(agId, novoChecklist)
     if (proximoStatus && proximoStatus !== statusAtual) {
-      handleAlterarStatus(agId, proximoStatus)
+      await handleAlterarStatus(agId, proximoStatus)
     }
   } catch (error) {
     console.error("Erro ao sincronizar farmácia", error)
@@ -245,57 +244,9 @@ const limparSelecao = () => {
   bulkStatus.value = ''
 }
 
-const aplicarStatusLote = async () => {
-  if (!bulkStatus.value) {
-    toast.error('Selecione um status para aplicar.')
-    return
-  }
-
-  const selecionados = selectedRows.value
-  if (selecionados.length === 0) return
-
-  const itensParaAtualizar: any[] = []
-  let bloqueadosCount = 0
-
-  selecionados.forEach(row => {
-    if (row.statusBloqueado) {
-      bloqueadosCount++
-      return
-    }
-
-    if (row.statusFarmacia !== bulkStatus.value) {
-      itensParaAtualizar.push({
-        id: row.id,
-        detalhes: {
-          infusao: {
-            status_farmacia: bulkStatus.value
-          }
-        }
-      })
-    }
-  })
-
-  if (itensParaAtualizar.length === 0) {
-    if (bloqueadosCount > 0) {
-      toast.warning('Nenhum item válido para atualizar.')
-    } else {
-      toast.info('Todos os itens já estão com este status.')
-    }
-    limparSelecao()
-    return
-  }
-
-  try {
-    await appStore.atualizarAgendamentosEmLote(itensParaAtualizar)
-
-    if (bloqueadosCount > 0) {
-      toast.warning(`${bloqueadosCount} itens bloqueados foram ignorados.`)
-    }
-
-    limparSelecao()
-  } catch (error) {
-    console.error("Erro na atualização em lote da farmácia", error)
-  }
+const handleAplicarStatusLote = async () => {
+  await aplicarStatusLote(selectedRows.value, bulkStatus.value as FarmaciaStatusEnum)
+  limparSelecao()
 }
 
 const opcoesStatusFarmacia = computed(() => {
@@ -380,7 +331,7 @@ watch(viewRows, (lista) => {
             <Button class="h-8" size="sm" variant="outline" @click="limparSelecao">
               Cancelar
             </Button>
-            <Button class="h-8" size="sm" @click="aplicarStatusLote">
+            <Button class="h-8" size="sm" @click="handleAplicarStatusLote">
               Confirmar
             </Button>
           </div>
