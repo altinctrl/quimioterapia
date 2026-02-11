@@ -1,93 +1,128 @@
 # Guia de Configuração e Instalação
 
-Este guia detalha como configurar o ambiente de desenvolvimento. Atualmente, utilizamos uma abordagem híbrida: os bancos de dados rodam em um **container** (para isolamento e facilidade), enquanto o Backend e Frontend rodam **nativamente** na máquina (para performance e debugging).
+Este projeto suporta dois fluxos de trabalho distintos:
 
-## Pré-requisitos
+1. **Desenvolvimento:** Bancos de dados e servidor LDAP em containers; Backend e Frontend rodam nativamente na máquina
+   com hot-reload habilitado.
+2. **Produção:** Backend e Frontend rodam juntos em uma imagem Docker otimizada, conectando-se aos serviços externos
+   via rede Docker. Deve ser configurado se serviços de suporte forem executados em um ambiente separado.
 
-- **Python 3.10** ou superior
-- **Node.js 18** ou superior
+---
+
+### Pré-requisitos
+
+- **Python 3.14** ou superior
+- **Node.js 22.12** ou superior
 - **Podman Compose** ou **Docker Compose**
 - **Git**
 
 ---
 
-## 1. Configuração dos Containers
+## 1. Ambiente de Desenvolvimento
 
-O projeto depende de dois bancos de dados PostgreSQL e dos serviços LDAP:
-1.  `db_quimio`: Banco de dados principal da aplicação.
-2.  `db_aghu`: Banco de dados que simula o sistema legado do hospital (apenas leitura/validação).
-3.  `openldap_server`: Servidor LDAP para autenticação.
-4.  `phpldapadmin`: Interface web para o servidor LDAP.
+Use este modo para codificar. As alterações no código refletem imediatamente.
 
-### Alternativas:
+### Passo 1: Infraestrutura
 
-1.  **Inicie todos os serviços no ambiente de desenvolvimento:**
-    Na raiz do projeto, execute:
-    ```bash
-    podman-compose -f docker-compose.yml -f docker-compose.dev.yml up --build
-    ```
+Inicie os serviços de suporte (Banco de dados da aplicação, AGHU, servidor LDAP e WebUI LDAP).
+Na raiz do projeto, execute:
 
-2.  **Inicie apenas o banco de dados principal em produção:**
-    Na raiz do projeto, execute:
-    ```bash
-    podman-compose up --build
-    ```
+```bash
+podman-compose -f docker-compose.yml -f docker-compose.dev.yml -p quimio_dev up --build
+```
 
----
+**Isso criará a rede `quimioterapia_quimio_network`.**
 
-## 2. Configuração do Backend (FastAPI)
+### Passo 2: Backend
 
-1.  **Crie o ambiente virtual (na raiz do projeto):**
-    ```bash
-    python -m venv .venv
-    source .venv/bin/activate  # Windows: .venv\Scripts\activate
-    ```
+1. **Crie o ambiente virtual na raiz do projeto:**
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate  # Windows: .venv\Scripts\activate
+   ```
 
-2.  **Instale as dependências:**
-    ```bash
-    pip install -r requirements.txt
-    ```
+2. **Instale as dependências:**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-3.  **Configure as variáveis de ambiente:**
-    Copie o exemplo e ajuste se necessário (o padrão costuma funcionar para dev local).
-    ```bash
-    cp .env.example .env
-    ```
+3. **Configure as variáveis de ambiente:**
+   Copie o exemplo e ajuste se necessário (o padrão costuma funcionar para dev local).
+   ```bash
+   cp .env.example .env
+   ```
 
-4.  **Popule os bancos de dados (Seeds):**
-    Para ter dados iniciais para trabalhar:
-    ```bash
-    # Primeiro popular o AGHU (Executar apenas uma vez ou se resetar volumes)
-    python src/scripts/seed_aghu.py
+4. **Popule os bancos de dados:**
+   Para ter dados iniciais para trabalhar:
+   ```bash
+   # Primeiro popular o AGHU (Executar apenas uma vez ou se resetar volumes)
+   python src/scripts/seed_aghu.py
 
-    # Depois popular o banco da aplicação (Desenvolvimento diário)
-    python src/scripts/seed_dev.py
-    ```
-    Ou apenas crie as tabelas e carregue as configurações padrão se estiver em produção:
-    ```bash
-    python src/scripts/seed_prod.py
-    ```
+   # Depois popular o banco da aplicação (Desenvolvimento diário)
+   python src/scripts/seed_dev.py
+   ```
 
-5.  **Inicie o servidor:**
-    ```bash
-    uvicorn src.main:app --reload # Remova a flag --reload se estiver em produção
-    ```
+5. **Inicie o servidor:**
+   ```bash
+   uvicorn src.main:app --reload
+   ```
 
----
+**A API ficará disponível em: `http://localhost:8000`**
 
-## 3. Configuração do Frontend (Vue.js)
+### Passo 3: Frontend
 
 Abra um novo terminal e navegue até a pasta `frontend/`.
 
-1.  **Instale as dependências:**
-    ```bash
-    cd frontend
-    npm install
-    ```
+1. **Instale as dependências:**
+   ```bash
+   cd frontend
+   npm install
+   ```
 
-2.  **Inicie o servidor de desenvolvimento:**
-    ```bash
-    npm run dev
-    ```
+2. **Inicie o servidor de desenvolvimento:**
+   ```bash
+   npm run dev
+   ```
 
-O frontend estará disponível em `http://localhost:5173`.
+**O frontend estará disponível em `http://localhost:5173`.**
+
+---
+
+## 2. Ambiente de Produção
+
+Use este modo para testar a imagem final que irá para o servidor. O Frontend é compilado e servido pelo Backend.
+
+### Passo 1: Garantir Dependências Externas
+
+Em produção, a aplicação espera que o **LDAP** e o **Banco AGHU** já existam na rede. Para testar localmente, mantenha o
+docker-compose de dev rodando (pois ele provê esses serviços):
+
+```bash
+podman-compose -f docker-compose.dev.yml -p quimio_dev up
+```
+
+### Passo 2: Construção e Execução da Aplicação
+
+Este comando constrói a imagem e inicia o container `quimio_app_prod` e seu banco de dados `quimio_db_prod`.
+
+```bash
+podman-compose -f docker-compose.prod.yml -p quimio_prod up --build
+```
+
+### Passo 3: Acesso
+
+* A aplicação completa (Front + Back) estará disponível em: **`http://localhost:8000`**
+* **Nota:** Não é necessário rodar `npm run dev` ou `uvicorn` separadamente.
+* **Seed:** O script `seed_prod.py` roda automaticamente na inicialização, criando as configurações básicas se o banco
+  de dados estiver vazio.
+
+---
+
+## Resumo de Comandos
+
+| Ação                  | Comando                                                                                   |
+|-----------------------|-------------------------------------------------------------------------------------------|
+| **Iniciar Infra Dev** | `podman-compose -f docker-compose.yml -f docker-compose.dev.yml -p quimio_dev up --build` |
+| **Resetar Banco Dev** | `podman rm -f db_app && podman volume rm quimio_dev_postgres_app_data`                    |
+| **Iniciar Produção**  | `podman-compose -f docker-compose.prod.yml -p quimio_prod up --build`                     |
+| **Parar Produção**    | `podman-compose -f docker-compose.prod.yml -p quimio_prod down`                           |

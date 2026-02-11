@@ -2,40 +2,37 @@
 
 ## Arquitetura de Dados
 
-O sistema interage com duas fontes de dados distintas (ambas PostgreSQL em desenvolvimento):
+O sistema opera com distinção clara entre dados da aplicação e dados legados.
 
 ### 1. `db_quimio` (Aplicação)
--   **Responsabilidade:** Armazena dados gerados pela nossa aplicação e replica prontuários sob demanda.
--   **Gerenciamento:** Totalmente gerenciado por nós via **Alembic**.
--   **Tabelas Principais:** `pacientes`, `prescricoes`, `protocolos`, `agendamentos`.
+
+Armazena dados gerados pela nossa aplicação e replica prontuários sob demanda.
+
+- **Dev:** Container definido em `docker-compose.yml`. Acessado via `localhost:5432`.
+- **Prod:** Container (`quimio_db_prod`) definido em `docker-compose.prod.yml`. Acessado internamente via `db_app:5432`.
 
 ### 2. `db_aghu` (Legado / Réplica)
--   **Responsabilidade:** Simula o banco de dados do hospital (AGHU).
--   **Gerenciamento:** Não aplicamos migrações aqui. Em produção, é um banco externo apenas leitura. Em dev, é um Postgres populado via scripts (`src/scripts/seed.py`).
--   **Dados:** Prontuários de pacientes.
+
+Simula o banco de dados do hospital (AGHU).
+
+- **Dev:** Container definido em `docker-compose.dev.yml`. Acessado via `localhost:5433`.
+- **Prod:** A aplicação espera conectar-se a um banco existente na rede ou simulado pelo container de dev via rede
+  externa. Apenas leitura.
 
 ---
 
-## Resetando o Ambiente de Dados (Desenvolvimento)
+## População de Dados
 
-Se o banco de dados local estiver inconsistente ou seja necessário começar "do zero":
+### Em Desenvolvimento (`seed_aghu.py` e `seed_dev.py`)
 
-1. **Pare os containers e apague os volumes:**
-    Isso apaga fisicamente os dados do container.
-    ```bash
-    podman-compose down -v
-    ```
+- **Objetivo:** Gerar massa de dados para testes (pacientes falsos, agendamentos, prescrições).
+- **Execução:** Manual, via terminal (`python -m src.scripts.seed_aghu` e `python -m src.scripts.seed_dev`).
+- **Comportamento:** Destrutivo. Limpa tabelas antes de inserir.
 
-2. **Inicie novamente:**
-    ```bash
-    podman-compose -f docker-compose.yml -f docker-compose.dev.yml up --build
-    ```
+### Em Produção (`seed_prod.py`)
 
-3. **Execute os scripts de seed:**
-    ```bash
-    # Primeiro popular o AGHU (Executar apenas uma vez ou se resetar volumes)
-    python src/scripts/seed_aghu.py
-
-    # Depois popular o banco da aplicação (Desenvolvimento diário)
-    python src/scripts/seed_dev.py
-    ```
+- **Objetivo:** Garantir que as tabelas existam no banco de dados e que o sistema tenha as configurações mínimas para
+  funcionar (Vagas, Horários, Tags, Diluentes).
+- **Execução:** Automática (via `entrypoint.sh`) toda vez que o container sobe.
+- **Comportamento:** Idempotente. Verifica se a configuração `id=1` existe. Se existir, não faz nada. Se não existir,
+  cria os dados iniciais.
