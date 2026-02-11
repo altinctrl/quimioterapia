@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {computed, onUnmounted, ref, watch} from 'vue'
+import {computed, onUnmounted, ref, toRef, watch} from 'vue'
 import {Card, CardContent} from '@/components/ui/card'
 import {Button} from '@/components/ui/button'
 import {Checkbox} from '@/components/ui/checkbox'
@@ -9,7 +9,6 @@ import {Label} from '@/components/ui/label'
 import {Textarea} from '@/components/ui/textarea'
 import AgendaControles from '@/components/agenda/AgendaControles.vue'
 import AgendaTabela from '@/components/agenda/AgendaTabela.vue'
-import {getDuracaoAgendamento, getGrupoInfusao} from '@/utils/utilsAgenda.ts'
 import {Agendamento, AgendamentoStatusEnum, FiltrosAgenda, TipoAgendamento} from "@/types/typesAgendamento.ts";
 import {
   LABELS_STATUS_LOTE_AGENDA,
@@ -17,6 +16,7 @@ import {
 } from "@/constants/constAgenda.ts"
 import {ChevronDown} from "lucide-vue-next";
 import {useAgendaOperacoes} from "@/composables/useAgendaOperacoes.ts";
+import {useAgendaListagem} from "@/composables/useAgendaListagem.ts";
 
 const props = defineProps<{
   agendamentos: Agendamento[]
@@ -48,58 +48,11 @@ const filtrosModel = computed({
   set: (val) => emit('update:filtros', val)
 })
 
-const agendamentosProcessados = computed(() => {
-  let lista = [...props.agendamentos]
+const agendamentosRef = toRef(props, 'agendamentos')
 
-  if (filtrosModel.value.esconderRemarcados) lista = lista.filter(a => a.status !== AgendamentoStatusEnum.REMARCADO)
-  if (filtrosModel.value.turno !== 'todos') lista = lista.filter(a => a.turno === filtrosModel.value.turno)
-
-  if ((props.mostrarFiltrosInfusao ?? true) && filtrosModel.value.statusFarmacia.length > 0) {
-    lista = lista.filter(a => {
-      const status = a.detalhes?.infusao?.statusFarmacia
-      return status && filtrosModel.value.statusFarmacia.includes(status)
-    })
-  }
-
-  if ((props.mostrarFiltrosInfusao ?? true) && filtrosModel.value.gruposInfusao.length > 0) {
-    lista = lista.filter(a => {
-      const duracao = getDuracaoAgendamento(a)
-      const grupo = getGrupoInfusao(duracao)
-      return filtrosModel.value.gruposInfusao.includes(grupo)
-    })
-  }
-
-  return lista.sort((a, b) => {
-    const durA = getDuracaoAgendamento(a)
-    const durB = getDuracaoAgendamento(b)
-
-    switch (filtrosModel.value.ordenacao) {
-      case 'grupo_asc':
-        if (durA !== durB) return durA - durB
-        return a.horarioInicio.localeCompare(b.horarioInicio)
-
-      case 'grupo_desc':
-        if (durA !== durB) return durB - durA
-        return a.horarioInicio.localeCompare(b.horarioInicio)
-
-      case 'horario':
-        return a.horarioInicio.localeCompare(b.horarioInicio)
-
-      case 'status':
-        const getPeso = (s: string) => {
-          if (['suspenso', 'intercorrencia', 'ausente'].includes(s)) return 0
-          if (s === 'aguardando-medicamento') return 1
-          if (s === 'em-infusao') return 2
-          if (s === 'concluido') return 10
-          return 5
-        }
-        return getPeso(a.status) - getPeso(b.status)
-
-      default:
-        return 0
-    }
-  })
-})
+const {
+  listaProcessada: agendamentosProcessados
+} = useAgendaListagem(agendamentosRef, filtrosModel, { filtrarInfusao: props.mostrarFiltrosInfusao ?? true })
 
 const selectedIds = ref<string[]>([])
 const bulkRemarcarOpen = ref(false)
