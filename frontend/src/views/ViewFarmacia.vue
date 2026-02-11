@@ -16,6 +16,7 @@ import PrescricaoModalDetalhes from "@/components/comuns/PrescricaoModalDetalhes
 import {useLocalStorage, useSessionStorage} from "@vueuse/core";
 import {toast} from 'vue-sonner'
 import {useAutoRefresh} from "@/composables/useAutoRefresh.ts";
+import {extrairMedicamentosDoAgendamento} from "@/utils/utilsFarmacia.ts";
 
 const router = useRouter()
 const appStore = useAppStore()
@@ -100,48 +101,11 @@ const agendamentosDoDia = computed(() => {
   )
 })
 
-const getUnidadeFinal = (unidade: string) => {
-  if (!unidade) return ''
-  if (unidade.includes('/')) {
-    return unidade.split('/')[0]
-  }
-  return unidade
-}
-
 const tableRows = computed<FarmaciaTableRow[]>(() => {
   return agendamentosDoDia.value.map(ag => {
     const infoInfusao = ag.detalhes?.infusao;
     const prescricao = ag.prescricao;
-    const diaCicloAtual = infoInfusao?.diaCiclo || 1;
-
-    const itensPreparados = new Set(infoInfusao?.itensPreparados || []);
-
-    const medicamentosRow: Array<{
-      key: string;
-      nome: string;
-      dose: string;
-      unidade: string;
-      checked: boolean
-    }> = [];
-
-    if (prescricao && prescricao.conteudo && prescricao.conteudo.blocos) {
-      prescricao.conteudo.blocos.forEach(bloco => {
-        bloco.itens.forEach(item => {
-          if (item.diasDoCiclo.includes(diaCicloAtual)) {
-            const key = item.idItem || `${bloco.ordem}-${item.medicamento}`;
-
-            medicamentosRow.push({
-              key: key,
-              nome: item.medicamento,
-              dose: String(item.doseFinal),
-              unidade: getUnidadeFinal(item.unidade),
-              checked: itensPreparados.has(key)
-            });
-          }
-        });
-      });
-    }
-
+    const medicamentosRow = extrairMedicamentosDoAgendamento(ag)
     const totalMeds = medicamentosRow.length;
     const totalChecked = medicamentosRow.filter(m => m.checked).length;
     const checklistLabel = totalMeds > 0 ? `${totalChecked}/${totalMeds}` : '-';

@@ -119,3 +119,11 @@ export interface Agendamento {
   prescricao?: PrescricaoMedica;
   historicoAlteracoes?: AgendamentoHistoricoItem[];
 }
+
+export interface MedicamentoFarmacia {
+  key: string
+  nome: string
+  dose: string
+  unidade: string
+  checked: boolean
+}
