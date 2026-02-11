@@ -9,7 +9,7 @@ class Agendamento(Base):
     __tablename__ = "agendamentos"
 
     id = Column(String, primary_key=True)
-    criado_por_id = Column(String, ForeignKey("profissionais.username"), nullable=False)
+    criado_por_id = Column(String, ForeignKey("users.username"), nullable=False)
     paciente_id = Column(String, ForeignKey("pacientes.id"))
     tipo = Column(String, nullable=False)
     data = Column(Date, nullable=False, index=True)
@@ -25,4 +25,4 @@ class Agendamento(Base):
     historico_alteracoes = Column(JSONB, nullable=True, default=list)
 
     paciente = relationship("Paciente", back_populates="agendamentos")
-    criado_por = relationship("Profissional")
+    criado_por = relationship("User")

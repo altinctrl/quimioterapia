@@ -1,7 +1,5 @@
 import {PrescricaoMedica} from "@/types/typesPrescricao.ts";
 
-import {Profissional} from "@/types/typesEquipe.ts";
-
 export type Turno = 'manha' | 'tarde' | 'noite';
 
 export enum AgendamentoStatusEnum {
@@ -95,6 +93,11 @@ export interface DetalhesAgendamento {
   historicoPrescricoes?: HistoricoPrescricaoAgendamentoItem[];
 }
 
+export interface CriadoPor {
+  username: string
+  nome: string
+}
+
 export interface Agendamento {
   id: string;
   pacienteId: string;
@@ -106,7 +109,7 @@ export interface Agendamento {
   tipo: TipoAgendamento;
   data: string;
   criadoPorId?: string;
-  criadoPor?: Profissional;
+  criadoPor?: CriadoPor;
   turno: Turno;
   horarioInicio: string;
   horarioFim: string;

@@ -710,8 +710,9 @@ async def remarcar_agendamento(
         dados.motivo, usuario_id, usuario_nome
     )
 
-    response = AgendamentoResponse.model_validate(novo_agendamento)
     await provider.commit()
+    agendamento_final = await provider.obter_agendamento(novo_agendamento.id)
+    response = AgendamentoResponse.model_validate(agendamento_final)
     return response
 
 
@@ -743,6 +744,10 @@ async def remarcar_agendamentos_lote(
         )
         novos_agendamentos.append(novo)
 
-    response = [AgendamentoResponse.model_validate(a) for a in novos_agendamentos]
     await provider.commit()
+    response = []
+    if novos_agendamentos:
+        ids_novos = [a.id for a in novos_agendamentos]
+        agendamentos_finais = await provider.buscar_por_id_multi(ids_novos)
+        response = [AgendamentoResponse.model_validate(a) for a in agendamentos_finais]
     return response
