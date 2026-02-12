@@ -319,7 +319,7 @@ export function useAgendamentoFormulario() {
         infusao: {
           prescricao_id: prescricaoAtual.value.id,
           protocolo: prescricaoAtual.value.conteudo.protocolo.nome,
-          status_farmacia: 'pendente',
+          status_farmacia: 'agendado',
           ciclo_atual: prescricaoAtual.value.conteudo.protocolo.cicloAtual,
           dia_ciclo: diaCiclo.value
         }
