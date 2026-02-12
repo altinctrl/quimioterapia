@@ -151,7 +151,7 @@ const {
         </div>
       </div>
 
-      <Button class="text-sm w-full mt-2" size="sm" variant="secondary" @click="addItemToBloco">
+      <Button class="text-sm w-full mt-2" size="sm" variant="secondary" @click="addItemToBloco(bloco)">
         <Plus class="h-4 w-4 mr-2"/>
         Adicionar Medicamento ao Bloco
       </Button>
