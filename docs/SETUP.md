@@ -115,6 +115,9 @@ podman-compose -f docker-compose.prod.yml -p quimio_prod up --build
 * **Nota:** Não é necessário rodar `npm run dev` ou `uvicorn` separadamente.
 * **Seed:** O script `seed_prod.py` roda automaticamente na inicialização, criando as configurações básicas se o banco
   de dados estiver vazio.
+* **Protocolos:** Podem ser criados manualmente ou importados por arquivo json na aplicação. O arquivo json deve ser 
+  uma lista de objetos que segue estritamente o formato definido por `ProtocoloBase` em `src/schemas/protocolo_schema.py`.
+  O conteúdo da constante `PROTOCOLOS_DATA` em `src/scripts/seed_utils/protocolos_teste.py` pode servir de exemplo.
 
 ---
 
