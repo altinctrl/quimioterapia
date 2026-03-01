@@ -14,7 +14,6 @@ import {
   LABELS_STATUS_LOTE_AGENDA,
   STATUS_GERAL_POS_CHECKIN,
 } from "@/constants/constAgenda.ts"
-import {ChevronDown} from "lucide-vue-next";
 import {useAgendaOperacoes} from "@/composables/useAgendaOperacoes.ts";
 import {useAgendaListagem} from "@/composables/useAgendaListagem.ts";
 
@@ -134,48 +133,16 @@ onUnmounted(() => {
     <div class="px-4 pt-4">
       <AgendaControles
           v-model="filtrosModel"
+          v-model:bulk-status-paciente="bulkStatusPaciente"
           :mostrar-farmacia="mostrarFiltrosInfusao"
           :mostrar-grupos-infusao="mostrarFiltrosInfusao"
-          @reset="emit('reset')"
+          :opcoes-status-lote="opcoesStatusLote"
+          :selected-ids="selectedIds"
+          @reset-filtros="emit('reset')"
+          @limpar-selecao="limparSelecao"
+          @aplicar-status="handleAplicarStatusPacienteLote"
+          @aplicar-remarcacao="abrirRemarcacaoLote"
       />
-    </div>
-
-    <div v-if="selectedIds.length" class="px-4 py-3">
-      <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between bg-blue-50 border border-blue-100 rounded-md p-3">
-        <span class="text-sm font-medium text-blue-700">
-          {{ selectedIds.length }} agendamentos selecionados
-        </span>
-        <div class="flex flex-wrap gap-2">
-          <div class="relative">
-            <select
-                v-model="bulkStatusPaciente"
-                class="flex h-8 w-full items-center justify-between rounded-md border border-input bg-background
-                         px-3 py-1 pr-8 text-sm ring-offset-background placeholder:text-muted-foreground
-                         focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2
-                         disabled:cursor-not-allowed disabled:opacity-50 appearance-none truncate"
-            >
-              <option disabled value="">Alterar status...</option>
-              <option
-                  v-for="opcao in opcoesStatusLote"
-                  :key="opcao.id"
-                  :value="opcao.id"
-              >
-                {{ opcao.label }}
-              </option>
-            </select>
-            <ChevronDown class="absolute right-2 top-2 h-4 w-4 opacity-50 pointer-events-none"/>
-          </div>
-          <Button class="h-8" size="sm" variant="outline" @click="limparSelecao">
-            Cancelar
-          </Button>
-          <Button class="h-8" size="sm" @click="handleAplicarStatusPacienteLote">
-            Confirmar
-          </Button>
-          <Button class="h-8" size="sm" @click="abrirRemarcacaoLote">
-            Remarcar
-          </Button>
-        </div>
-      </div>
     </div>
 
     <CardContent class="p-0 mt-0">
