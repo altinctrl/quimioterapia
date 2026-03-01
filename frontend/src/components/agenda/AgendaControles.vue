@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import {computed, ref} from 'vue'
 import {Button} from '@/components/ui/button'
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select'
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -16,11 +17,18 @@ const props = defineProps<{
   modelValue: FiltrosAgenda
   mostrarFarmacia?: boolean
   mostrarGruposInfusao?: boolean
+  selectedIds: string[]
+  bulkStatusPaciente: string
+  opcoesStatusLote: Array<{ id: string; label: string }>
 }>()
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: FiltrosAgenda): void
-  (e: 'reset'): void
+  (e: 'update:bulkStatusPaciente', value: string): void
+  (e: 'resetFiltros'): void
+  (e: 'limparSelecao'): void
+  (e: 'aplicarStatus'): void
+  (e: 'aplicarRemarcacao'): void
 }>()
 
 const isExpanded = ref(false)
@@ -77,11 +85,47 @@ const activeCount = computed(() => {
             class="h-7 text-xs text-muted-foreground hover:text-red-600"
             size="sm"
             variant="ghost"
-            @click="emit('reset')"
+            @click="emit('resetFiltros')"
         >
           <X/>
           Limpar Filtros
         </Button>
+      </div>
+
+      <div v-if="selectedIds.length">
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <span class="text-sm font-medium text-blue-700">
+            {{ selectedIds.length }} selecionados
+          </span>
+          <div class="flex flex-wrap gap-2">
+            <Select
+                :model-value="bulkStatusPaciente"
+                @update:model-value="(val) => emit('update:bulkStatusPaciente', val as string)"
+            >
+              <SelectTrigger class="w-52 h-8">
+                <SelectValue placeholder="Alterar status..."/>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem
+                    v-for="opcao in opcoesStatusLote"
+                    :key="opcao.id"
+                    :value="opcao.id"
+                >
+                  {{ opcao.label }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <Button class="h-8" size="sm" variant="outline" @click="emit('limparSelecao')">
+              Cancelar
+            </Button>
+            <Button class="h-8" size="sm" @click="emit('aplicarStatus')">
+              Confirmar
+            </Button>
+            <Button class="h-8" size="sm" @click="emit('aplicarRemarcacao')">
+              Remarcar
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
 
